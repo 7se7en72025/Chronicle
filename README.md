@@ -1,81 +1,78 @@
 # Chronicle
 
-A local debugging workspace for coding agents: inspect a recorded failure, restore a supported checkpoint into an isolated branch, compare the outcome, and save the verified fix as a regression test.
+**Rewind an AI agent. Change one decision. Compare what happens next.**
 
-**Record → inspect → branch → compare → keep the fix.**
+Chronicle is a product concept for investigating failures in AI agents. Its core idea is to make a failed run a reproducible experiment: inspect what the agent knew and did, restore a supported checkpoint, try a different instruction in an isolated branch, and verify the outcome.
 
-Chronicle is an early, local-first MVP built with React, TypeScript, Node.js and Playwright. It includes a controlled coding-agent demo that works without a model API key. Real AI-agent integrations and hosted collaboration are future work.
+This repository currently contains the product brief only. It does not include a working application, agent integration, recorder, or deployed service.
 
-## Run locally
+## The problem
 
-Requires Node.js 22.12+ (Node 24 recommended).
+When an agent edits the wrong file, misunderstands a constraint, or takes the wrong step in a browser, a transcript rarely explains the whole failure. Reproducing it may require reconstructing the prompt, browser state, files, database, tool results, and agent checkpoint by hand. A second run can behave differently, which makes it difficult to know whether a proposed fix actually worked.
 
-```sh
-npm install
-npm run dev
-```
+Chronicle aims to connect those pieces in one inspectable run, with a precise explanation of which parts of the environment can and cannot be restored.
 
-Open **http://127.0.0.1:5173**. The local API listens on port 4317. First startup records a failed run and a repaired branch; subsequent starts reuse saved data. Edge or Chrome is used for headless screenshots and browser checks. If neither is available, run `npx playwright install chromium`. Capture failures are visible in the inspector; file snapshots and source-contract checks still work.
+## The product
 
-```sh
-npm test
-npm run build
-npm start
-```
+An engineer opens a failed run and selects a point on its timeline. Chronicle shows the instructions, evidence, tool call, arguments, result, files, browser capture, and checks associated with that point. The engineer changes one instruction and starts a new, isolated branch from the selected checkpoint.
 
-The production build is served at **http://127.0.0.1:4317**. The server binds to loopback only. `PORT` and `CHRONICLE_DATA_DIR` can override the API port and storage directory; the development proxy assumes port 4317.
+The original and new branch appear side by side. Their first differing action, changed files, verified outcomes, runtime, and cost help answer three questions: Did the fix work? Did it cause another problem? Is the evidence strong enough to keep it?
 
-## Try the demo
+When a repair is confirmed, the engineer saves the original fixture, failure condition, repaired instructions, and expected checks as a regression case. The case can then be rerun against later agent changes.
 
-1. Open the failed **Build a project dashboard** run. The timeline records what the agent read, its tool arguments, source changes, screenshots and assertion results.
-2. Select **Read authentication context**, before the bad edit, and choose **Branch from here**.
-3. Use the suggested instruction to preserve authentication. Chronicle copies the checkpoint into a separate workspace and executes the remaining controlled steps.
-4. Compare branches: the original allows anonymous access and exposes another user's project; the repair keeps the session guard and ownership filter.
-5. Save the passing branch as a regression test, then open **Regression suite** and run the suite.
-6. Leave a checkpoint note, copy its local link, or export a JSON bug capsule.
+## A first demonstration
 
-## Implemented
+An agent builds a project dashboard and accidentally removes the existing authentication check.
 
-- Durable timeline of tool actions, arguments, observations, instructions, hashes and timings.
-- Real isolated workspace directories with versioned file, fixture database and recorded agent-context snapshots at tool boundaries.
-- Real headless-browser screenshots, JavaScript-error detection, project-ownership checks, sign-in checks and a new-project form smoke check.
-- Timeline scrubber, recorded playback, workspace file diffs, agent-context inspector and restoration coverage.
-- Checkpoint branching with an instruction intervention, independent workspaces and verified comparison.
-- Context comparison, contract results and local model-cost reporting ($0; no model call is made).
-- Passing-run regression capture, original-fixture reruns, persistent results and checkpoint notes.
-- JSON evidence capsule exports and links to exact checkpoints within this local installation.
-- Responsive interface, keyboard search, modal focus management and reduced-motion support.
+1. Find the edit on the run timeline and inspect the agent's earlier view of the authentication code.
+2. Restore the workspace, fixture database, and agent checkpoint just before the edit.
+3. Branch with an instruction to preserve authentication and only show projects owned by the signed-in user.
+4. Compare the original and repaired browser output, file changes, access-control checks, and execution cost.
+5. Save the passing case as a regression test.
 
-## Scope and boundaries
+External actions remain simulated in the first build. The demonstration never assumes that an email, booking, or other real-world action can be undone.
 
-**This is an executable MVP with a deterministic demo adapter, not a general AI coding agent.** The adapter deliberately makes one reproducible authentication mistake. A branch recognizes instructions such as “preserve authentication” and executes the supported repair; unrelated instructions leave the original bug intact. No LLM API is connected and no model tokens are billed. Integrating a real agent requires recording its actual tool boundaries and storing its resumable state behind the same event interface.
+## Product principles
 
-The controlled environment is a small Folio app. Its database is a JSON fixture, its writes are sample-source changes, and its browser is reconstructed from the checkpoint's source, fixture and storage state. **It does not restore a live browser process, JavaScript heap, arbitrary remote backend or external side effect.** Checkpoint snapshots are full copies suitable for this small fixture. Screenshot recording is supported; video recording is not.
+- **Show evidence before explanations.** Distinguish recorded facts from generated hypotheses, and link each hypothesis to its supporting event.
+- **Restore the environment, not just the conversation.** Record exactly which files, database state, browser storage, and agent checkpoint can be recovered.
+- **Compare observable outcomes.** Use application-state assertions alongside screenshots and agent messages.
+- **Change one variable at a time.** Show the run count and variability so one successful attempt is not mistaken for proof.
+- **Turn verified repairs into repeatable tests.** Preserve the original failure fixture and identify unexpected changes as well as the expected outcome.
+- **Make boundaries visible.** Label playback, sandbox experiments, and live retries separately. A screenshot or authentication cookie does not restore an arbitrary browser process or remote backend.
+- **Protect captured information.** Redact secrets and respect access controls before recordings are shared.
 
-Regression-suite reruns exercise source-contract checks against the original fixture using the controlled adapter. Browser checks run during recorded agent experiments; they are shown separately and are not silently claimed to have run in the regression suite. All tests check application behavior rather than trusting an agent's success message. New-project form writes happen only in the isolated page and do not persist to an external service.
+## First-build scope
 
-Capsules are JSON evidence exports for this fixture, with local screenshot references. Import, embedded binary screenshots, secret redaction for real credentials and remote execution are not implemented. Collaboration is checkpoint notes and links within the same local installation; hosted accounts, authorization and multiplayer presence are not implemented. The UI labels this scope.
+Start with one coding agent in a controlled workspace and a small sample application. Record tool events and screenshots at supported boundaries. Snapshot workspace files, fixture data, and agent state. Reopen a supported checkpoint in an isolated branch, compare runs, and save a verified repair as a regression case.
 
-This runner accepts only controlled fixture tools. Its VM-based source checks and browser context **are not a security boundary for arbitrary untrusted code**. Do not expose the server publicly or connect production credentials. A production agent integration needs OS/container isolation, an authenticated API, storage quotas, content redaction, tool-specific action receipts and verified environment restoration.
+Simulate external actions in the sample environment. Defer multiple agents, hosted collaboration, arbitrary live websites, real external writes, and production deployment integrations until restoration and isolation are reliable.
 
-## Structure
+## What the hard part is
 
-```text
-src/                 React / TypeScript workspace UI
-server/engine.mjs    Recorder, checkpoints, branches, fixtures, regression suite
-server/browser.mjs   Playwright evidence capture and browser verification
-server/fixture.mjs   Controlled application and reproducible failed edit
-server/index.mjs     Local HTTP API and sample-app checkpoint serving
-tests/               Recorder, isolation, persistence and regression invariants
-.chronicle/          Ignored durable recordings, artifacts and isolated workspaces
-```
+Agent conversation replay and branching already exist in frameworks such as [LangGraph](https://www.langchain.com/blog/langgraph-v0-2). Chronicle's product hypothesis is that teams need the *whole supported working environment* restored alongside that agent state—and a clear visual comparison of the evidence and verified outcomes.
 
-The storage file is written atomically after each checkpoint. Mutations are serialized within this server process. This local MVP is single-process; concurrent server instances sharing one data directory are unsupported. Interrupted runs are marked as interrupted on restart. Regression tests and notes are retained across restarts.
+Browser screenshots or saved storage do not recreate JavaScript memory, an external website's database, a changed remote service, or an already completed side effect. Each integration needs explicit snapshot, restore, and action-reconciliation rules. Chronicle must report restoration coverage instead of promising universal undo.
 
-## Validation
+## Who it is for
 
-`npm test` covers the reproducible failure, independent branches, interventions after a failure, unrelated instructions, regression detection, capsule contents, persistent notes, invalid checkpoints and browser-check failure propagation. `npm run build` checks TypeScript and produces the production interface.
+The initial customer hypothesis is a small team building and shipping browser-based AI agents. The primary use case is debugging and evaluating agent changes. An open-source recorder with optional paid hosted workspaces is one business model to investigate, not a validated pricing plan.
 
-## Next integration
+Useful early measures include time to reproduce a failure, time to verify a repair, the share of failures that become saved regression cases, and the rate at which resolved failures return after agent updates.
 
-Replace the controlled adapter with one coding agent integration, keep the recorder's evidence format, and restore agent/tool state at explicit checkpoints. Add container-backed execution, a transactional database and artifact storage before supporting external workspaces or hosted teams. General agent branching and replay can be supplied by a framework such as LangGraph; Chronicle's additional responsibility remains environment restoration and useful evidence comparison.
+## Proposed implementation sequence
+
+1. **Recorder:** connect one coding agent to a controlled application. Capture instructions, screenshots, tool events, file changes, errors, runtime, and cost.
+2. **Restoration:** snapshot and restore the application fixture, database, workspace, and agent checkpoint at defined tool boundaries.
+3. **Branch comparison:** run one changed instruction in an isolated environment; compare the first differing action, changes, assertions, and cost.
+4. **Regression cases:** save confirmed failures and rerun them when the prompt, model, or agent code changes.
+5. **Team workflows:** add shareable, access-controlled bug capsules and comments tied to a checkpoint, with sensitive data redacted.
+
+## Open questions
+
+- Which agent framework and task type make the first integration most useful?
+- Which environment states can the first integration restore exactly and cheaply?
+- Which application assertions do teams trust as evidence that a fix worked?
+- Do teams value a portable local recorder, managed isolated workspaces, or both?
+
+The goal is a small, reproducible experiment a teammate can inspect—not a promise that any agent action in any environment can be rewound.
