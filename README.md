@@ -4,7 +4,7 @@
 
 Chronicle is an early local-first companion for coding agents such as Codex and Claude Code. It records supported workspace changes, shows checkpoints and diffs, and lets you select edits to apply in a separate branch.
 
-The first prototype includes a local engine, CLI, VS Code review extension, and an optional Claude Code hook adapter. It is not published or production-ready. The CLI and engine are tested; editor interactions are tested through a mocked host, and a real Claude session remains unverified.
+The first prototype includes a local engine, CLI, VS Code review extension, and hook adapters for Claude Code and Codex CLI. It is not published or production-ready. Host payload fixtures are tested; a real VS Code, Claude Code, or Codex CLI session remains unverified.
 
 ## Try it
 

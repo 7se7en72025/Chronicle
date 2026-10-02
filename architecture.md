@@ -1,13 +1,13 @@
 # Chronicle architecture
 
-Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude hook payload adapter exist. Real host validation, automatic operation resumption, undo, finer selection, and environment replay remain incomplete.
+Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude/Codex hook payload adapters exist. Real host validation, automatic operation resumption, undo, finer selection, and environment replay remain incomplete.
 
 ## Implemented slice
 
 - `src/engine.js`: byte-hashed UTF-8 snapshots, checkpoint diffs, complete-hunk selection, result previews, separate Git worktree output, and operation journals.
 - `src/cli.js`: direct local commands with no model requests.
 - `src/extension.js`: VS Code commands and a webview for selection, preview, and branch output.
-- `src/hook.js` and `hooks/hooks.json`: Claude session/tool-boundary adapter, including failure events. Tested with payload fixtures, not a real Claude session.
+- `src/hook.js` and `hooks/hooks.json`: Claude session/tool-boundary adapter, including failure events. `plugin.json` and `hooks/codex-hooks.json` configure a Codex CLI lifecycle adapter using supported `SessionStart`, `SessionEnd`, `Interrupt`, `PreToolUse`, and `PostToolUse` events. Codex has no distinct post-tool-failure hook in the current event docs; its post-tool event is recorded as observed, not assumed successful. Both adapters are fixture-tested; real host sessions remain unverified.
 - `scripts/demo.js`: keeps 40 of 80 edits in a disposable fixture.
 
 Hook capture failures produce sanitized, bounded local gap records visible through the CLI and checkpoint comparison. Raw prompts, commands, tool errors, and repository paths are not stored in these records. A 1,000-event cap produces an explicit limit marker.

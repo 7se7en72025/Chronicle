@@ -149,7 +149,7 @@ class Chronicle {
     const clean = value => typeof value === 'string' ? value.slice(0, 200) : undefined;
     const gap = {
       schema: 1, kind: 'capture-gap', id: crypto.randomUUID(), repoId: hash(this.root), createdAt: new Date().toISOString(),
-      status: 'skipped', reason, source: 'claude-code', boundary: clean(event.boundary), sessionId: clean(event.sessionId), toolUseId: clean(event.toolUseId), tool: clean(event.tool)
+      status: 'skipped', reason, source: event.source === 'codex-cli' ? 'codex-cli' : 'claude-code', boundary: clean(event.boundary), sessionId: clean(event.sessionId), toolUseId: clean(event.toolUseId), tool: clean(event.tool)
     };
     writeJson(path.join(dir, gap.id + '.json'), gap);
     return gap;

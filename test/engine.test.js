@@ -211,6 +211,29 @@ test('failed Claude tool boundaries capture partial edits without storing tool s
   assert.equal(JSON.stringify(cp).includes('SECRET_'), false);
 });
 
+test('Codex hook boundaries record local file changes without storing prompts or claiming tool success', t => {
+  const { root, engine, file } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = recordHook({ cwd: root, hook_event_name: 'PreToolUse', session_id: 'codex-session', turn_id: 'turn-1', tool_name: 'apply_patch', tool_use_id: 'tool-2', tool_input: { command: 'SECRET_PROMPT' } }, options, 'codex-cli');
+  fs.writeFileSync(file, 'Codex output\n');
+  const after = recordHook({ cwd: root, hook_event_name: 'PostToolUse', session_id: 'codex-session', turn_id: 'turn-1', tool_name: 'apply_patch', tool_use_id: 'tool-2', tool_response: 'SECRET_OUTPUT' }, options, 'codex-cli');
+  assert.equal(before.event.source, 'codex-cli');
+  assert.equal(after.event.status, 'observed');
+  assert.equal(after.event.turnId, 'turn-1');
+  assert.equal(engine.bytes(after.files['README.md']).toString(), 'Codex output\n');
+  assert.equal(JSON.stringify([before, after]).includes('SECRET_'), false);
+  assert.throws(() => recordHook({ cwd: root, hook_event_name: 'PostToolUseFailure', session_id: 'codex-session' }, options, 'codex-cli'), /Unsupported/);
+});
+
+test('Codex plugin config references only fixture-supported lifecycle hooks', () => {
+  const plugin = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'plugin.json'), 'utf8'));
+  const config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'hooks', 'codex-hooks.json'), 'utf8'));
+  assert.equal(plugin.extensions['com.openai'].hooks, './hooks/codex-hooks.json');
+  assert.deepEqual(Object.keys(config.hooks).sort(), ['Interrupt', 'PostToolUse', 'PreToolUse', 'SessionEnd', 'SessionStart'].sort());
+  for (const name of ['PreToolUse', 'PostToolUse']) assert.equal(config.hooks[name][0].matcher, 'Bash|apply_patch|Edit|Write');
+  for (const name of Object.keys(config.hooks)) for (const group of config.hooks[name]) for (const hook of group.hooks) assert.match(hook.command, /src\/hook\.js.*codex/);
+});
+
 test('failed capture is recorded as a bounded gap and attached to its checkpoint interval', t => {
   const { root, engine } = fixture(t);
   const options = { storage: path.dirname(engine.store) };

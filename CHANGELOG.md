@@ -4,6 +4,12 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Add Codex CLI hook adapter
+
+- Added a portable plugin manifest and separate Codex hook config for supported session, interrupt, and local tool boundaries.
+- Reused the privacy-safe recorder; Codex tool completion is recorded as observed because its current hook schema has no distinct post-tool-failure event and `PostToolUse` also follows non-zero Bash exits.
+- All 22 tests pass, including Codex privacy/config fixtures. A real Codex CLI session is unavailable on this machine; see [REVIEW.md](REVIEW.md).
+
 ### 2026-10-02 — Reconcile interrupted branch output
 
 - Added read-only `reconcile` to compare operation journals with registered Git worktrees and branch refs, identify interrupted output and later edits by expected hashes, and point to retained paths without changing them. Expected uncommitted branch changes are not reported as post-completion edits.
