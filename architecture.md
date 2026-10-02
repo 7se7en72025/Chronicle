@@ -103,7 +103,7 @@ Only saved on-disk contents are captured initially. Unsaved editor buffers are o
 
 ### Storage rules
 
-Store metadata and blobs in a per-user application-data directory, keyed by repository identity. Resolve existing storage-path symlinks before creating the store, and reject any final path inside the recorded repository.
+Store metadata and blobs in a per-user application-data directory, keyed by repository identity. Resolve existing storage-base and repository-specific store symlinks before creating subdirectories, and reject any canonical final path inside the recorded repository. A dangling final store symlink is refused.
 
 Each checkpoint references immutable file versions. Preserve bytes, line endings, encoding, and supported file modes. Blobs are fsynced to a temporary file and linked to the final content hash atomically before checkpoint metadata references them. A crash can leave unreferenced temporary files; `recover` moves them to local quarantine without deleting them. Recovering unfinished branch journals remains manual.
 

@@ -91,6 +91,16 @@ class Chronicle {
     while (!fs.existsSync(probe)) { remainder.unshift(path.basename(probe)); const parent = path.dirname(probe); if (parent === probe) break; probe = parent; }
     storageBase = path.resolve(fs.realpathSync(probe), ...remainder);
     this.store = path.join(storageBase, hash(this.root).slice(0, 24));
+    let storeStat;
+    try { storeStat = fs.lstatSync(this.store); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (storeStat?.isSymbolicLink()) {
+      try { this.store = fs.realpathSync(this.store); }
+      catch (error) {
+        if (error.code === 'ENOENT') throw new Error('Snapshot storage symlink target must already exist');
+        throw error;
+      }
+    }
     const relativeStore = path.relative(this.root, this.store);
     if (!relativeStore || (relativeStore !== '..' && !relativeStore.startsWith('..' + path.sep) && !path.isAbsolute(relativeStore))) throw new Error('Snapshot storage must be outside the recorded repository');
     for (const dir of ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery']) fs.mkdirSync(path.join(this.store, dir), { recursive: true, mode: 0o700 });

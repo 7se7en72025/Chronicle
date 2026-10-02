@@ -275,6 +275,19 @@ test('storage symlinks cannot redirect snapshots into the recorded repository', 
   assert.equal(fs.existsSync(path.join(root, 'blobs')), false);
 });
 
+test('repository-specific storage symlinks are resolved before creating snapshot directories', t => {
+  const { root } = fixture(t);
+  const storage = path.join(path.dirname(root), 'storage-root');
+  fs.mkdirSync(storage);
+  const store = path.join(storage, hash(fs.realpathSync(root)).slice(0, 24));
+  fs.symlinkSync(root, store, process.platform === 'win32' ? 'junction' : 'dir');
+
+  assert.throws(() => new Chronicle(root, { storage }), /outside the recorded repository/);
+  for (const directory of ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery']) {
+    assert.equal(fs.existsSync(path.join(root, directory)), false, `${directory} must not be created inside the project`);
+  }
+});
+
 test('corrupted snapshots fail integrity checks', t => {
   const { engine } = fixture(t); const cp = engine.capture(); const entry = cp.files['README.md'];
   fs.writeFileSync(path.join(engine.store, 'blobs', entry.hash), 'tampered');
