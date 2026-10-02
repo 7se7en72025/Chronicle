@@ -154,3 +154,19 @@ test('stdio server pauses request processing while stdout is backpressured', asy
   assert.ok(observedPaused.length > 0);
   assert.ok(observedPaused.every(Boolean), 'input should remain paused until each response drains');
 });
+
+test('stdio server exits with a failure when the MCP client closes its output pipe', async () => {
+  const input = Readable.from([Buffer.from(JSON.stringify(request(1, 'ping')) + '\n')]);
+  let diagnostics = '';
+  const output = new Writable({
+    write(chunk, encoding, callback) {
+      const error = new Error('client closed output');
+      error.code = 'EPIPE';
+      callback(error);
+    }
+  });
+  const errorOutput = new Writable({ write(chunk, encoding, callback) { diagnostics += String(chunk); callback(); } });
+
+  assert.equal(await runStdioReplay({ input, output, errorOutput, cassette: cassette() }), 1);
+  assert.match(diagnostics, /MCP output failed \(EPIPE\)/);
+});

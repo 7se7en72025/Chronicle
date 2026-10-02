@@ -103,6 +103,12 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
       errorOutput.write(`MCP input failed (${inputError.code || 'STREAM_ERROR'}).\n`);
       finishRun(1);
     });
+    output.on('error', outputError => {
+      failed = true;
+      errorOutput.write(`MCP output failed (${outputError.code || 'STREAM_ERROR'}).\n`);
+      input.destroy();
+      finishRun(1);
+    });
     input.on('end', () => {
       if (failed) return finishRun(1);
       inputEnded = true;
