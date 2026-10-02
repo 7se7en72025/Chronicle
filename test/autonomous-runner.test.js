@@ -36,6 +36,7 @@ function makeFixture(t) {
     "$outIndex = [Array]::IndexOf($args, '--output-last-message')",
     'if ($outIndex -lt 0) { exit 13 }',
     "if ($env:CHRONICLE_AUTONOMOUS_PROMPT -notmatch 'review-and-improve') { exit 14 }",
+    "if ($env:CHRONICLE_FAKE_STDERR -eq '1') { & cmd.exe /d /c 'echo harmless diagnostics 1>&2'; if ($LASTEXITCODE -ne 0) { exit 16 } }",
     "if ($env:CHRONICLE_FAKE_COMMIT -eq '1') { Push-Location $env:CHRONICLE_FIXTURE_REPO; try { [System.IO.File]::WriteAllText('cycle-result.txt', 'verified fixture'); & git add -- cycle-result.txt; & git commit --quiet -m 'verified fixture cycle'; if ($LASTEXITCODE -ne 0) { exit 15 } } finally { Pop-Location } }",
     "if ($env:CHRONICLE_FAKE_NO_STOP -eq '1') { if ($env:CHRONICLE_FAKE_COMMIT -eq '1') { Push-Location $env:CHRONICLE_FIXTURE_REPO; try { $summary = 'CHRONICLE_RUNNER_READY ' + (& git rev-parse HEAD).Trim() } finally { Pop-Location } } else { $summary = 'Fixture cycle complete.' } } else { $summary = \"CHRONICLE_RUNNER_STOP`nFixture queue complete.\" }",
     '[System.IO.File]::WriteAllText($args[$outIndex + 1], $summary)',
@@ -60,6 +61,7 @@ function runRunner(fixture) {
       CHRONICLE_FAKE_CODEX_MARKER: path.join(fixture.tempRoot, 'called.txt'),
       CHRONICLE_FAKE_NO_STOP: fixture.noStop ? '1' : '0',
       CHRONICLE_FAKE_COMMIT: fixture.commit ? '1' : '0',
+      CHRONICLE_FAKE_STDERR: fixture.stderr ? '1' : '0',
       CHRONICLE_FIXTURE_REPO: fixture.repo,
     },
     timeout: 30_000,
@@ -89,6 +91,19 @@ test('autonomous runner invokes one isolated cycle and honors the stop marker', 
   assert.match(marker, /--config approval_policy=never/);
   assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Queue complete/);
   assert.equal(git(fixture.repo, 'status', '--porcelain'), '');
+});
+
+test('autonomous runner tolerates native stderr when the Codex cycle succeeds', (t) => {
+  if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
+  const fixture = makeFixture(t);
+  fixture.stderr = true;
+
+  runRunner(fixture);
+
+  assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Queue complete/);
+  const logs = fs.readdirSync(fixture.state).filter((name) => name.endsWith('.jsonl'));
+  assert.equal(logs.length, 1);
+  assert.match(fs.readFileSync(path.join(fixture.state, logs[0]), 'utf8'), /harmless diagnostics/);
 });
 
 test('autonomous runner pauses when a cycle fails to commit exactly one result', (t) => {

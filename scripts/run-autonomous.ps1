@@ -19,8 +19,17 @@ if ($Worker) {
         $env:CHRONICLE_AUTONOMOUS_PROMPT = [System.IO.File]::ReadAllText($PromptPath)
         Push-Location $repoRoot
         try {
-            & $CodexPath exec --sandbox workspace-write --config approval_policy=never --config sandbox_workspace_write.network_access=false --ephemeral --json --output-last-message $SummaryPath $env:CHRONICLE_AUTONOMOUS_PROMPT 2>&1 | Tee-Object -FilePath $RunLogPath
-            $codexExitCode = $LASTEXITCODE
+            $previousErrorAction = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            $logWriter = New-Object System.IO.StreamWriter($RunLogPath, $false, (New-Object System.Text.UTF8Encoding($false)))
+            try {
+                & $CodexPath exec --sandbox workspace-write --config approval_policy=never --config sandbox_workspace_write.network_access=false --ephemeral --json --output-last-message $SummaryPath $env:CHRONICLE_AUTONOMOUS_PROMPT 2>&1 | ForEach-Object { $logWriter.WriteLine([string]$_) }
+                $codexExitCode = $LASTEXITCODE
+            }
+            finally {
+                $logWriter.Dispose()
+                $ErrorActionPreference = $previousErrorAction
+            }
         }
         finally {
             Pop-Location

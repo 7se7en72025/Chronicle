@@ -4,13 +4,14 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout at `C:\Users\RAIYYAN\Desktop\Code\Chronicle-night-runner`. The corrected CLI invocation reached a real model cycle, which found and partly fixed a malformed MCP call bug. PowerShell then treated Codex stderr from a failed patch attempt as terminating, so the supervisor wrote `STOP`; the replay fix passes the full local suite, but the wrapper still needs a stderr-handling fix. The user reports that the chat heartbeat is paused.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout at `C:\Users\RAIYYAN\Desktop\Code\Chronicle-night-runner`. Its first real model cycle exposed a PowerShell stderr handling bug; the supervisor wrote `STOP` and preserved the partial replay fix. That replay fix was completed, verified, and pushed. The wrapper correction passes focused tests locally and must be synchronized before retry. The user reports that the chat heartbeat is paused.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
 ## Latest work
 
-- Fixed the runner's unsupported `--ask-for-approval` option after the registered task stopped before model execution. Codex CLI 0.160.0 accepts `--config approval_policy=never`; the complete option set exits zero with `--help`, and all five focused runner tests pass. The sibling checkout is still held by the failure `STOP` marker until the fix is synchronized; see [REVIEW.md](REVIEW.md).
+- The first real Codex cycle reached repository review and replay tests, then a patch-tool diagnostic on stderr terminated the PowerShell worker. The wrapper now treats native stderr as log data, checks the actual CLI exit code, and writes UTF-8 run logs. A fake CLI stderr regression passes; see [REVIEW.md](REVIEW.md).
+- Fixed the runner's unsupported `--ask-for-approval` option after the registered task stopped before model execution. Codex CLI 0.160.0 accepts `--config approval_policy=never`; the complete option set exits zero with `--help`. This fix was pushed and reached a real model cycle; see [REVIEW.md](REVIEW.md).
 - Fixed the unsupported battery-setting switch in the Windows installer, verified the corrected settings object and five runner tests, then registered the Task Scheduler entry against the clean sibling checkout. With the temporary `STOP` marker present, the task started and exited before any model invocation. The task is `Ready`, points to the sibling checkout, disallows battery starts, and has no overall execution limit; see [REVIEW.md](REVIEW.md). The unrelated untracked `BOLPREP.md` in this checkout remains untouched.
 - Expanded the overnight-runner handoff in [ORCHESTRATION.md](ORCHESTRATION.md): pause the chat heartbeat before starting the laptop writer, verify its login/task/log state, and stop/remove the task before returning to chat mode.
 - Corrected replay scope wording in [upgrades.md](upgrades.md) and [architecture.md](architecture.md): the bounded fixture response injector exists; fresh-agent orchestration and full environment restoration remain unimplemented.
@@ -43,7 +44,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-The latest code implementation passed all 50 tests serially, including 5 Windows PowerShell runner tests, 8 MCP stdio tests, and the internal snapshot-directory symlink regression. `npm.cmd run check` passed. The installer fix passed five focused runner tests; the Windows settings object and STOP-gated Task Scheduler registration were verified locally. All 16 root Markdown files have zero broken relative links and `git diff --check` passes. Codex hook behavior, editor interactions, and an actual runner model cycle remain host-unvalidated.
+The replay fix passed all 51 tests serially and `npm.cmd run check`. The wrapper correction passes six focused Windows PowerShell runner tests, including native stderr with a successful exit. Documentation-link and whitespace checks passed for the replay commit. The real model cycle reached repository work, but no full cycle or supervisor publication has yet succeeded. Codex hook behavior and editor interactions remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -51,7 +52,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** fix the runner's PowerShell stderr handling, publish it, fast-forward the sibling checkout, clear `STOP`, and retry a bounded Codex cycle. Keep the chat heartbeat paused. Real Codex/Claude hook and editor validation remains separate; use the no-prompt MCP discovery steps in [GETTING_STARTED.md](GETTING_STARTED.md) when a supported host is available.
+**Next:** publish the verified runner stderr correction, fast-forward the clean sibling checkout, clear `STOP`, and retry a bounded Codex cycle. Keep the chat heartbeat paused. Real Codex/Claude hook and editor validation remains separate; use the no-prompt MCP discovery steps in [GETTING_STARTED.md](GETTING_STARTED.md) when a supported host is available.
 
 ## Open choices
 
@@ -59,4 +60,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Fix stderr handling after the first real Codex cycle was interrupted, then retry from a clean synchronized sibling checkout. The cycle may stop if the queue is blocked or complete; verify its actual log and repository state. O004 still needs a real editor/agent host for event-delivery and UI checks. See [REVIEW.md](REVIEW.md) for evidence and limits.
+Publish and retry the stderr correction from a clean synchronized sibling checkout. The cycle may stop if the queue is blocked or complete; verify its actual log and repository state. O004 still needs a real editor/agent host for event-delivery and UI checks. See [REVIEW.md](REVIEW.md) for evidence and limits.
