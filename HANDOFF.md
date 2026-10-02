@@ -23,7 +23,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Latest verification: all 18 tests passed, syntax checks passed, and the demo kept 40 of 80 changed lines. Added checks for storage-symlink redirection, sanitized capture gaps, checkpoint interval association, CLI visibility, history cap, interrupted blob publication/retry, quarantine recovery, live/stale lock handling, and gap display in the panel. Editor interactions use a mocked VS Code host.
+Latest verification: all 20 tests pass, `npm run check` and `npm run demo` pass, Markdown relative links resolve, and `git diff --check` passes. Reconciliation tests cover prepared/applying/failed/completed journal states, Git branch/worktree mismatches, actual post-completion edits, and preservation of interrupted output. Editor interactions still use a mocked VS Code host.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude session remain untested; Claude CLI is not installed on this machine.
 
@@ -37,4 +37,4 @@ Real Claude/VS Code integration validation, configurable exclusions, retention, 
 
 ## Next concrete task
 
-The first scheduled review fixed three issues: failed hook captures were invisible after stderr output, interrupted blob writes could poison a permanent content hash, and storage symlinks could redirect snapshots into the repository. O001 and O002 are complete. Continue with O003 operation-journal recovery. Real-host validation remains a queue task; unavailable prerequisites must not block independent engine work.
+O001, O002, and O003 are verified. `reconcile` maps operation journals to actual Git branch/worktree state and reports later edits without modifying retained output. Next, implement and verify guarded undo (O005), refusing to overwrite later destination changes. Real-host validation remains pending; unavailable prerequisites must not block independent engine work.

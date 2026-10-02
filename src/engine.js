@@ -256,7 +256,7 @@ class Chronicle {
       if (baseline.excluded.length || this.checkpoint(to).excluded.length) throw new Error('Capture has excluded files. Use a smaller text-only fixture for branch output in this prototype.');
       const id = crypto.randomUUID(), target = path.join(this.store, 'worktrees', id);
       const journal = path.join(this.store, 'operations', id + '.json');
-      const op = { id, from, to, selected, branch, target, state: 'prepared', createdAt: new Date().toISOString(), modelRequests: 0 };
+      const op = { id, from, to, selected, branch, target, head: baseline.head, state: 'prepared', createdAt: new Date().toISOString(), modelRequests: 0 };
       writeJson(journal, op);
       try {
         git(this.root, ['worktree', 'add', '-b', branch, '--', target, baseline.head]);
@@ -282,7 +282,10 @@ class Chronicle {
           if (process.platform !== 'win32') fs.chmodSync(full, file.mode === '100755' ? 0o755 : 0o644);
           if (hash(fs.readFileSync(full)) !== hash(file.bytes)) throw new Error('Output verification failed: ' + name);
         }
-        op.state = 'completed'; op.files = [...expected].map(([name, file]) => ({ path: name, hash: hash(file.bytes) })); writeJson(journal, op);
+        op.state = 'completed';
+        op.files = [...expected].map(([name, file]) => ({ path: name, hash: hash(file.bytes) }));
+        op.deletedPaths = [...new Set(headFiles.filter(name => !expected.has(name)))];
+        writeJson(journal, op);
         return op;
       } catch (error) {
         op.state = 'failed'; op.error = error.message; writeJson(journal, op);
@@ -293,6 +296,63 @@ class Chronicle {
 
   operations() {
     return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
+  }
+
+  reconcileOperations() {
+    const worktrees = new Map();
+    const records = git(this.root, ['worktree', 'list', '--porcelain']).split(/\r?\n\r?\n/).filter(Boolean);
+    for (const record of records) {
+      const fields = Object.fromEntries(record.split(/\r?\n/).map(line => {
+        const space = line.indexOf(' '); return space < 0 ? [line, true] : [line.slice(0, space), line.slice(space + 1)];
+      }));
+      if (typeof fields.worktree === 'string') worktrees.set(path.resolve(fields.worktree), fields);
+    }
+    return this.operations().map(operation => {
+      const expectedTarget = path.resolve(this.store, 'worktrees', operation.id);
+      if (!/^[a-f0-9-]{36}$/.test(operation.id || '') || path.resolve(operation.target || '') !== expectedTarget) {
+        return { id: operation.id, branch: operation.branch, recordedState: operation.state, assessment: 'invalid-journal-target', target: operation.target, worktreeRegistered: false, branchExists: false, dirty: null };
+      }
+      const registration = worktrees.get(expectedTarget);
+      const targetExists = fs.existsSync(expectedTarget);
+      const branchRef = 'refs/heads/' + operation.branch;
+      const branchExists = Boolean(git(this.root, ['show-ref', '--verify', '--hash', branchRef], [0, 1]).trim());
+      let dirty = null, modifiedSinceCompletion = null;
+      if (registration && targetExists) {
+        dirty = git(expectedTarget, ['status', '--porcelain=v1', '-z', '--untracked-files=all']).length > 0;
+        if (operation.state === 'completed') {
+          if (Array.isArray(operation.files) && Array.isArray(operation.deletedPaths) && typeof operation.head === 'string') {
+            const expected = new Map(operation.files.map(file => [file.path, file.hash]));
+            const absent = new Set(operation.deletedPaths);
+            modifiedSinceCompletion = git(expectedTarget, ['rev-parse', 'HEAD']).trim() !== operation.head;
+            for (const [name, digest] of expected) {
+              try {
+                const full = safePath(expectedTarget, name);
+                if (!fs.lstatSync(full).isFile() || hash(fs.readFileSync(full)) !== digest) modifiedSinceCompletion = true;
+              } catch { modifiedSinceCompletion = true; }
+            }
+            for (const name of absent) {
+              try { if (fs.lstatSync(safePath(expectedTarget, name))) modifiedSinceCompletion = true; }
+              catch (error) { if (error.code !== 'ENOENT') modifiedSinceCompletion = true; }
+            }
+            const present = git(expectedTarget, ['ls-files', '-z']).split('\0').filter(Boolean);
+            for (const name of git(expectedTarget, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) present.push(name);
+            if (present.some(name => !expected.has(name) && !absent.has(name))) modifiedSinceCompletion = true;
+          }
+        }
+      }
+      let assessment;
+      if (registration && !targetExists) assessment = 'registered-worktree-missing-directory';
+      else if (registration && registration.branch !== branchRef) assessment = 'branch-mismatch';
+      else if (registration && operation.state === 'applying') assessment = 'interrupted-worktree';
+      else if (registration && operation.state === 'prepared') assessment = 'worktree-created-before-journal-update';
+      else if (registration && operation.state === 'failed') assessment = 'failed-worktree-retained';
+      else if (registration && operation.state === 'completed') assessment = modifiedSinceCompletion === null ? 'completion-unverified' : modifiedSinceCompletion ? 'completed-worktree-modified' : 'completed';
+      else if (registration) assessment = 'worktree-present';
+      else if (branchExists) assessment = targetExists ? 'target-exists-unregistered' : 'branch-exists-worktree-unavailable';
+      else if (targetExists) assessment = 'target-exists-unregistered';
+      else assessment = 'not-started-or-fully-removed';
+      return { id: operation.id, branch: operation.branch, recordedState: operation.state, assessment, target: operation.target, worktreeRegistered: Boolean(registration), branchExists, dirty, modifiedSinceCompletion };
+    });
   }
 
   recoverStorage(confirmDeadLock = false) {

@@ -44,6 +44,7 @@ node /path/to/Chronicle/src/cli.js recover
 node /path/to/Chronicle/src/cli.js preview BEFORE_ID AFTER_ID HUNK_ID
 node /path/to/Chronicle/src/cli.js branch BEFORE_ID AFTER_ID chronicle/my-selection HUNK_ID
 node /path/to/Chronicle/src/cli.js operations
+node /path/to/Chronicle/src/cli.js reconcile
 ```
 
 Quote paths containing spaces. The diff command returns hunk IDs; supply one or more of them to preview and branch. IDs are tied to the checkpoint pair, so selections from another pair are rejected.
@@ -75,7 +76,8 @@ Hook failures write a bounded, local capture-gap record and report the issue on 
 - `recover` moves interrupted `.tmp` files into a timestamped recovery folder without deleting them and lists unfinished branch journals for inspection. Run it when Chronicle is idle.
 - If `recover` reports a stale PID and no Chronicle process is running, rerun it with `--confirm-stale-lock`. The stale lock file is preserved in the recovery folder. Live locks, unreadable locks, or a busy recorder are never removed.
 - Blob publication is atomic; a crash may leave a uniquely named temporary file. Recovery quarantines it, and a later capture can safely publish the same content hash.
-- `operations` lists completed, failed, or interrupted operations. Failed worktrees are retained for manual inspection. Automatic recovery and undo are not implemented.
+- `operations` lists journal records. `reconcile` compares those records with Git's registered worktrees and branches, reports interrupted or missing output, and checks completed output file hashes for later edits. A completed selected branch is expected to be uncommitted and show as Git-dirty; Chronicle distinguishes that intended state from content changed after completion. Reconciliation never changes the journal, branch, or worktree. Open the reported `target` to inspect an interrupted or failed result. `recover` handles storage temp files and stale locks; it does not automatically resume or clean up a branch operation.
+- Failed worktrees and worktrees with later edits are retained for manual inspection. Automatic completion and undo are not implemented.
 - If a lock has an unreadable process ID, stop and inspect it manually; Chronicle will not guess whether its owner is alive.
 - Chronicle worktrees are not command sandboxes. Git checkout filters can execute repository-configured programs; only use trusted repositories. Chronicle disables Git lifecycle hooks for its internal commands.
 

@@ -4,13 +4,18 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Reconcile interrupted branch output
+
+- Added read-only `reconcile` to compare operation journals with registered Git worktrees and branch refs, identify interrupted output and later edits by expected hashes, and point to retained paths without changing them. Expected uncommitted branch changes are not reported as post-completion edits.
+- Verified prepared/applying/failed/completed states, an existing-branch conflict, and preservation of developer edits in an interrupted output worktree. All 20 tests, syntax checks, the demo, relative Markdown links, and whitespace checks pass. Automatic operation resumption and undo remain open.
+
 ### 2026-10-02 — Capture gaps and atomic blobs
 
 - Persisted bounded, sanitized failed-capture events; added CLI inspection and checkpoint-interval review display.
 - Changed snapshot blob creation to fsynced temporary files plus atomic content-hash publication; added interruption/retry coverage.
 - Added explicit storage recovery that quarantines incomplete temp files, reports unfinished journals, and only archives locks after confirming their owner process is dead and the user confirms.
 - Resolve storage directory symlinks before enforcing the outside-repository boundary; added a regression test against redirecting the store into the source tree.
-- Review and verification passed: 18 tests, syntax checks, and the 40-of-80 demonstration. Branch-operation journal reconciliation remains open.
+- Review and verification passed during that capture/storage cycle: 18 tests, syntax checks, and the 40-of-80 demonstration. Branch-operation reconciliation is now available; automatic resumption remains open.
 
 ### 2026-10-02 — Autonomous development workflow
 

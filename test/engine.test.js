@@ -49,6 +49,9 @@ test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => 
   assert.equal(git(root, ['rev-parse', 'HEAD']), headBefore);
   assert.equal(op.modelRequests, 0);
   assert.equal(engine.operations()[0].state, 'completed');
+  assert.equal(engine.reconcileOperations()[0].assessment, 'completed');
+  assert.equal(engine.reconcileOperations()[0].dirty, true); // The intended selection is uncommitted by design.
+  assert.equal(engine.reconcileOperations()[0].modifiedSinceCompletion, false);
 });
 
 test('CRLF, Unicode, BOM, and missing final newline survive selected output', t => {
@@ -69,6 +72,9 @@ test('whole-file additions, deletions, and baseline deletions are restored', t =
   assert.equal(fs.existsSync(path.join(op.target, 'README.md')), false);
   assert.equal(fs.existsSync(path.join(op.target, 'deleted-before.txt')), false);
   assert.equal(fs.readFileSync(path.join(op.target, 'new.txt'), 'utf8'), 'new\n');
+  assert.equal(engine.reconcileOperations()[0].modifiedSinceCompletion, false);
+  fs.writeFileSync(path.join(op.target, 'README.md'), 'restored later\n');
+  assert.equal(engine.reconcileOperations()[0].assessment, 'completed-worktree-modified');
 });
 
 test('exclusions are reported and incomplete output is rejected', t => {
@@ -160,7 +166,37 @@ test('existing branches produce failed journal entries and preserve source', t =
   git(root, ['branch', 'chronicle/existing']);
   assert.throws(() => engine.createBranch(a.id, b.id, ids, 'chronicle/existing'), /Operation recorded/);
   assert.equal(engine.operations()[0].state, 'failed');
+  assert.equal(engine.reconcileOperations()[0].assessment, 'branch-exists-worktree-unavailable');
   assert.equal(fs.readFileSync(file, 'utf8'), 'new\n');
+});
+
+test('operation reconciliation identifies interrupted worktrees and preserves later edits', t => {
+  const { root, engine, file } = fixture(t);
+  const a = engine.capture(); fs.writeFileSync(file, 'selected edit\n'); const b = engine.capture();
+  const ids = engine.compare(a.id, b.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const operation = engine.createBranch(a.id, b.id, ids, 'chronicle/interrupted');
+  const journal = path.join(engine.store, 'operations', operation.id + '.json');
+  const recorded = JSON.parse(fs.readFileSync(journal, 'utf8'));
+  recorded.state = 'prepared'; fs.writeFileSync(journal, JSON.stringify(recorded));
+  assert.equal(engine.reconcileOperations()[0].assessment, 'worktree-created-before-journal-update');
+  recorded.state = 'applying'; fs.writeFileSync(journal, JSON.stringify(recorded));
+  const output = path.join(operation.target, 'README.md'); fs.writeFileSync(output, 'developer follow-up\n');
+  recorded.state = 'completed'; fs.writeFileSync(journal, JSON.stringify(recorded));
+  const completedStatus = engine.reconcileOperations()[0];
+  assert.equal(completedStatus.assessment, 'completed-worktree-modified');
+  assert.equal(completedStatus.modifiedSinceCompletion, true);
+  recorded.state = 'applying'; fs.writeFileSync(journal, JSON.stringify(recorded));
+  const status = engine.reconcileOperations()[0];
+  assert.equal(status.recordedState, 'applying');
+  assert.equal(status.assessment, 'interrupted-worktree');
+  assert.equal(status.worktreeRegistered, true);
+  assert.equal(status.branchExists, true);
+  assert.equal(status.dirty, true);
+  recorded.state = 'failed'; fs.writeFileSync(journal, JSON.stringify(recorded));
+  assert.equal(engine.reconcileOperations()[0].assessment, 'failed-worktree-retained');
+  assert.equal(fs.readFileSync(output, 'utf8'), 'developer follow-up\n');
+  assert.equal(fs.readFileSync(file, 'utf8'), 'selected edit\n');
+  assert.equal(JSON.parse(fs.readFileSync(journal, 'utf8')).state, 'failed');
 });
 
 test('failed Claude tool boundaries capture partial edits without storing tool secrets', t => {
@@ -200,6 +236,22 @@ test('CLI can inspect gaps without invoking a model or exposing raw tool errors'
   assert.match(result.stdout, /RECORDER_BUSY/);
   assert.equal(result.stdout.includes('SECRET_COMMAND'), false);
   assert.equal(result.stdout.includes(root), false);
+});
+
+test('CLI reconciliation reports interrupted output without changing it', t => {
+  const { root, engine, file } = fixture(t);
+  const a = engine.capture(); fs.writeFileSync(file, 'selected\n'); const b = engine.capture();
+  const ids = engine.compare(a.id, b.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const operation = engine.createBranch(a.id, b.id, ids, 'chronicle/cli-reconcile');
+  const journal = path.join(engine.store, 'operations', operation.id + '.json');
+  const record = JSON.parse(fs.readFileSync(journal, 'utf8')); record.state = 'applying'; fs.writeFileSync(journal, JSON.stringify(record));
+  const targetFile = path.join(operation.target, 'README.md'); fs.writeFileSync(targetFile, 'keep my recovery edits\n');
+  const cli = path.join(__dirname, '..', 'src', 'cli.js');
+  const result = spawnSync(process.execPath, [cli, 'reconcile'], { cwd: root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /interrupted-worktree/);
+  assert.match(result.stdout, /"dirty": true/);
+  assert.equal(fs.readFileSync(targetFile, 'utf8'), 'keep my recovery edits\n');
 });
 
 test('gap history is capped and exposes the overflow state', t => {

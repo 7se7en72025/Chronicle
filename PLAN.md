@@ -31,7 +31,7 @@ Exit condition: keep a chosen subset of README changes without model regeneratio
 
 - [x] Apply selections in independent Git worktrees.
 - [x] Preserve original contents, index, and branch.
-- [ ] Reconcile incomplete branch journals and recover output after interruption.
+- [x] Reconcile incomplete branch journals with Git branches/worktrees; identify interrupted or modified output for manual inspection without overwriting it.
 - [ ] Refuse undo that would overwrite later edits.
 
 Exit condition: demonstrate branch output and recovery with dirty baselines and conflicts.

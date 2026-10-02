@@ -1,6 +1,6 @@
 # Chronicle architecture
 
-Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude hook payload adapter exist. Real host validation, branch-operation recovery, undo, finer selection, and environment replay remain incomplete.
+Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude hook payload adapter exist. Real host validation, automatic operation resumption, undo, finer selection, and environment replay remain incomplete.
 
 ## Implemented slice
 
@@ -14,7 +14,7 @@ Hook capture failures produce sanitized, bounded local gap records visible throu
 
 The prototype uses CommonJS JavaScript and atomic JSON metadata to avoid build and native database dependencies. TypeScript, SQLite, and React below remain target choices, not installed dependencies. See [D007](DECISIONS.md#d007--dependency-free-first-slice) and [run instructions](GETTING_STARTED.md).
 
-Storage recovery quarantines interrupted temporary files and reports unfinished branch journals without deleting their contents. Dead-owner locks require an explicit flag and are archived; live or unreadable locks are preserved. Automatic branch/worktree reconciliation and undo remain incomplete. Snapshots are captured at observed boundaries, with a two-pass stability check rather than a filesystem-wide atomic snapshot. Branch output rejects checkpoints with reported exclusions. Git-ignored files are outside capture coverage. Existing staged entries are recorded as evidence, but staging intent is not recreated in the output worktree.
+Storage recovery quarantines interrupted temporary files and reports unfinished branch journals without deleting their contents. The `reconcile` command compares operation journals against registered worktrees and local branch refs, reports interrupted or missing output, and checks completed file hashes for later edits. It accounts for the intended uncommitted output so normal Git-dirty status is not mistaken for later edits; it never changes workspaces. Dead-owner locks require an explicit flag and are archived; live or unreadable locks are preserved. Automatic operation resumption and undo remain incomplete. Snapshots are captured at observed boundaries, with a two-pass stability check rather than a filesystem-wide atomic snapshot. Branch output rejects checkpoints with reported exclusions. Git-ignored files are outside capture coverage. Existing staged entries are recorded as evidence, but staging intent is not recreated in the output worktree.
 
 ## 1. What we are building first
 
@@ -153,7 +153,7 @@ This operation applies saved changes. It is not a full rebase of the agent's tas
 
 Every mutation has an operation record containing its target, expected starting hashes, intended result, and saved previous contents.
 
-Use a journal with prepared, applying, completed, and failed states. Apply first in a disposable worktree. Publish a successful result only after validation. On a crash, use the journal to identify incomplete operations and offer recovery.
+Use a journal with prepared, applying, completed, and failed states. Apply first in a disposable worktree. Publish a successful result only after validation. On a crash, `reconcile` compares the journal with Git's branch/worktree state and reports the output path and whether it has later edits. It does not resume, rewrite, or remove an operation; the developer can inspect the retained worktree manually.
 
 An ordinary filesystem does not provide one atomic transaction across every project file. Active-workspace application therefore requires explicit recovery behavior, not an assumption that all writes happen together.
 
