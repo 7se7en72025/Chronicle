@@ -50,6 +50,12 @@ Current [Claude Code hook documentation](https://code.claude.com/docs/en/hooks#p
 
 **Chronicle implication (design inference):** a post-tool rewrite can reproduce an observed response in model context, but cannot make the original call side-effect-free. Safe cassette replay must give the agent a controlled fixture tool or use an orchestrator that owns tool dispatch and can return the saved response before a live operation occurs. Host hook fixtures alone do not validate that integration.
 
+## MCP protocol era check (2026-10-03)
+
+The current official MCP specification revision is `2026-07-28`. It uses per-request protocol metadata and requires modern servers to support `server/discover`; the stdio transport remains newline-delimited UTF-8 JSON-RPC. The preceding `2025-11-25` revision uses an `initialize` handshake. The current spec defines explicit dual-era client probing and fallback behavior. See the primary [versioning and compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning) and [stdio transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio) pages.
+
+**Chronicle implication (scope decision):** the fixture MCP adapter is a deliberately narrow legacy-handshake subset. A dual-era client can identify it by probing and falling back; a modern-only client is incompatible. This does not establish which behavior current Codex or Claude releases use, and does not justify implementing the modern API without host tests. The adapter's version and limitation are now stated directly in the architecture and getting-started guide.
+
 ## Reading list
 
 - Artzi, Kim, and Ernst (2008), [“ReCrash: Making Software Failures Reproducible by Preserving Object States”](https://homes.cs.washington.edu/~mernst/pubs/reproduce-failures-ecoop2008-abstract.html), ECOOP 2008.

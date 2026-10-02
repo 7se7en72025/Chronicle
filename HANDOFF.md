@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Rechecked MCP compatibility against the current `2026-07-28` specification. Chronicle's experimental MCP server remains a `2025-11-25` legacy-handshake subset; its docs now say dual-era clients must fall back and modern-only clients are incompatible. No current Codex/Claude behavior or host compatibility is inferred. See [upgrades.md](upgrades.md) and [learnings.md](learnings.md).
 - Hardened the experimental replay MCP stdio loop against a slow host reader and early pipe closure: incoming frames pause at stdout backpressure, EOF waits until buffered replies drain, and output `EPIPE` ends the session cleanly with a failure status. Focused stream tests cover all three cases; see [REVIEW.md](REVIEW.md).
 - Added the research-backed [upgrade roadmap](upgrades.md) and [learnings](learnings.md); clarified current versus proposed capabilities in [architecture.md](architecture.md). Five primary papers inform the recommendations; replay and environment-restore claims are explicitly bounded.
 - Completed O008's [first-release audit](RELEASE_AUDIT.md). Fixed Git color/blank-context settings breaking selection and the undo confirmation's missing branch name. Actual host/UI validation remains outstanding; Codex CLI 0.159.2 was checked through version/help in an earlier activation only.
@@ -36,7 +37,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Verification for the latest implementation: all 48 tests pass serially, including 5 Windows PowerShell runner tests, 8 MCP stdio tests, and 6 simulated-replay/worktree/reset tests. `npm.cmd run check` passes. The preceding documentation change verified all 101 relative Markdown links; this change adds no links. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
+Verification for the latest implementation: all 48 tests pass serially, including 5 Windows PowerShell runner tests, 8 MCP stdio tests, and 6 simulated-replay/worktree/reset tests. `npm.cmd run check` passes; all 16 root Markdown files have zero broken relative links. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 

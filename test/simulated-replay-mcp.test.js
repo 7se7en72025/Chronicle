@@ -34,10 +34,11 @@ function runWire(input) {
   });
 }
 
-test('fixture MCP adapter negotiates, lists read-only tools, and injects cassette responses over stdio', () => {
+test('legacy fixture MCP adapter initializes, lists read-only tools, and injects cassette responses over stdio', () => {
   const evidence = [];
   const server = createSimulatedReplayMcp(cassette(), { onEvidence: entry => evidence.push(entry) });
   assert.equal(server.handle(request(0, 'tools/list')).error.code, -32002);
+  assert.equal(server.handle({ ...request(0, 'server/discover'), _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } }).error.code, -32002);
   initialize(server);
 
   const listed = server.handle(request(2, 'tools/list'));
