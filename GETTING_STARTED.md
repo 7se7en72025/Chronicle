@@ -19,7 +19,31 @@ The first demo creates a temporary Git fixture, changes 80 lines, selects the hu
 
 `scripts/simulated-replay-mcp.js` exposes the bundled cassette as two read-only MCP tools over newline-delimited stdio JSON-RPC. It supports only the initialization and tools methods needed by this fixture; it is not registered in a host plugin and has not been host-validated. Test the protocol with `node --test test/simulated-replay-mcp.test.js` rather than calling a model.
 
-An MCP host must launch `node` with the absolute path to `scripts/simulated-replay-mcp.js` and this checkout as its working directory. Launch the script directly, not through `npm run`: npm prints banners to stdout, which is reserved for MCP messages. The server exposes only the fixture's allowlisted read-only tools, consumes responses in cassette order, and exits unsuccessfully on mismatch or incomplete consumption. It has no live fallback, network client, or model request. An agent host may still spend its normal model usage when the agent chooses to call these tools. No Codex or Claude MCP configuration is currently bundled.
+An MCP host must launch `node` with the absolute path to `scripts/simulated-replay-mcp.js`. The bundled cassette is resolved relative to the script, so the host's working directory does not matter. Launch the script directly, not through `npm run`: npm prints banners to stdout, which is reserved for MCP messages. The server exposes only the fixture's allowlisted read-only tools, consumes responses in cassette order, and exits unsuccessfully on mismatch or incomplete consumption. It has no live fallback, network client, or model request. An agent host may still spend its normal model usage when the agent chooses to call these tools. No Codex or Claude MCP configuration is currently bundled.
+
+#### Optional host discovery check (Windows PowerShell)
+
+These commands add a local server entry to your host configuration; they do not call a model. Run them from the Chronicle checkout, then open the host without sending a prompt and inspect its MCP panel/list for `chronicle-replay` and the two `fixture.issue.*` tools. In Codex, use `/mcp` in the CLI/IDE; `codex mcp list` shows configured entries, not live discovery. In Claude Code, use `/mcp` in the session. This checks startup and discovery only, not a replayed tool call. The cassette expects two calls, so closing the host before invoking them reports incomplete replay on stderr and exits unsuccessfully. Asking an agent to invoke the tools starts a model-mediated turn and may use credits.
+
+For Codex CLI:
+
+```powershell
+$server = (Resolve-Path .\scripts\simulated-replay-mcp.js).Path
+codex mcp add chronicle-replay -- node $server
+codex mcp list
+```
+
+`codex mcp add` writes to the user's Codex configuration. Remove this test entry afterward with `codex mcp remove chronicle-replay`.
+
+For Claude Code:
+
+```powershell
+$server = (Resolve-Path .\scripts\simulated-replay-mcp.js).Path
+claude mcp add --transport stdio --scope local chronicle-replay -- node $server
+claude mcp list
+```
+
+Open Claude Code in this checkout and inspect `/mcp`; remove the local test entry afterward with `claude mcp remove chronicle-replay --scope local`. Host commands and discovery have not been exercised in this environment. See the official [Codex MCP guide](https://developers.openai.com/codex/mcp) and [Claude Code local stdio setup](https://code.claude.com/docs/en/mcp#option-3-add-a-local-stdio-server) for current host syntax and trust behavior.
 
 ## Review beside your agent in VS Code
 

@@ -43,7 +43,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is not installed as a server or recorder service, and no Scheduled Task was registered. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** verify supported local MCP registration and tool discovery in an available host, using a disposable host configuration and without invoking a model. If the required host runtime/config access is unavailable, record the blocker and keep O014 at local-protocol-test scope. The laptop runner is not registered because the chat heartbeat is still active; do not enable a second writer.
+**Next:** when a supported host runtime is available, follow the removable, no-prompt MCP discovery steps in [GETTING_STARTED.md](GETTING_STARTED.md) and record observed host/version/tool names. In this activation, `Get-Command codex, claude` found neither host CLI; VS Code 1.139.1 is present but `code.cmd --list-extensions` failed with `EPERM` reading `%APPDATA%\Code\User`, and the computer-use app inventory was empty. This blocks host validation here, not a claim about host compatibility. The laptop runner is not registered because the chat heartbeat is still active; do not enable a second writer.
 
 ## Open choices
 
