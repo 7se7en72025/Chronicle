@@ -81,6 +81,24 @@ test('fixture MCP adapter stops on the first unmatched call without consuming or
   assert.throws(() => server.finish(), { code: 'SIMULATED_REPLAY_UNMATCHED' });
 });
 
+test('stdio session rejects calls after a mismatch and exits unsuccessfully when the host closes it', () => {
+  const messages = [
+    request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: 'other' } }),
+    request(3, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ].map(message => JSON.stringify(message)).join('\n') + '\n';
+  const result = runWire(messages);
+  assert.equal(result.status, 1);
+  const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  assert.equal(replies.length, 3);
+  assert.equal(replies[1].result.isError, true);
+  assert.match(replies[1].result.content[0].text, /SIMULATED_REPLAY_UNMATCHED/);
+  assert.equal(replies[2].result.isError, true);
+  assert.match(replies[2].result.content[0].text, /Replay has stopped/);
+  assert.match(result.stderr, /Replay did not complete \(SIMULATED_REPLAY_UNMATCHED\)/);
+});
+
 test('fixture MCP adapter treats tools outside the listed cassette as protocol errors and stops', () => {
   const server = createSimulatedReplayMcp(cassette());
   initialize(server);

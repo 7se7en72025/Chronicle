@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Corrected MCP replay shutdown documentation and added child-process coverage for post-mismatch calls and EOF failure.
 - Documented removable Codex CLI and Claude Code MCP registration plus no-prompt tool discovery; clarified the expected incomplete-cassette shutdown and model-credit boundary.
 - Standardized Claude/Codex fixture events on a privacy-bounded versioned contract with outcome certainty and checkpoint/gap references; unsupported adapter events fail closed, and recovery leaves prior records byte-identical.
 - Added a bounded allowlisted simulated-tool response cassette and scripted task demo in two disposable worktrees from one baseline. It refuses unmatched calls without a live fallback; real AI-agent/workspace orchestration remains pending.
