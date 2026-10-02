@@ -20,6 +20,18 @@ Run JSONL and final-summary files can contain source excerpts or tool output. Th
 
 Do not install or start this local task while the chat heartbeat is active on the same checkout. Pause the heartbeat first to prevent overlapping writers. This checkout is shared with the user; leave it idle while an unattended cycle is running. Codex CLI 0.160.0 and ChatGPT login were verified in the approved installation context; the ordinary workspace shell still cannot read the global npm shim directly. The local task has not been registered, and real Task Scheduler lifecycle behavior is unverified. Runner tests use a fake CLI and disposable local bare Git remote; they verify wrapper push logic without contacting GitHub, invoking a model, or registering a scheduled task.
 
+### Switching to overnight laptop mode
+
+Use one writer for this checkout at a time. To switch from the chat heartbeat to the laptop runner:
+
+1. Pause `chronicle-review-and-improve` in the scheduler controls and let any active chat run finish. Confirm `main` is clean and aligned with `origin/main`; do not start the laptop task while a chat activation may still edit this checkout.
+2. In a logged-in PowerShell session, verify `codex --version` and `codex login status`, then run `git status --short --branch` and confirm the authorized `origin` and `main` branch.
+3. From the Chronicle checkout, run `Set-ExecutionPolicy -Scope Process Bypass` if this shell blocks local scripts, then `./scripts/install-autonomous-task.ps1`. The installer rechecks Codex login, registers `Chronicle Autonomous Review`, and starts it immediately. Confirm its state with `Get-ScheduledTask -TaskName 'Chronicle Autonomous Review'` and inspect `%LOCALAPPDATA%\Chronicle\runner\runner.log`.
+4. Keep the Windows user logged in and the laptop awake and on AC power. The task does not wake a sleeping laptop or run as a machine service. Each 30-minute cycle allows up to 25 minutes for one Codex run, so eight elapsed hours can provide at most about 6 hours 40 minutes of child-run time, assuming every cycle starts and completes; auth, usage, errors, and the authorized queue can stop it earlier.
+5. To return to chat mode, run `./scripts/uninstall-autonomous-task.ps1`. If it reports that a cycle is active, wait for the task to become `Ready` and run the uninstall script again. Confirm the task is absent and the checkout is clean and aligned before resuming the chat heartbeat. The stop marker is intentionally retained; inspect the logs before removing `%LOCALAPPDATA%\Chronicle\runner\STOP` to permit a later restart.
+
+Do not run both modes together. The repository's mutex protects duplicate laptop-runner processes only; it does not coordinate with the chat heartbeat. Neither mode guarantees a fixed number of hours of useful work.
+
 ## Work loop
 
 1. Read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md. Incorporate newer human instructions.
