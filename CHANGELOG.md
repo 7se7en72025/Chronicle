@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Stop fixture MCP replay after a malformed tool call, so later calls cannot consume cassette responses.
 - Use the supported Codex CLI config override for unattended approval policy; the removed `--ask-for-approval` flag stopped the first real runner cycle before any model work.
 - Fix the Windows overnight-task installer by using Task Scheduler's default battery-start restriction instead of an unsupported PowerShell switch.
 - Add a safe heartbeat/laptop-runner switch-over runbook with actual cycle caps and sleep, login, AC-power, usage, and stop-marker limits.

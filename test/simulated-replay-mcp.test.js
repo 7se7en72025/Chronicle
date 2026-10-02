@@ -113,6 +113,33 @@ test('fixture MCP adapter treats tools outside the listed cassette as protocol e
   assert.throws(() => server.finish(), { code: 'SIMULATED_REPLAY_TOOL_NOT_ALLOWED' });
 });
 
+test('fixture MCP adapter stops after a malformed tool call and preserves the next cassette response', () => {
+  const server = createSimulatedReplayMcp(cassette());
+  initialize(server);
+  const malformed = server.handle(request(2, 'tools/call', { name: 'fixture.issue.lookup' }));
+  assert.equal(malformed.error.code, -32602);
+  assert.equal(server.stopped, true);
+  assert.equal(server.position, 0);
+  const later = server.handle(request(3, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } }));
+  assert.equal(later.result.isError, true);
+  assert.match(later.result.content[0].text, /Replay has stopped/);
+  assert.equal(server.position, 0);
+  assert.throws(() => server.finish(), { code: 'SIMULATED_REPLAY_INVALID_CALL' });
+
+  const messages = [
+    request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    request(2, 'tools/call', { name: 'fixture.issue.lookup' }),
+    request(3, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ].map(message => JSON.stringify(message)).join('\n') + '\n';
+  const result = runWire(messages);
+  assert.equal(result.status, 1);
+  const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  assert.equal(replies[1].error.code, -32602);
+  assert.equal(replies[2].result.isError, true);
+  assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
+});
+
 test('stdio server reports incomplete cassette consumption and malformed requests clearly', () => {
   const messages = [
     '{bad json',

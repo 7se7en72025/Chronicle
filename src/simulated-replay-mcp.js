@@ -100,7 +100,10 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
     }
 
     if (message.method === 'tools/call') {
+      if (stopped) return toolError(id, stopCode || 'SIMULATED_REPLAY_STOPPED', 'Replay has stopped. No fixture response or live fallback was used.');
       if (!isRecord(params) || typeof params.name !== 'string' || !isRecord(params.arguments)) {
+        stopped = true;
+        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
         return rpcError(id, -32602, 'tools/call requires a tool name and object arguments.');
       }
       if (!availableNames.has(params.name)) {
@@ -108,7 +111,6 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
         stopCode = 'SIMULATED_REPLAY_TOOL_NOT_ALLOWED';
         return rpcError(id, -32602, 'Tool is not available in this fixture cassette. Replay stopped; no live fallback was used.');
       }
-      if (stopped) return toolError(id, stopCode || 'SIMULATED_REPLAY_STOPPED', 'Replay has stopped. No fixture response or live fallback was used.');
       try {
         const call = replay.invoke(params.name, params.arguments);
         onEvidence(call.evidence);
