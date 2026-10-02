@@ -7,7 +7,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 ### 2026-10-02 — Add a guarded Windows laptop runner
 
 - Added an optional login-time Task Scheduler setup for bounded local Codex CLI review cycles, with serialized runs, clean-main/authorized-origin guards, 25-minute timeout, network disabled, AC-power requirement, and stop-on-error behavior.
-- The runner commits verified work but does not push; it must not overlap with the chat heartbeat on the same checkout. The current host could not resolve the Codex CLI, so the scheduled task was not installed. Fake-CLI tests and limitations are recorded in [ORCHESTRATION.md](ORCHESTRATION.md) and [REVIEW.md](REVIEW.md).
+- The runner commits verified work but does not push; it must not overlap with the chat heartbeat on the same checkout. Codex CLI 0.160.0 was installed and its ChatGPT login verified, but the scheduled task remains unregistered pending scheduler choice. Fake-CLI tests and limitations are recorded in [ORCHESTRATION.md](ORCHESTRATION.md) and [REVIEW.md](REVIEW.md).
 
 ### 2026-10-02 — Record user-run check evidence
 

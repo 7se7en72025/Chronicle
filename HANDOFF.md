@@ -12,7 +12,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 - Added the research-backed [upgrade roadmap](upgrades.md) and [learnings](learnings.md); clarified current versus proposed capabilities in [architecture.md](architecture.md). Five primary papers inform the recommendations; replay and environment-restore claims are explicitly bounded.
 - Completed O008's [first-release audit](RELEASE_AUDIT.md). Fixed Git color/blank-context settings breaking selection and the undo confirmation's missing branch name. Actual host/UI validation remains outstanding; Codex CLI 0.159.2 was checked through version/help in an earlier activation only.
-- Added an optional Windows supervisor and login-time Task Scheduler installer in `scripts/run-autonomous.ps1` and `scripts/install-autonomous-task.ps1`. It serializes cycles, enforces a 25-minute timeout and clean-main/origin gates, disables network in the Codex workspace-write sandbox, and pauses on failure for human review. Fake-CLI tests pass. The CLI and Task Scheduler are not accessible/registered in this activation; do not start it alongside the chat heartbeat.
+- Added an optional Windows supervisor and login-time Task Scheduler installer in `scripts/run-autonomous.ps1` and `scripts/install-autonomous-task.ps1`. It serializes cycles, enforces a 25-minute timeout and clean-main/origin gates, disables network in the Codex workspace-write sandbox, and pauses on failure for human review. Codex CLI 0.160.0 and ChatGPT login were verified in the approved installation context; the task is still unregistered to avoid overlap with the active chat heartbeat.
 
 - Added within-hunk change groups for nearby edits, keeping contiguous replacements together. Preview and branch output rebuild from saved file line slices; BOM/CRLF, stale IDs, multi-line replacements, insertions, and deletions are covered. O006 is verified; details are in [REVIEW.md](REVIEW.md).
 - Added guarded undo for selected paths in Chronicle's output worktree through CLI and VS Code. It validates branch, staged state, and file bytes/modes; retains output and can resume a partial undo after revalidation. O005 is verified; details and limits are in [REVIEW.md](REVIEW.md).
@@ -33,7 +33,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Verification: all 34 tests pass serially, including 5 Windows PowerShell runner tests using a fake CLI and disposable Git repositories. `npm.cmd run check`, the 40-of-80 demo, 18-file Markdown relative-link check, package JSON parse, and `git diff --check` pass. Installer guard correctly refused registration because the current shell could not resolve `codex`. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
+Verification: all 34 tests pass serially, including 5 Windows PowerShell runner tests using a fake CLI and disposable Git repositories. `npm.cmd run check`, the 40-of-80 demo, 18-file Markdown relative-link check, package JSON parse, and `git diff --check` pass. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -47,4 +47,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-The next host-dependent step is to pause the chat heartbeat, verify Codex CLI installation and login in the interactive laptop session, then run the task installer and observe one bounded cycle. Do not activate both schedulers against this checkout. Once the local runner host path is verified, resume O013 or O004 according to [upgrades.md](upgrades.md). See [REVIEW.md](REVIEW.md) for evidence and limits.
+The next host-dependent step is to choose one scheduler: keep the current chat heartbeat, or pause it, run the local task installer, and observe one bounded cycle. Codex CLI installation/login are verified; Task Scheduler behavior is not. Do not activate both against this checkout. Once the local runner path is verified, resume O013 or O004 according to [upgrades.md](upgrades.md). See [REVIEW.md](REVIEW.md) for evidence and limits.

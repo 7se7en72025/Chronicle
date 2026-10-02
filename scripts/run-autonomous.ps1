@@ -73,6 +73,12 @@ function Get-RepositoryState {
 function Invoke-CodexCycle {
     $codexCommand = Get-Command $CodexCommand -ErrorAction Stop
     $codexExecutable = $codexCommand.Source
+    if (-not $codexExecutable -and $CodexCommand -eq 'codex') {
+        $npmShim = Join-Path $env:APPDATA 'npm\codex.cmd'
+        if (Test-Path -LiteralPath $npmShim) {
+            $codexExecutable = $npmShim
+        }
+    }
     if (-not $codexExecutable) { throw 'The codex command has no executable path.' }
 
     $runId = [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')

@@ -3,10 +3,11 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $runnerPath = Join-Path $PSScriptRoot 'run-autonomous.ps1'
 $taskName = 'Chronicle Autonomous Review'
 $codex = Get-Command codex -ErrorAction SilentlyContinue
-if (-not $codex) {
+$codexExecutable = if ($codex) { $codex.Source } else { Join-Path $env:APPDATA 'npm\codex.cmd' }
+if (-not $codexExecutable -or -not (Test-Path -LiteralPath $codexExecutable)) {
     throw 'Codex CLI was not found on PATH. Install it and complete codex login before registering the background task.'
 }
-& $codex.Source login status | Out-Null
+& $codexExecutable login status | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw 'Codex CLI is not logged in for this Windows user. Run codex login before registering the background task.'
 }

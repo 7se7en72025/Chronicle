@@ -18,7 +18,7 @@ The runner requires a clean `main` checkout and the exact authorized `origin` UR
 
 Run JSONL and final-summary files can contain source excerpts or tool output. They remain under the user's local profile and are not automatically deleted; inspect their contents and storage use, and do not commit or share them.
 
-Do not install or start this local task while the chat heartbeat is active on the same checkout. Pause the heartbeat first to prevent overlapping writers. This checkout is shared with the user; leave it idle while an unattended cycle is running. The task has not been registered in the current host: this environment cannot resolve the Codex executable, and we have not verified CLI authentication or real Task Scheduler behavior. The test suite uses a fake CLI and does not call a model or register a scheduled task.
+Do not install or start this local task while the chat heartbeat is active on the same checkout. Pause the heartbeat first to prevent overlapping writers. This checkout is shared with the user; leave it idle while an unattended cycle is running. Codex CLI 0.160.0 and ChatGPT login were verified in the approved installation context; the ordinary workspace shell still cannot read the global npm shim directly. The local task has not been registered, and real Task Scheduler lifecycle behavior is unverified. The test suite uses a fake CLI and does not call a model or register a scheduled task.
 
 ## Work loop
 
