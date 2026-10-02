@@ -13,6 +13,7 @@
   "contributes": { "commands": [
     { "command": "chronicle.capture", "title": "Chronicle: Capture Checkpoint" },
     { "command": "chronicle.review", "title": "Chronicle: Review Changes" },
-    { "command": "chronicle.undoOperation", "title": "Chronicle: Undo Output Operation" }
+    { "command": "chronicle.undoOperation", "title": "Chronicle: Undo Output Operation" },
+    { "command": "chronicle.compareOperations", "title": "Chronicle: Compare Saved Branches" }
   ] }
 }

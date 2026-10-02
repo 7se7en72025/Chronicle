@@ -26,7 +26,7 @@ test('editor command flow requires preview and produces a separate selected work
     workspace: { isTrusted: true, workspaceFolders: [{ uri: { scheme: 'file', fsPath: root } }] },
     window: {
       showInputBox: async () => 'Checkpoint', showInformationMessage: async () => undefined, showWarningMessage: async message => { undoConfirmation = message; return 'Undo Chronicle output'; },
-      showErrorMessage: message => errors.push(message), showQuickPick: async items => items[picks++ === 0 ? 0 : items.length - 1], createWebviewPanel: () => panel
+      showErrorMessage: message => errors.push(message), showQuickPick: async (items, options = {}) => options.canPickMany ? items : options.title === 'Choose Chronicle output to undo or resume' ? items.find(item => item.label === 'chronicle/editor') : items[picks++ === 0 ? 0 : items.length - 1], createWebviewPanel: () => panel
     },
     commands: { registerCommand: (id, fn) => { commands.set(id, fn); return { dispose() {} }; }, executeCommand: async () => {} },
     ViewColumn: { Beside: 2 }, Uri: { file: p => ({ fsPath: p }) }
@@ -49,11 +49,17 @@ test('editor command flow requires preview and produces a separate selected work
   await receiver({ type: 'apply', selected, branch: 'chronicle/editor' });
   assert.equal(messages.at(-1).type, 'applied');
   assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'after\n');
+  engine.createBranch(a.id, b.id, selected, 'chronicle/editor-copy');
+  await commands.get('chronicle.compareOperations')();
+  assert.equal(errors.length, 0);
+  assert.match(html, /Saved branch comparison/); assert.match(html, /chronicle\/editor-copy/); assert.match(html, /Check results: Not recorded/); assert.match(html, /Reported cost: Unavailable/);
+  assert.match(html, /chronicle\/editor · saved result/); assert.match(html, /README\.md/);
   vscode.workspace.isTrusted = true;
   await commands.get('chronicle.undoOperation')();
   assert.match(undoConfirmation, /Restore Chronicle-selected files in chronicle\/editor\?/);
-  assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'before\n');
-  assert.equal(engine.operations()[0].state, 'undone');
+  const originalOperation = engine.operations().find(op => op.branch === 'chronicle/editor');
+  assert.equal(fs.readFileSync(path.join(originalOperation.target, 'README.md'), 'utf8'), 'before\n');
+  assert.equal(originalOperation.state, 'undone');
   vscode.workspace.isTrusted = false;
   await receiver({ type: 'preview', selected }); assert.match(messages.at(-1).message, /trust changed/);
 
@@ -64,6 +70,8 @@ test('editor command flow requires preview and produces a separate selected work
   assert.match(gapHtml, /Capture gaps \(1\)/); assert.match(gapHtml, /RECORDER_BUSY/);
   const groupsHtml = exports.render({}, { changes: [{ path: 'README.md', type: 'modified', hunks: [{ id: 'h', patch: 'diff', groups: [{ id: 'h:g0', patch: '-old\n+new' }, { id: 'h:g1', patch: '-later\n+kept' }] }] }], excluded: [] }, { label: 'from' }, { label: 'to' });
   assert.match(groupsHtml, /Keep this hunk \(2 change groups\)/); assert.match(groupsHtml, /Keep change group 1 \(linked replacement lines stay together\)/); assert.match(groupsHtml, /data-parent="h"/);
+  const comparisonHtml = exports.renderComparison({}, { first: { id: 'one', branch: injection, manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, second: { id: 'two', branch: 'chronicle/good', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, files: [{ path: injection, status: 'changed', first: { hash: 'a'.repeat(64), mode: '100644' }, second: { hash: 'b'.repeat(64), mode: '100644' } }] });
+  assert.equal(comparisonHtml.includes(injection), false); assert.match(comparisonHtml, /&lt;script&gt;/); assert.match(comparisonHtml, /default-src 'none'/);
   const input = (value, dataset, checked) => ({ value, dataset, checked, addEventListener(name, fn) { this[name] = fn; } });
   const boxes = [input('h', { hasGroups: 'true' }, true), input('h:g0', { parent: 'h' }, true), input('h:g1', { parent: 'h' }, true)];
   const elements = Object.fromEntries(['all', 'none', 'preview', 'apply', 'status', 'output', 'branch'].map(id => [id, { replaceChildren() {}, value: 'chronicle/test' }]));

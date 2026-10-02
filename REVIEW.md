@@ -84,4 +84,12 @@ The regression fixture creates two distinct selections and verifies changed, add
 
 **Second-pass review:** manifest values are taken from the selected saved checkpoint pair, verified output files, and measured runtime; prompt/tool payloads are not copied. Same-operation comparison is rejected. The test exercises directional added/deleted plus changed/identical classifications and CLI serialization. Checks are explicitly empty and cost null. Visual comparison, command/check execution capture, and reported check exit status remain unimplemented. The first parallel test attempt hit `ENOSPC` when fixture creation tried to copy Git templates; the serial rerun passed after fixture cleanup. No independent review was performed.
 
-**Next:** start O011's safe check-evidence contract and visual comparison design; resume O004 only with real host/UI access.
+**Next:** O010 and O011 are verified at their documented levels. O012 is the next task: define user-invoked check evidence without automatic arbitrary command execution. Resume O004 only with real host/UI access.
+
+## Roadmap activation — O011 VS Code branch comparison (2026-10-02)
+
+Added the `chronicle.compareOperations` command. It asks the developer to choose exactly two completed operations with schema-1 manifests, calls the read-only engine comparison, then opens a script-disabled VS Code panel with both branches' measured runtime/coverage/check/cost facts and a path-by-path status/hash/mode table. All stored branch names, paths, and values are escaped. It does not execute tests, agent runs, or other workspace commands.
+
+The mocked editor test creates two completed branches, selects them through the multi-pick flow, verifies the view shows both saved outputs and labels checks/cost unavailable, then exercises hostile branch/path escaping and CSP. Full `npm test -- --test-concurrency=1` passes all 29 tests; `npm run check`, 40/80 demo, 15-file relative Markdown links, package JSON parse, and `git diff --check` pass. The test suite was serial because the host reported only about 1.1 GB temporary disk space; no cleanup outside test-owned fixtures was performed.
+
+**Second-pass review:** comparison is read-only; `enableScripts: false` and `default-src 'none'` prevent active content, local resources are disabled, and the only style uses a generated nonce. The output is directional from the first saved branch to the second and compares exact saved hashes and modes. Cost and checks are unavailable because current manifests do not contain measured values. Real VS Code UI integration remains blocked by O004; this is not host proof. No independent reviewer participated.

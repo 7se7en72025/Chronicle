@@ -55,6 +55,8 @@ Undo restores only selected paths in Chronicle's separate output worktree to the
 
 Each completed output operation saves a versioned manifest of its source checkpoints, selected change IDs, measured environment, observed host labels, capture gaps, and output file hashes/modes. `compare-operations` prints a local, read-only comparison of two operation manifests, including added, deleted, changed, and identical paths. It does not run tests or an agent. An empty `checks` list means no checks were recorded; `reportedCost: null` means unavailable, not free. Visual comparison and explicit check-result recording are not implemented yet.
 
+In VS Code, run **Chronicle: Compare Saved Branches** from the Command Palette and choose exactly two completed output branches. The local comparison view shows each branch's recorded environment and coverage beside a file-by-file hash/mode comparison. It does not run tests or an agent; absent check results and costs are labeled unavailable.
+
 ## Optional Claude Code recording
 
 The repository includes a local Claude plugin manifest and [hook configuration](hooks/hooks.json). It records `SessionStart` and before/success/failure boundaries for `Edit`, `Write`, `Bash`, and `PowerShell`. Other tools, denied operations, concurrent edits, and background changes may not be captured accurately.

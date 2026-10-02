@@ -38,7 +38,7 @@ Direct recording, review, selection, and Git application make no model requests.
 - Apply into a separate worktree by default; this does not discard edits from the original workspace.
 - Verify host UI and hook capabilities before promising integration.
 
-Completed output branches now save local evidence manifests, and the CLI can compare two operation outputs without rerunning an agent. The broader vision includes controlled environment replay; browser, database, and internal agent-state restoration are later scope. File snapshots cannot undo arbitrary remote actions.
+Completed output branches now save local evidence manifests, and the CLI or VS Code can compare two operation outputs without rerunning an agent. The broader vision includes controlled environment replay; browser, database, and internal agent-state restoration are later scope. File snapshots cannot undo arbitrary remote actions.
 
 ## Documentation map
 

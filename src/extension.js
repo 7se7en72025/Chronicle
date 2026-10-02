@@ -37,6 +37,14 @@ function render(webview, diff, baseline, result) {
   </script></body></html>`;
 }
 
+function renderComparison(webview, comparison) {
+  const nonce = crypto.randomBytes(20).toString('hex');
+  const { first, second } = comparison;
+  const fileRows = comparison.files.map(file => `<tr><th>${escape(file.path)}<br><small>${escape(file.status)}</small></th><td>${file.first ? `${escape(file.first.hash.slice(0, 12))} · ${escape(file.first.mode)}` : 'Not present'}</td><td>${file.second ? `${escape(file.second.hash.slice(0, 12))} · ${escape(file.second.mode)}` : 'Not present'}</td></tr>`).join('');
+  const facts = operation => `<section><h2>${escape(operation.branch)}</h2><p>Runtime ${escape(operation.manifest.environment.node)} · ${escape(operation.manifest.environment.platform)}/${escape(operation.manifest.environment.architecture)}</p><p>Check results: ${operation.manifest.checks.length ? escape(operation.manifest.checks.length) + ' recorded' : 'Not recorded'} · Reported cost: ${operation.manifest.reportedCost === null ? 'Unavailable' : escape(operation.manifest.reportedCost)}</p><p>Capture gaps: ${escape(operation.manifest.captureCoverage.gaps)} · Excluded files: ${escape(operation.manifest.captureCoverage.excludedFiles)}</p><p>Selected changes: ${escape(operation.manifest.selectedChangeIds.length)}</p></section>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}';"><meta name="viewport" content="width=device-width, initial-scale=1"><style nonce="${nonce}">body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:24px;max-width:1200px;margin:auto}h1{font-size:26px}small{opacity:.75}p{line-height:1.5}.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid var(--vscode-panel-border);padding:10px;text-align:left;vertical-align:top;overflow-wrap:anywhere}thead th{background:var(--vscode-editorGroupHeader-tabsBackground)}section{border:1px solid var(--vscode-panel-border);padding:12px 18px}@media(max-width:760px){.facts{grid-template-columns:1fr}}</style></head><body><h1>Saved branch comparison</h1><p>Read-only comparison of recorded outputs. No checks or agent runs were started.</p><div class="facts">${facts(first)}${facts(second)}</div><table><thead><tr><th>File · change</th><th>${escape(first.branch)} · saved result</th><th>${escape(second.branch)} · saved result</th></tr></thead><tbody>${fileRows || '<tr><td colspan="3">No files in either saved output.</td></tr>'}</tbody></table><p>Checks and cost are unavailable unless a manifest explicitly records them. File hashes compare saved bytes and modes.</p></body></html>`;
+}
+
 function activate(context) {
   const guarded = fn => async () => { try { await fn(); } catch (error) { vscode.window.showErrorMessage('Chronicle: ' + error.message); } };
   context.subscriptions.push(vscode.commands.registerCommand('chronicle.capture', guarded(async () => {
@@ -56,6 +64,18 @@ function activate(context) {
     if (choice !== 'Undo Chronicle output') return;
     const result = engine.undoOperation(selected.op.id);
     vscode.window.showInformationMessage(`Restored ${result.restoredPaths.length} selected paths in the Chronicle output workspace.`);
+  })));
+  context.subscriptions.push(vscode.commands.registerCommand('chronicle.compareOperations', guarded(async () => {
+    const engine = await workspace(); if (!engine) return;
+    const operations = engine.operations().filter(op => op.state === 'completed' && op.manifest?.schema === 1);
+    if (operations.length < 2) throw new Error('Create at least two completed output branches with evidence manifests first.');
+    const selected = await vscode.window.showQuickPick(operations.map(op => ({ label: op.branch, description: op.createdAt, detail: op.id, op })), { title: 'Choose exactly two saved branches to compare', canPickMany: true });
+    if (!selected) return;
+    if (!Array.isArray(selected) || selected.length !== 2) throw new Error('Choose exactly two saved branches.');
+    const comparison = engine.compareOperations(selected[0].op.id, selected[1].op.id);
+    const panel = vscode.window.createWebviewPanel('chronicle.compareOperations', 'Chronicle — Branch Comparison', vscode.ViewColumn.Beside, { enableScripts: false, localResourceRoots: [] });
+    panel.webview.html = renderComparison(panel.webview, comparison);
+    context.subscriptions.push(panel);
   })));
   context.subscriptions.push(vscode.commands.registerCommand('chronicle.review', guarded(async () => {
     const engine = await workspace(); if (!engine) return;
@@ -95,4 +115,4 @@ function activate(context) {
   })));
 }
 
-module.exports = { activate, render };
+module.exports = { activate, render, renderComparison };
