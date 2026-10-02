@@ -11,7 +11,7 @@ Chronicle has an early local prototype and implementation is authorized. Start w
 5. Update the affected living documents in the same change.
 6. Review the final diff before committing or submitting a pull request.
 
-Contributors and agents update documents as they work. Autonomous work may use the 30-minute Codex chat heartbeat or the optional [Windows laptop runner](ORCHESTRATION.md#optional-windows-laptop-runner); never run both against this checkout. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and maintain [REVIEW.md](REVIEW.md). Each model-driven cycle consumes usage and needs an available runtime. The local runner is a development helper, not part of Chronicle's end-user recorder.
+Contributors and agents update documents as they work. Autonomous work may use the 30-minute Codex chat heartbeat or the optional [Windows laptop runner](ORCHESTRATION.md#optional-windows-laptop-runner); never run both against this checkout. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and maintain [REVIEW.md](REVIEW.md). Each model-driven cycle consumes usage and needs an available runtime. In laptop mode, the Codex child has network disabled; the supervising script may push one strictly validated commit to the exact authorized origin. The local runner is a development helper, not part of Chronicle's end-user recorder.
 
 ## Which document owns what?
 

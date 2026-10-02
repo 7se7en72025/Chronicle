@@ -12,7 +12,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 - Added the research-backed [upgrade roadmap](upgrades.md) and [learnings](learnings.md); clarified current versus proposed capabilities in [architecture.md](architecture.md). Five primary papers inform the recommendations; replay and environment-restore claims are explicitly bounded.
 - Completed O008's [first-release audit](RELEASE_AUDIT.md). Fixed Git color/blank-context settings breaking selection and the undo confirmation's missing branch name. Actual host/UI validation remains outstanding; Codex CLI 0.159.2 was checked through version/help in an earlier activation only.
-- Added an optional Windows supervisor and login-time Task Scheduler installer in `scripts/run-autonomous.ps1` and `scripts/install-autonomous-task.ps1`. It serializes cycles, enforces a 25-minute timeout and clean-main/origin gates, disables network in the Codex workspace-write sandbox, and pauses on failure for human review. Codex CLI 0.160.0 and ChatGPT login were verified in the approved installation context; the task is still unregistered to avoid overlap with the active chat heartbeat.
+- Added an optional Windows supervisor and login-time Task Scheduler installer in `scripts/run-autonomous.ps1` and `scripts/install-autonomous-task.ps1`. Codex runs with network disabled; the supervisor allows only one clean verified commit, checks it, pushes normally to the exact authorized origin, and confirms the updated tracking ref. Codex CLI 0.160.0 and ChatGPT login were verified in the approved installation context. The task is still unregistered to avoid overlap with the active chat heartbeat.
 
 - Added within-hunk change groups for nearby edits, keeping contiguous replacements together. Preview and branch output rebuild from saved file line slices; BOM/CRLF, stale IDs, multi-line replacements, insertions, and deletions are covered. O006 is verified; details are in [REVIEW.md](REVIEW.md).
 - Added guarded undo for selected paths in Chronicle's output worktree through CLI and VS Code. It validates branch, staged state, and file bytes/modes; retains output and can resume a partial undo after revalidation. O005 is verified; details and limits are in [REVIEW.md](REVIEW.md).
@@ -40,6 +40,8 @@ Local Markdown targets and whitespace checked. A real editor session and Claude/
 The chat heartbeat `chronicle-review-and-improve` was previously configured every 30 minutes. The optional local Windows runner must not run concurrently against this checkout. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O006 is verified; consult Git history for publication status.
 
 Scheduled development consumes model usage and requires an available runtime. The runner is not installed as a server or recorder service, and no Scheduled Task was registered. Claude recording hooks remain separately event-driven during an enabled host session.
+
+**Next:** the user must choose which scheduler owns this checkout. The laptop runner is not registered or started because the chat heartbeat is still active. If the user chooses laptop ownership, pause the heartbeat, then install and validate one real bounded cycle. Otherwise continue O013 only through the heartbeat. No real Task Scheduler lifecycle or model cycle has been validated.
 
 ## Open choices
 
