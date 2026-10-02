@@ -29,13 +29,13 @@ The current direction is a local companion for Codex or Claude Code: record supp
 - Added **Chronicle: Compare Saved Branches** in VS Code; it compares two selected completed manifests without executing checks or agents. O011 is verified at mocked-editor level; explicit user-run check-result recording was queued as O012 and is now verified.
 - Added `record-check` for developer-reported check labels and exit codes; it does not run or verify project commands. O012 is verified at CLI/editor-fixture level.
 - Added the shared `chronicle.adapter-event` v1 schema for fixture-supported Claude/Codex hook events, including status certainty and checkpoint/gap references. Unsupported events fail closed, and recovery preserves prior record bytes; O013 is verified at fixture level only.
-- Advanced O014 with a bounded simulated-tool cassette and a scripted sample task in two disposable Git worktrees from the same base commit. Alternate instructions yield different README outputs while the source fixture remains clean. This is not an AI-agent run or live host integration.
+- Advanced O014 with a deterministic headless sample issue-tracker state/reset fixture. Both disposable Git worktrees reset to the same SHA-256 state fingerprint before a bounded simulated-tool cassette and scripted README task; a drift/reset regression and source preservation check pass. It is not a running app/browser, AI-agent run, or live host integration.
 
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
 ## Verification
 
-Verification: all 39 tests pass serially, including 5 Windows PowerShell runner tests and 5 simulated-replay/worktree tests. `npm.cmd run check`, the 40-of-80 demo, the controlled response/worktree demo, 18-file Markdown relative-link check, package and fixture JSON parsing, and `git diff --check` pass. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
+Verification for the latest change: all 40 tests pass serially, including 5 Windows PowerShell runner tests and 6 simulated-replay/worktree/reset tests. `npm.cmd run check`, both demos, 98 relative Markdown links across 19 files, JSON fixture/package parsing, and `git diff --check` pass. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -43,7 +43,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is not installed as a server or recorder service, and no Scheduled Task was registered. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** finish O014's local app/reset fixture and investigate a safe actual host tool-interception integration. Real-host O004 remains blocked on host access. The laptop runner is not registered because the chat heartbeat is still active; do not enable a second writer. No real Task Scheduler lifecycle or model cycle has been validated.
+**Next:** prototype a fixture-owned MCP tool or orchestrator dispatcher that serves cassette responses before any live call. Official hook docs confirm output rewriting happens after execution, so it cannot prevent the original side effects. Validate protocol locally first; do not run a model session without an explicit credit-aware test plan. The laptop runner is not registered because the chat heartbeat is still active; do not enable a second writer.
 
 ## Open choices
 
@@ -51,4 +51,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Add a local app/reset fixture and verify the feasibility of actual tool-response interception for a fresh agent retry. The current scripted worktree demo is not a vendor-host integration. O004 still needs a real editor/agent host for event-delivery and UI checks. Keep the laptop runner inactive while the 30-minute chat heartbeat owns this checkout. See [REVIEW.md](REVIEW.md) for evidence and limits.
+Implement a fixture-owned tool dispatch prototype for the bounded cassette and validate its local protocol without calling a model. The current headless reset fixture and scripted worktree demo are not a vendor-host integration. O004 still needs a real editor/agent host for event-delivery and UI checks. Keep the laptop runner inactive while the 30-minute chat heartbeat owns this checkout. See [REVIEW.md](REVIEW.md) for evidence and limits.

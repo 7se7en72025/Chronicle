@@ -6,8 +6,10 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { createSimulatedReplay } = require('./simulated-replay');
+const { resetSampleApp } = require('./sample-app');
 
 const INITIAL_README = '# Sample app\n\n## Setup\nInstall dependencies.\n\n## Authentication\nUse the local sign-in form.\n';
+const INITIAL_APP_STATE = require('../fixtures/sample-app/state.json');
 
 function git(root, args) {
   const env = { ...process.env };
@@ -51,7 +53,9 @@ function runSampleReplay(sandboxRoot, cassette) {
   git(source, ['config', 'user.name', 'Chronicle Replay Demo']);
   git(source, ['config', 'user.email', 'chronicle-replay-demo@example.invalid']);
   fs.writeFileSync(path.join(source, 'README.md'), INITIAL_README);
+  resetSampleApp(source, INITIAL_APP_STATE);
   git(source, ['add', 'README.md']);
+  git(source, ['add', 'sample-app/state.json']);
   git(source, ['commit', '--quiet', '-m', 'sample baseline']);
   const baseline = git(source, ['rev-parse', 'HEAD']);
 
@@ -63,18 +67,22 @@ function runSampleReplay(sandboxRoot, cassette) {
     const branch = `chronicle/simulated-${name}-${crypto.randomUUID().slice(0, 8)}`;
     const worktree = path.join(sandboxPath, name);
     git(source, ['worktree', 'add', '--quiet', '-b', branch, worktree, baseline]);
+    const environment = resetSampleApp(worktree, INITIAL_APP_STATE);
     const replay = createSimulatedReplay(cassette);
     const issue = replay.invoke('fixture.issue.lookup', { issueId: '42' });
     const search = replay.invoke('fixture.issue.search', { query: 'README headings', limit: 2 });
     replay.assertComplete();
     if (git(worktree, ['rev-parse', 'HEAD']) !== baseline) throw new Error('Sample replay did not start from the common baseline.');
     scriptedAgent(worktree, instruction, issue.response, search.response);
-    runs.push({ name, branch, instruction, worktree, baseline, output: fs.readFileSync(path.join(worktree, 'README.md'), 'utf8'), evidence: [issue.evidence, search.evidence] });
+    runs.push({ name, branch, instruction, worktree, baseline, environment, output: fs.readFileSync(path.join(worktree, 'README.md'), 'utf8'), evidence: [issue.evidence, search.evidence] });
   }
 
   if (git(source, ['status', '--porcelain']) !== '' || git(source, ['rev-parse', '--abbrev-ref', 'HEAD']) !== 'main' ||
       fs.readFileSync(path.join(source, 'README.md'), 'utf8') !== INITIAL_README) {
     throw new Error('Sample replay changed the original fixture workspace.');
+  }
+  if (fs.readFileSync(path.join(source, 'sample-app', 'state.json'), 'utf8') !== JSON.stringify(INITIAL_APP_STATE, null, 2) + '\n') {
+    throw new Error('Sample replay changed the original sample app state.');
   }
   return { sandbox: realSandboxPath, baseline, runs, identicalOutput: runs[0].output === runs[1].output };
 }

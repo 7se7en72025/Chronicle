@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "appId": "chronicle-demo-issue-tracker",
+  "issues": [
+    {
+      "id": "42",
+      "title": "Keep headings when selecting README edits",
+      "status": "open"
+    }
+  ],
+  "documents": {
+    "README.md": ["Sample app", "Setup", "Authentication"]
+  }
+}

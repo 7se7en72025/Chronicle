@@ -21,5 +21,5 @@ console.log(`Controlled fixture replay passed: ${result.consumedCalls} injected 
 const sandbox = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'chronicle-simulated-agent-'));
 const branches = runSampleReplay(sandbox, cassette);
 console.log(`Scripted sample task created two worktrees from ${branches.baseline.slice(0, 12)}; original workspace stayed clean.`);
-for (const run of branches.runs) console.log(`${run.name}: ${run.branch} -> ${run.worktree}`);
+for (const run of branches.runs) console.log(`${run.name}: ${run.branch} -> ${run.worktree} (reset ${run.environment.appId}, state ${run.environment.stateHash.slice(0, 12)})`);
 console.log('The “preserve headings” instruction changes the scripted output; this demo does not invoke an AI agent.');

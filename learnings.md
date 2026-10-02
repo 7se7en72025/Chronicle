@@ -44,6 +44,12 @@ These are design recommendations inferred from the cited work, not experimental 
 
 The cited research does not prove that Chronicle can restore arbitrary agent state, replay vendor tools exactly, undo external actions, or infer whether code is semantically correct. ReCrash reproduces program failures from captured method inputs; SWE-agent and SWE-bench study coding-agent interfaces/tasks; BrowserGym studies controlled web-agent environments; AgentSuite studies benchmark validity. Chronicle must test its own host adapters and restoration contract directly.
 
+## Host integration documentation check (2026-10-03)
+
+Current [Claude Code hook documentation](https://code.claude.com/docs/en/hooks#posttooluse-decision-control) says `PostToolUse.updatedToolOutput` changes what the model sees after the tool has already run. [Codex hook documentation](https://developers.openai.com/codex/hooks) describes rewriting tool inputs before execution and replacing the model-visible result with hook feedback after execution. These are vendor API facts, not paper findings.
+
+**Chronicle implication (design inference):** a post-tool rewrite can reproduce an observed response in model context, but cannot make the original call side-effect-free. Safe cassette replay must give the agent a controlled fixture tool or use an orchestrator that owns tool dispatch and can return the saved response before a live operation occurs. Host hook fixtures alone do not validate that integration.
+
 ## Reading list
 
 - Artzi, Kim, and Ernst (2008), [“ReCrash: Making Software Failures Reproducible by Preserving Object States”](https://homes.cs.washington.edu/~mernst/pubs/reproduce-failures-ecoop2008-abstract.html), ECOOP 2008.

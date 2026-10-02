@@ -7,7 +7,7 @@
   "engines": { "node": ">=20", "vscode": "^1.85.0" },
   "main": "./src/extension.js",
   "bin": { "chronicle": "./src/cli.js" },
-  "scripts": { "test": "node --test test/*.test.js", "demo": "node scripts/demo.js", "demo:replay": "node scripts/simulated-replay-demo.js", "check": "node --check src/engine.js && node --check src/cli.js && node --check src/extension.js && node --check src/hook.js && node --check src/event-contract.js && node --check src/simulated-replay.js && node --check src/sample-replay.js && node --check scripts/simulated-replay-demo.js" },
+  "scripts": { "test": "node --test test/*.test.js", "demo": "node scripts/demo.js", "demo:replay": "node scripts/simulated-replay-demo.js", "check": "node --check src/engine.js && node --check src/cli.js && node --check src/extension.js && node --check src/hook.js && node --check src/event-contract.js && node --check src/simulated-replay.js && node --check src/sample-app.js && node --check src/sample-replay.js && node --check scripts/simulated-replay-demo.js" },
   "categories": ["Other"],
   "capabilities": { "untrustedWorkspaces": { "supported": false }, "virtualWorkspaces": { "supported": false } },
   "contributes": { "commands": [
