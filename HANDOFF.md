@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Hardened the experimental replay MCP stdio loop against a slow host reader: incoming frames pause at stdout backpressure, and EOF completion waits until buffered replies drain. The regression sends 40 requests in one input chunk through a slow writable and checks the pause/drain behavior; see [REVIEW.md](REVIEW.md).
 - Added the research-backed [upgrade roadmap](upgrades.md) and [learnings](learnings.md); clarified current versus proposed capabilities in [architecture.md](architecture.md). Five primary papers inform the recommendations; replay and environment-restore claims are explicitly bounded.
 - Completed O008's [first-release audit](RELEASE_AUDIT.md). Fixed Git color/blank-context settings breaking selection and the undo confirmation's missing branch name. Actual host/UI validation remains outstanding; Codex CLI 0.159.2 was checked through version/help in an earlier activation only.
 - Added an optional Windows supervisor and login-time Task Scheduler installer in `scripts/run-autonomous.ps1` and `scripts/install-autonomous-task.ps1`. Codex runs with network disabled; the supervisor allows only one clean verified commit, checks it, pushes normally to the exact authorized origin, and confirms the updated tracking ref. Codex CLI 0.160.0 and ChatGPT login were verified in the approved installation context. The task is still unregistered to avoid overlap with the active chat heartbeat.
@@ -35,7 +36,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Verification for the latest implementation: all 46 tests pass serially, including 5 Windows PowerShell runner tests, 6 MCP stdio tests, and 6 simulated-replay/worktree/reset tests. `npm.cmd run check`, both demos, Markdown relative links, JSON fixture/package parsing, and `git diff --check` pass. For the latest documentation/test change, all 101 relative Markdown links resolve and `git diff --check` passes. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
+Verification for the latest implementation: all 47 tests pass serially, including 5 Windows PowerShell runner tests, 7 MCP stdio tests, and 6 simulated-replay/worktree/reset tests. `npm.cmd run check` passes. The preceding documentation change verified all 101 relative Markdown links; this change adds no links. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 

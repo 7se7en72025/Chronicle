@@ -5,7 +5,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { Readable, Writable } = require('node:stream');
 const { createSimulatedReplayMcp, PROTOCOL_VERSION } = require('../src/simulated-replay-mcp');
+const { runStdioReplay } = require('../scripts/simulated-replay-mcp');
 
 const fixturePath = path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 const scriptPath = path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js');
@@ -130,4 +132,25 @@ test('stdio server bounds individual messages and emits only JSON-RPC on stdout'
   const reply = JSON.parse(result.stdout.trim());
   assert.equal(reply.error.code, -32600);
   assert.match(result.stderr, /64 KiB limit/);
+});
+
+test('stdio server pauses request processing while stdout is backpressured', async () => {
+  const requestLines = Array.from({ length: 40 }, (_, id) => JSON.stringify(request(id, 'ping'))).join('\n') + '\n';
+  const input = Readable.from([Buffer.from(requestLines)]);
+  const replies = [];
+  const observedPaused = [];
+  const output = new Writable({
+    highWaterMark: 1,
+    write(chunk, encoding, callback) {
+      replies.push(String(chunk));
+      setImmediate(() => { observedPaused.push(input.isPaused()); callback(); });
+    }
+  });
+  const diagnostics = new Writable({ write(chunk, encoding, callback) { callback(); } });
+
+  const exitCode = await runStdioReplay({ input, output, errorOutput: diagnostics, cassette: cassette() });
+  assert.equal(exitCode, 1); // Ping-only client never completed MCP initialization.
+  assert.equal(replies.length, 40);
+  assert.ok(observedPaused.length > 0);
+  assert.ok(observedPaused.every(Boolean), 'input should remain paused until each response drains');
 });

@@ -8,7 +8,7 @@ const { createSimulatedReplayMcp, MAX_MESSAGE_BYTES } = require('../src/simulate
 const cassettePath = path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 
 function writeMessage(output, message) {
-  if (message !== null) output.write(JSON.stringify(message) + '\n');
+  return message === null || output.write(JSON.stringify(message) + '\n');
 }
 
 function runStdioReplay({ input, output, errorOutput, cassette }) {
@@ -18,6 +18,8 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
   const decoder = new TextDecoder('utf-8', { fatal: true });
   let buffer = Buffer.alloc(0);
   let failed = false;
+  let waitingForDrain = false;
+  let inputEnded = false;
   let resolveRun;
   let settled = false;
 
@@ -42,15 +44,52 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
     }
     if (line.length > MAX_MESSAGE_BYTES) {
       failTransport('MCP message exceeds the 64 KiB limit.');
-      return;
+      return false;
     }
     let message;
     try { message = JSON.parse(decoder.decode(line)); }
     catch {
-      writeMessage(output, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error.' } });
-      return;
+      return writeMessage(output, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error.' } });
     }
-    writeMessage(output, server.handle(message));
+    return writeMessage(output, server.handle(message));
+  }
+
+  function pauseUntilDrain() {
+    waitingForDrain = true;
+    input.pause();
+    output.once('drain', () => {
+      waitingForDrain = false;
+      processBuffered();
+      if (!waitingForDrain && !failed) input.resume();
+    });
+  }
+
+  function processBuffered() {
+    if (failed || waitingForDrain) return;
+    let newline;
+    while (!failed && (newline = buffer.indexOf(10)) !== -1) {
+      const line = buffer.subarray(0, newline);
+      buffer = buffer.subarray(newline + 1);
+      if (!processLine(line)) {
+        pauseUntilDrain();
+        return;
+      }
+    }
+    if (!failed && buffer.length > MAX_MESSAGE_BYTES) failTransport('MCP message exceeds the 64 KiB limit.');
+    if (failed || !inputEnded) return;
+    if (buffer.length) {
+      const line = buffer;
+      buffer = Buffer.alloc(0);
+      if (!processLine(line)) { pauseUntilDrain(); return; }
+    }
+    try {
+      const completion = server.finish();
+      errorOutput.write(`Chronicle replay complete (${completion.consumedCalls} cassette calls).\n`);
+      finishRun(0);
+    } catch (finishError) {
+      errorOutput.write(`Replay did not complete (${finishError.code || 'SIMULATED_REPLAY_INCOMPLETE'}).\n`);
+      finishRun(1);
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -58,13 +97,7 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
     input.on('data', chunk => {
       if (failed) return;
       buffer = Buffer.concat([buffer, chunk]);
-      let newline;
-      while (!failed && (newline = buffer.indexOf(10)) !== -1) {
-        const line = buffer.subarray(0, newline);
-        buffer = buffer.subarray(newline + 1);
-        processLine(line);
-      }
-      if (!failed && buffer.length > MAX_MESSAGE_BYTES) failTransport('MCP message exceeds the 64 KiB limit.');
+      processBuffered();
     });
     input.on('error', inputError => {
       errorOutput.write(`MCP input failed (${inputError.code || 'STREAM_ERROR'}).\n`);
@@ -72,16 +105,8 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
     });
     input.on('end', () => {
       if (failed) return finishRun(1);
-      if (buffer.length) processLine(buffer);
-      if (failed) return finishRun(1);
-      try {
-        const completion = server.finish();
-        errorOutput.write(`Chronicle replay complete (${completion.consumedCalls} cassette calls).\n`);
-        finishRun(0);
-      } catch (finishError) {
-        errorOutput.write(`Replay did not complete (${finishError.code || 'SIMULATED_REPLAY_INCOMPLETE'}).\n`);
-        finishRun(1);
-      }
+      inputEnded = true;
+      processBuffered();
     });
     input.on('close', () => { if (failed) finishRun(1); });
   });

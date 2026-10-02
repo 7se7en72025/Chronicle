@@ -175,3 +175,11 @@ Six focused tests cover lifecycle negotiation, tool listing and annotations, cas
 Updated the architecture, getting-started guide, and handoff to describe stopped replay dispatch versus process lifetime. Added a child-process test that sends an unmatched call followed by a matching call, verifies both receive error results without cassette consumption, then closes stdin and observes exit code 1. This preserves fail-closed behavior while documenting MCP session teardown accurately.
 
 **Verification:** the full serial suite passes 46/46, including the new stdio subprocess lifecycle test; `npm.cmd run check` passes; all 101 relative Markdown links resolve; and `git diff --check` passes. Remaining limitation: host-specific shutdown UI and client behavior are unverified; the local process contract is covered at subprocess level. No independent review or host run occurred.
+
+## MCP stdio output backpressure (2026-10-03)
+
+**P2 — Incoming request batches could outpace a slow MCP host reader (fixed).** `scripts/simulated-replay-mcp.js:runStdioReplay` processed every newline in the current input chunk without checking `stdout.write()` backpressure. Repeated malformed or post-mismatch requests could therefore queue unbounded protocol replies while the host was not draining stdout. EOF could also arrive while the last chunk remained in the server's own buffer, incorrectly treating the unprocessed lines as one trailing frame and finalizing the session early.
+
+The stdio dispatcher now pauses input and stops consuming buffered frames when stdout reports backpressure, resumes after `drain`, and defers EOF completion until buffered frames and response writes are processed. A regression uses a deliberately slow, low-high-water-mark writable and a single input chunk containing 40 ping requests; it verifies all 40 replies are produced while input remains paused through each drain. The test also covers the final-chunk/EOF interaction that exposed the initial incomplete fix.
+
+**Verification:** the focused MCP suite passes 7/7; the full serial suite passes 47/47; `npm.cmd run check` and `git diff --check` pass. Host-specific stdio behavior remains unverified because no Codex or Claude CLI is available in the current runtime. This is a local stream-pressure safeguard, not a claim of full MCP conformance. No independent reviewer participated.
