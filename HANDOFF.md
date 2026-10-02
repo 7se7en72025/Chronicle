@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Added guarded undo for selected paths in Chronicle's output worktree through CLI and VS Code. It validates branch, staged state, and file bytes/modes; retains output and can resume a partial undo after revalidation. O005 is verified; details and limits are in [REVIEW.md](REVIEW.md).
 - Implemented immutable supported-file capture, byte integrity checks, checkpoint diffs, complete-hunk selection, preview, and separate branch/worktree output.
 - Added VS Code commands with preview gating and escaped webview content, plus direct CLI commands.
 - Added Claude hook configuration and bounded payload recording for session/tool success/failure boundaries. Attribution remains explicitly uncertain.
@@ -24,7 +25,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Latest verification: all 22 tests pass, `npm run check` and `npm run demo` pass, Codex JSON config parses, Markdown relative links resolve, and `git diff --check` passes. Reconciliation tests cover prepared/applying/failed/completed journal states, Git branch/worktree mismatches, actual post-completion edits, and preservation of interrupted output. Codex hook behavior is fixture-tested; editor interactions still use a mocked VS Code host.
+Latest verification: all 25 tests pass, including guarded undo conflicts, partial recovery, file additions/deletions, and mocked VS Code confirmation. `npm run check`, the 40-of-80 `npm run demo`, Markdown relative links, `package.json` parsing, and `git diff --check` pass. Codex hook behavior is fixture-tested; editor interactions remain mocked.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -34,8 +35,8 @@ Scheduled development consumes model usage and requires an available runtime. No
 
 ## Open choices
 
-Real Claude/VS Code and Codex host validation, configurable exclusions, retention, SQLite/TypeScript migration, automatic operation resumption, and undo remain outstanding. Codex adapter is fixture-tested only. First slice uses JavaScript and JSON metadata as recorded in D007. Branch output rejects checkpoints with reported exclusions.
+Real Claude/VS Code and Codex host validation, configurable exclusions, retention, SQLite/TypeScript migration, automatic operation resumption, and finer selection remain outstanding. Codex adapter is fixture-tested only. First slice uses JavaScript and JSON metadata as recorded in D007. Branch output rejects checkpoints with reported exclusions.
 
 ## Next concrete task
 
-O001, O002, O003, and O007 are verified at their documented levels. `reconcile` maps operation journals to actual Git branch/worktree state; Codex hooks provide fixture-tested lifecycle boundaries. O004 is blocked on Claude CLI and an available desktop UI control surface. Next, investigate guarded undo (O005), refusing to overwrite later destination changes.
+O001–O003 and O005 are verified at their documented levels; O007 remains fixture-level. `undo <operation-id>` restores only selected paths in Chronicle output after checking branch, staged state, bytes, and modes. It can resume an interrupted undo and refuses later edits. O004 remains blocked on Claude CLI and desktop UI access. Next, advance O006, finer change-group selection; keep O004 blocked until a real host/UI runtime is available.

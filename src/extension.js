@@ -46,6 +46,17 @@ function activate(context) {
     const cp = engine.capture(label);
     vscode.window.showInformationMessage(`Chronicle saved ${Object.keys(cp.files).length} files (${cp.excluded.length} excluded).`);
   })));
+  context.subscriptions.push(vscode.commands.registerCommand('chronicle.undoOperation', guarded(async () => {
+    const engine = await workspace(); if (!engine) return;
+    const operations = engine.operations().filter(op => ['completed', 'undoing'].includes(op.state));
+    if (!operations.length) throw new Error('No completed or interrupted Chronicle output undos are available.');
+    const selected = await vscode.window.showQuickPick(operations.map(op => ({ label: op.branch, description: op.state + ' · ' + op.createdAt, detail: op.id, op })), { title: 'Choose Chronicle output to undo or resume' });
+    if (!selected) return;
+    const choice = await vscode.window.showWarningMessage(`Restore Chronicle-selected files in ${selected.branch}? The separate output workspace remains in place. Later edits, staged changes to selected files, or new commits make undo refuse.`, { modal: true }, 'Undo Chronicle output');
+    if (choice !== 'Undo Chronicle output') return;
+    const result = engine.undoOperation(selected.op.id);
+    vscode.window.showInformationMessage(`Restored ${result.restoredPaths.length} selected paths in the Chronicle output workspace.`);
+  })));
   context.subscriptions.push(vscode.commands.registerCommand('chronicle.review', guarded(async () => {
     const engine = await workspace(); if (!engine) return;
     const checkpoints = engine.list();

@@ -4,6 +4,11 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Add guarded undo for output operations
+
+- Added CLI and VS Code undo actions scoped to selected paths in Chronicle's output worktree. The operation refuses later edits, staged selected files, changed branches, or new commits; it retains the branch/worktree and can resume an interrupted undo after validating every affected path.
+- Tests cover edited, staged, committed, unrelated, added/deleted, and interrupted output; `npm test` passes (25 tests), syntax check and 40-of-80 demo pass. Real VS Code UI remains unverified.
+
 ### 2026-10-02 — Add Codex CLI hook adapter
 
 - Added a portable plugin manifest and separate Codex hook config for supported session, interrupt, and local tool boundaries.

@@ -18,12 +18,20 @@ The 1,000-event capture-gap cap writes a visible limit marker. Gap persistence i
 
 ## Fixes and verification
 
-Current verification: all 22 tests passed, `npm run check` passed, `npm run demo` kept 40 of 80 edits with zero model requests, both Codex JSON files parse, Markdown relative links resolve, and `git diff --check` passed. Reconciliation coverage includes clean completed output (still Git-dirty by design), post-completion edits including recreated deletions, prepared-after-worktree-creation, applying/interrupted, failed branch collision, CLI reporting, and preservation of edits in interrupted worktrees. Codex coverage includes privacy-safe before/after payload fixtures and plugin hook config shape. Live host integration and independent review remain outstanding.
+Before the third activation, verification stood at 22 tests, `npm run check`, the 40-of-80 demo, JSON parsing, Markdown links, and whitespace. Current undo-specific final verification is recorded below.
 
 ## Final review
 
-O001–O003 remain covered through engine, CLI, and mocked editor tests. O007's Codex adapter is verified against official hook event docs and fixtures, not a running Codex host. O004 remains blocked: Claude CLI is absent, and the computer-use runtime returned no app windows and exposes no native launch API even though VS Code CLI is installed. Completed journals predating the expected-file manifest are explicitly reported as unverified. Chronicle does not automatically resume interrupted operations or implement undo.
+O001–O003 remain covered through engine, CLI, and mocked editor tests. O007's Codex adapter is verified against official hook event docs and fixtures, not a running Codex host. O004 remains blocked: Claude CLI is absent, and the computer-use runtime returned no app windows and exposes no native launch API even though VS Code CLI is installed. Completed journals predating the expected-file manifest are explicitly reported as unverified. Output undo is now guarded and can resume after validating partially restored paths; general operation resumption remains manual.
 
-## Next step
+## Third activation — guarded output undo (2026-10-02)
 
-Next, investigate guarded undo (O005) and actual host availability for O004. Do not mark either verified without destination freshness/conflict tests or a real host session.
+**P1 — No way to reverse a mistaken Chronicle branch selection without manually editing its output (closed).** `src/engine.js:createBranch` retained source checkpoints and result manifests but exposed no inverse operation. Added `undoOperation` scoped to a journal-validated Chronicle worktree. It validates operation identity, branch/HEAD, selected-path staging, and affected bytes/modes against the selected result before restoring the source checkpoint. It leaves other paths, the original workspace, branch, and worktree intact. Undo journals `undoing` before writes and permits recovery only when each path matches either expected output or saved baseline; branch tip, staging, and each path are checked again immediately before mutation. Unexpected edits, staged changes, new commits, broken worktree registration, or invalid manifests fail closed.
+
+Added CLI `undo <operation-id>` and a modal-confirmed VS Code command. Tests cover source and unrelated-path preservation, later edits, staged paths, committed output, partial undo recovery, and added/deleted files. The native UI remains unverified.
+
+**Verification:** `npm test` passes (25 tests), `npm run check` passes, `npm run demo` keeps 40 of 80 edits with zero model requests, Markdown relative links resolve, `package.json` parses, and `git diff --check` passes. Tests cover clean undo, add/delete restoration, independent file preservation, edits, staged paths, new commits, partial undo recovery, and the mocked VS Code confirmation path. Independent review was not performed.
+
+**Remaining concerns:** per-file replacement uses a same-directory temporary file and atomic rename, so interruption before replacement leaves the selected result intact. A crash can leave that temporary sibling for manual inspection. Filesystem writes cannot be atomic against an unrelated process changing the same file at precisely the same time; Chronicle rechecks each path immediately before restore and journals partial progress. Keep Chronicle idle during undo. Undo restores saved file bytes only; it does not restore agent state, remove the branch/worktree, or reverse external side effects.
+
+**Next:** finish verification, inspect the final diff, commit and push if clean; then advance O006. Resume O004 only when real host/UI access becomes available.

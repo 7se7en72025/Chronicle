@@ -72,9 +72,56 @@ test('whole-file additions, deletions, and baseline deletions are restored', t =
   assert.equal(fs.existsSync(path.join(op.target, 'README.md')), false);
   assert.equal(fs.existsSync(path.join(op.target, 'deleted-before.txt')), false);
   assert.equal(fs.readFileSync(path.join(op.target, 'new.txt'), 'utf8'), 'new\n');
-  assert.equal(engine.reconcileOperations()[0].modifiedSinceCompletion, false);
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).modifiedSinceCompletion, false);
+  const undoable = engine.createBranch(a.id, b.id, ids, 'chronicle/add-delete-undo');
+  engine.undoOperation(undoable.id);
+  assert.equal(fs.readFileSync(path.join(undoable.target, 'README.md'), 'utf8'), 'one\ntwo\nthree\n');
+  assert.equal(fs.existsSync(path.join(undoable.target, 'new.txt')), false);
   fs.writeFileSync(path.join(op.target, 'README.md'), 'restored later\n');
-  assert.equal(engine.reconcileOperations()[0].assessment, 'completed-worktree-modified');
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'completed-worktree-modified');
+});
+
+test('guarded undo restores only selected output paths and leaves source and unrelated files alone', t => {
+  const { root, engine, file } = fixture(t, 'one\ntwo\nthree\n');
+  fs.writeFileSync(path.join(root, 'other.txt'), 'unrelated\n');
+  const before = engine.capture(); fs.writeFileSync(file, 'one\nchanged\nthree\n'); const after = engine.capture();
+  const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const op = engine.createBranch(before.id, after.id, ids, 'chronicle/undo-clean');
+  fs.writeFileSync(path.join(op.target, 'unrelated-output.txt'), 'keep me\n');
+  const result = engine.undoOperation(op.id);
+  assert.equal(result.state, 'undone'); assert.deepEqual(result.restoredPaths, ['README.md']);
+  assert.equal(fs.readFileSync(path.join(op.target, 'README.md'), 'utf8'), 'one\ntwo\nthree\n');
+  assert.equal(fs.readFileSync(path.join(op.target, 'unrelated-output.txt'), 'utf8'), 'keep me\n');
+  assert.equal(fs.readFileSync(file, 'utf8'), 'one\nchanged\nthree\n');
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'operation-undone');
+});
+
+test('guarded undo refuses later edits, staged selected paths, and committed output', t => {
+  for (const scenario of ['edited', 'staged', 'committed']) {
+    const { root, engine, file } = fixture(t);
+    const before = engine.capture(); fs.writeFileSync(file, 'changed\n'); const after = engine.capture();
+    const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+    const op = engine.createBranch(before.id, after.id, ids, 'chronicle/undo-' + scenario);
+    if (scenario === 'edited') fs.writeFileSync(path.join(op.target, 'README.md'), 'developer edit\n');
+    if (scenario === 'staged') git(op.target, ['add', 'README.md']);
+    if (scenario === 'committed') { git(op.target, ['add', 'README.md']); git(op.target, ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-m', 'keep result']); }
+    assert.throws(() => engine.undoOperation(op.id), scenario === 'edited' ? /changed after Chronicle/ : scenario === 'staged' ? /staged changes/ : /new commits/);
+    assert.equal(fs.existsSync(path.join(engine.store, 'operations', op.id + '.json')), true);
+  }
+});
+
+test('guarded undo resumes a partially restored multi-file operation', t => {
+  const { root, engine, file } = fixture(t);
+  fs.writeFileSync(path.join(root, 'second.txt'), 'old\n');
+  const before = engine.capture(); fs.writeFileSync(file, 'changed\n'); fs.writeFileSync(path.join(root, 'second.txt'), 'new\n'); const after = engine.capture();
+  const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const op = engine.createBranch(before.id, after.id, ids, 'chronicle/undo-retry');
+  const journal = path.join(engine.store, 'operations', op.id + '.json');
+  const record = JSON.parse(fs.readFileSync(journal, 'utf8')); record.state = 'undoing'; fs.writeFileSync(journal, JSON.stringify(record));
+  fs.writeFileSync(path.join(op.target, 'README.md'), 'one\ntwo\nthree\n'); // Already restored before a simulated interruption.
+  const result = engine.undoOperation(op.id);
+  assert.equal(result.state, 'undone');
+  assert.equal(fs.readFileSync(path.join(op.target, 'second.txt'), 'utf8'), 'old\n');
 });
 
 test('exclusions are reported and incomplete output is rejected', t => {

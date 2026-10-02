@@ -40,6 +40,16 @@ Revisit when: integration behavior is verified and history volume needs querying
 
 Status: accepted for the prototype.
 
-Use manual host-neutral checkpoints, Claude CLI hooks, and a Codex CLI plugin-hook adapter with VS Code review. The Codex adapter records supported local lifecycle/tool boundaries; real Codex and Claude sessions remain unverified. Reject output from checkpoints with reported exclusions rather than construct a misleading partial baseline. Failed worktrees remain inspectable; automatic operation resumption and undo are deferred.
+Use manual host-neutral checkpoints, Claude CLI hooks, and a Codex CLI plugin-hook adapter with VS Code review. The Codex adapter records supported local lifecycle/tool boundaries; real Codex and Claude sessions remain unverified. Reject output from checkpoints with reported exclusions rather than construct a misleading partial baseline. Failed worktrees remain inspectable; automatic operation resumption is deferred. Guarded undo is scoped separately in D009.
 
 Revisit when: real-host validation and explicit partial-restoration policies are implemented.
+
+## D009 — Scope undo to Chronicle output paths
+
+Status: accepted for the prototype.
+
+Undo only restores the selected paths in a Chronicle-created output worktree to the saved source baseline. It checks branch identity, commit, file bytes and modes, and staged state; it refuses unexpected changes and keeps the branch/worktree. An interrupted undo can resume only when each affected path still matches the operation output or the saved baseline.
+
+Reason: users need a no-model way to reverse a mistaken selection, while later work and unrelated files must remain untouched. Deleting branches/worktrees is a separate explicit cleanup action.
+
+Revisit when: active-workspace mutation or broader operation cleanup is designed with its own recovery and confirmation contract.

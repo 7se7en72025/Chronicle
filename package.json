@@ -12,6 +12,7 @@
   "capabilities": { "untrustedWorkspaces": { "supported": false }, "virtualWorkspaces": { "supported": false } },
   "contributes": { "commands": [
     { "command": "chronicle.capture", "title": "Chronicle: Capture Checkpoint" },
-    { "command": "chronicle.review", "title": "Chronicle: Review Changes" }
+    { "command": "chronicle.review", "title": "Chronicle: Review Changes" },
+    { "command": "chronicle.undoOperation", "title": "Chronicle: Undo Output Operation" }
   ] }
 }

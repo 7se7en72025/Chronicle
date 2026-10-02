@@ -25,7 +25,7 @@ test('editor command flow requires preview and produces a separate selected work
   const vscode = {
     workspace: { isTrusted: true, workspaceFolders: [{ uri: { scheme: 'file', fsPath: root } }] },
     window: {
-      showInputBox: async () => 'Checkpoint', showInformationMessage: async () => undefined,
+      showInputBox: async () => 'Checkpoint', showInformationMessage: async () => undefined, showWarningMessage: async () => 'Undo Chronicle output',
       showErrorMessage: message => errors.push(message), showQuickPick: async items => items[picks++ === 0 ? 0 : items.length - 1], createWebviewPanel: () => panel
     },
     commands: { registerCommand: (id, fn) => { commands.set(id, fn); return { dispose() {} }; }, executeCommand: async () => {} },
@@ -49,6 +49,10 @@ test('editor command flow requires preview and produces a separate selected work
   await receiver({ type: 'apply', selected, branch: 'chronicle/editor' });
   assert.equal(messages.at(-1).type, 'applied');
   assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'after\n');
+  vscode.workspace.isTrusted = true;
+  await commands.get('chronicle.undoOperation')();
+  assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'before\n');
+  assert.equal(engine.operations()[0].state, 'undone');
   vscode.workspace.isTrusted = false;
   await receiver({ type: 'preview', selected }); assert.match(messages.at(-1).message, /trust changed/);
 

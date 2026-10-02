@@ -298,6 +298,84 @@ class Chronicle {
     return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
   }
 
+  undoOperation(id) {
+    return this.exclusive(() => {
+      if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid operation ID');
+      const journal = path.join(this.store, 'operations', id + '.json');
+      const op = JSON.parse(fs.readFileSync(journal, 'utf8'));
+      const target = path.resolve(this.store, 'worktrees', id);
+      if (op.id !== id || path.resolve(op.target || '') !== target) throw new Error('Operation target is invalid');
+      if (!['completed', 'undoing'].includes(op.state)) throw new Error('Only a completed Chronicle operation can be undone');
+      if (git(target, ['rev-parse', 'HEAD']).trim() !== op.head) throw new Error('Output branch has new commits; undo refused');
+      const branchRef = 'refs/heads/' + op.branch;
+      if (!git(target, ['symbolic-ref', 'HEAD']).trim().endsWith('/' + op.branch) || !git(this.root, ['show-ref', '--verify', '--hash', branchRef], [0, 1]).trim()) throw new Error('Output branch identity changed; undo refused');
+
+      const registrations = git(this.root, ['worktree', 'list', '--porcelain']).split(/\r?\n\r?\n/).filter(Boolean);
+      const registered = registrations.some(record => {
+        const worktree = record.split(/\r?\n/).find(line => line.startsWith('worktree '));
+        const branch = record.split(/\r?\n/).find(line => line.startsWith('branch '));
+        return worktree && path.resolve(worktree.slice(9)) === target && branch?.slice(7) === branchRef;
+      });
+      if (!registered || !fs.statSync(target).isDirectory()) throw new Error('Chronicle output worktree is unavailable; undo refused');
+
+      const preview = this.preview(op.from, op.to, op.selected);
+      if (!Array.isArray(op.files) || !Array.isArray(op.deletedPaths)) throw new Error('Operation has no verified output manifest; undo refused');
+      const manifest = new Map(op.files.map(file => [file.path, file.hash]));
+      if (manifest.size !== op.files.length || preview.files.some(file => file.content !== null && manifest.get(file.path) !== hash(Buffer.from(file.content, 'utf8')))) throw new Error('Operation manifest does not match its selection; undo refused');
+      const staged = new Set(git(target, ['diff', '--cached', '--name-only', '-z']).split('\0').filter(Boolean));
+      const baseline = this.checkpoint(op.from);
+      const plan = preview.files.map(file => {
+        if (staged.has(file.path)) throw new Error('Selected output path has staged changes; undo refused: ' + file.path);
+        const full = safePath(target, file.path);
+        const original = baseline.files[file.path];
+        let current = null;
+        try {
+          const stat = fs.lstatSync(full);
+          if (!stat.isFile()) throw new Error('Selected output path is no longer a regular file; undo refused: ' + file.path);
+          current = { bytes: fs.readFileSync(full), mode: process.platform === 'win32' ? (original?.mode || file.mode) : stat.mode & 0o111 ? '100755' : '100644' };
+        } catch (error) { if (error.code !== 'ENOENT') throw error; }
+        const expected = file.content === null ? null : { bytes: Buffer.from(file.content, 'utf8'), mode: file.mode };
+        const prior = original ? { bytes: this.bytes(original), mode: original.mode } : null;
+        const matches = (actual, state) => state === null ? actual === null : actual !== null && actual.bytes.equals(state.bytes) && actual.mode === state.mode;
+        const canContinue = matches(current, expected) || (op.state === 'undoing' && matches(current, prior));
+        if (!canContinue) throw new Error('Selected output changed after Chronicle created it; undo refused: ' + file.path);
+        return { file, full, prior, expected, matches };
+      });
+
+      if (op.state === 'completed') { op.state = 'undoing'; op.undoStartedAt = new Date().toISOString(); writeJson(journal, op); }
+      for (const item of plan) {
+        if (git(target, ['rev-parse', 'HEAD']).trim() !== op.head) throw new Error('Output branch gained a commit during undo; recovery journal retained');
+        if (git(target, ['diff', '--cached', '--name-only', '-z']).split('\0').includes(item.file.path)) throw new Error('Selected output path was staged during undo; recovery journal retained: ' + item.file.path);
+        let current = null;
+        try {
+          const stat = fs.lstatSync(item.full);
+          if (!stat.isFile()) throw new Error('Selected output path is no longer a regular file; recovery journal retained: ' + item.file.path);
+          current = { bytes: fs.readFileSync(item.full), mode: process.platform === 'win32' ? (item.prior?.mode || item.file.mode) : stat.mode & 0o111 ? '100755' : '100644' };
+        } catch (error) { if (error.code !== 'ENOENT') throw error; }
+        if (item.matches(current, item.prior)) continue;
+        if (!item.matches(current, item.expected)) throw new Error('Selected output changed during undo; recovery journal retained: ' + item.file.path);
+        if (item.prior === null) fs.unlinkSync(item.full);
+        else {
+          fs.mkdirSync(path.dirname(item.full), { recursive: true });
+          const temp = item.full + '.chronicle-undo-' + crypto.randomUUID() + '.tmp';
+          const fd = fs.openSync(temp, 'wx', 0o600);
+          try {
+            fs.writeFileSync(fd, item.prior.bytes);
+            if (process.platform !== 'win32') fs.fchmodSync(fd, item.prior.mode === '100755' ? 0o755 : 0o644);
+            fs.fsyncSync(fd);
+          } finally { fs.closeSync(fd); }
+          if (hash(fs.readFileSync(temp)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed before replacement: ' + item.file.path);
+          // A crash before rename leaves the original selected file intact. A rename
+          // publishes the fully written baseline atomically on the same filesystem.
+          fs.renameSync(temp, item.full);
+          if (hash(fs.readFileSync(item.full)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed: ' + item.file.path);
+        }
+      }
+      op.state = 'undone'; op.undoneAt = new Date().toISOString(); writeJson(journal, op);
+      return { id, state: op.state, target, restoredPaths: plan.map(item => item.file.path), modelRequests: 0 };
+    });
+  }
+
   reconcileOperations() {
     const worktrees = new Map();
     const records = git(this.root, ['worktree', 'list', '--porcelain']).split(/\r?\n\r?\n/).filter(Boolean);
@@ -346,6 +424,7 @@ class Chronicle {
       else if (registration && operation.state === 'applying') assessment = 'interrupted-worktree';
       else if (registration && operation.state === 'prepared') assessment = 'worktree-created-before-journal-update';
       else if (registration && operation.state === 'failed') assessment = 'failed-worktree-retained';
+      else if (registration && operation.state === 'undone') assessment = 'operation-undone';
       else if (registration && operation.state === 'completed') assessment = modifiedSinceCompletion === null ? 'completion-unverified' : modifiedSinceCompletion ? 'completed-worktree-modified' : 'completed';
       else if (registration) assessment = 'worktree-present';
       else if (branchExists) assessment = targetExists ? 'target-exists-unregistered' : 'branch-exists-worktree-unavailable';
