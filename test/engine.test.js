@@ -288,6 +288,23 @@ test('repository-specific storage symlinks are resolved before creating snapshot
   }
 });
 
+test('symlinked internal snapshot directories are rejected before redirected writes', t => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-store-child-link-'));
+  const root = path.join(base, 'repo'); fs.mkdirSync(root);
+  git(root, ['init']); git(root, ['config', 'user.name', 'Test']); git(root, ['config', 'user.email', 'test@example.invalid']);
+  fs.writeFileSync(path.join(root, 'README.md'), 'safe\n'); git(root, ['add', '.']); git(root, ['commit', '-m', 'Baseline']);
+  const storageBase = path.join(base, 'history');
+  const store = path.join(storageBase, hash(fs.realpathSync(root)).slice(0, 24));
+  fs.mkdirSync(store, { recursive: true });
+  fs.symlinkSync(root, path.join(store, 'blobs'), process.platform === 'win32' ? 'junction' : 'dir');
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+
+  assert.throws(() => new Chronicle(root, { storage: storageBase }), /Snapshot storage directory must be a real directory/);
+  for (const directory of ['checkpoints', 'operations', 'worktrees', 'gaps', 'recovery']) {
+    assert.equal(fs.existsSync(path.join(root, directory)), false, `did not create ${directory} in the redirected project`);
+  }
+});
+
 test('corrupted snapshots fail integrity checks', t => {
   const { engine } = fixture(t); const cp = engine.capture(); const entry = cp.files['README.md'];
   fs.writeFileSync(path.join(engine.store, 'blobs', entry.hash), 'tampered');

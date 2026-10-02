@@ -103,7 +103,21 @@ class Chronicle {
     }
     const relativeStore = path.relative(this.root, this.store);
     if (!relativeStore || (relativeStore !== '..' && !relativeStore.startsWith('..' + path.sep) && !path.isAbsolute(relativeStore))) throw new Error('Snapshot storage must be outside the recorded repository');
-    for (const dir of ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery']) fs.mkdirSync(path.join(this.store, dir), { recursive: true, mode: 0o700 });
+    const directories = ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery'];
+    fs.mkdirSync(this.store, { recursive: true, mode: 0o700 });
+    // Validate every existing child before creating any of them. In particular,
+    // a symlinked blob directory must not redirect immutable snapshots into a
+    // project (or another caller-controlled directory).
+    const existing = new Set();
+    for (const dir of directories) {
+      const child = path.join(this.store, dir);
+      try {
+        const stat = fs.lstatSync(child);
+        if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`Snapshot storage directory must be a real directory: ${child}`);
+        existing.add(dir);
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    for (const dir of directories) if (!existing.has(dir)) fs.mkdirSync(path.join(this.store, dir), { mode: 0o700 });
   }
 
   exclusive(action) {

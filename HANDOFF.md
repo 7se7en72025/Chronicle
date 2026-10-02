@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Closed an internal storage-directory symlink bypass in `Chronicle.constructor`: pre-existing `blobs`, `checkpoints`, `operations`, `worktrees`, `gaps`, or `recovery` entries must be real directories. A fixture redirects `blobs` to a disposable repository and confirms construction stops before creating redirected history folders; see [REVIEW.md](REVIEW.md).
 - Closed a storage symlink bypass in `Chronicle.constructor`: the repo-specific store path is now resolved and checked before snapshot subdirectories are created. A fixture verifies a hash-named symlink into a disposable repository is refused without creating Chronicle directories there; see [REVIEW.md](REVIEW.md).
 - Rechecked MCP compatibility against the current `2026-07-28` specification. Chronicle's experimental MCP server remains a `2025-11-25` legacy-handshake subset; its docs now say dual-era clients must fall back and modern-only clients are incompatible. No current Codex/Claude behavior or host compatibility is inferred. See [upgrades.md](upgrades.md) and [learnings.md](learnings.md).
 - Hardened the experimental replay MCP stdio loop against a slow host reader and early pipe closure: incoming frames pause at stdout backpressure, EOF waits until buffered replies drain, and output `EPIPE` ends the session cleanly with a failure status. Focused stream tests cover all three cases; see [REVIEW.md](REVIEW.md).
@@ -38,7 +39,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Verification for the latest implementation: all 49 tests pass serially, including 5 Windows PowerShell runner tests, 8 MCP stdio tests, and the repo-specific store symlink regression. `npm.cmd run check` passes; all 16 root Markdown files have zero broken relative links. Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
+Verification for this implementation: all 50 tests pass serially, including 5 Windows PowerShell runner tests, 8 MCP stdio tests, and the internal snapshot-directory symlink regression. `npm.cmd run check` passes; Markdown link and final diff checks are recorded in [REVIEW.md](REVIEW.md). Codex hook behavior, editor interactions, and the scheduled runner remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 

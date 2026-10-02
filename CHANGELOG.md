@@ -5,6 +5,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 ## Unreleased
 
 - Close a storage-path symlink bypass: resolve the repository-specific store before creating history folders, and reject canonical paths inside the recorded workspace.
+- Reject symlinked or non-directory snapshot-store children before creating internal history directories, preventing blob or metadata writes from being redirected through a pre-existing child link.
 - Documented that the fixture MCP server implements the legacy 2025-11-25 handshake only; a test now records its deterministic response to a modern `server/discover` probe.
 - MCP stdio replay now pauses request processing on stdout backpressure, waits for buffered responses before finalizing EOF, and exits cleanly with a failure when the host closes its output pipe.
 - Corrected MCP replay shutdown documentation and added child-process coverage for post-mismatch calls and EOF failure.
