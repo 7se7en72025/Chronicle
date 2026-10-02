@@ -15,6 +15,12 @@ npm run demo:replay
 
 The first demo creates a temporary Git fixture, changes 80 lines, selects the hunk containing the wanted 40 changes, and creates a separate output worktree. It prints both locations and retains them for inspection. `npm run demo:replay` injects two deterministic responses from a local cassette. It does not launch an agent or edit your project.
 
+## Experimental fixture MCP server
+
+`scripts/simulated-replay-mcp.js` exposes the bundled cassette as two read-only MCP tools over newline-delimited stdio JSON-RPC. It supports only the initialization and tools methods needed by this fixture; it is not registered in a host plugin and has not been host-validated. Test the protocol with `node --test test/simulated-replay-mcp.test.js` rather than calling a model.
+
+An MCP host must launch `node` with the absolute path to `scripts/simulated-replay-mcp.js` and this checkout as its working directory. Launch the script directly, not through `npm run`: npm prints banners to stdout, which is reserved for MCP messages. The server exposes only the fixture's allowlisted read-only tools, consumes responses in cassette order, and exits unsuccessfully on mismatch or incomplete consumption. It has no live fallback, network client, or model request. An agent host may still spend its normal model usage when the agent chooses to call these tools. No Codex or Claude MCP configuration is currently bundled.
+
 ## Review beside your agent in VS Code
 
 1. Open the Chronicle repository in VS Code.

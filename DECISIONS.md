@@ -56,12 +56,12 @@ Reason: users need a no-model way to reverse a mistaken selection, while later w
 
 Revisit when: active-workspace mutation or broader operation cleanup is designed with its own recovery and confirmation contract.
 
-## D010 — Keep simulated tool replay fixture-only until a host can safely intercept
+## D010 — Route cassette replay through fixture-owned tools
 
 Status: accepted for the prototype.
 
-The first replay component accepts bounded schema-versioned JSON cassettes, matches calls in exact order using canonical JSON input hashes, and injects cloned responses from an explicit local-tool allowlist. Mismatches and exhausted recordings fail closed; there is no live-tool fallback. The component does not launch an agent or mutate a workspace.
+The replay fixture accepts bounded schema-versioned JSON cassettes, matches calls in exact order using canonical JSON input hashes, and injects cloned responses from an explicit local-tool allowlist. A dependency-free MCP stdio prototype exposes only those read-only fixture tools. Mismatches and incomplete recordings fail closed; there is no live-tool fallback. It does not launch an agent, connect to a host, or mutate a workspace.
 
-Reason: response substitution can be tested deterministically without contacting the original service or assuming that an observed hook can intercept a result. Current Codex and Claude hooks are passive recorders in this repository; they cannot provide transparent tool replacement.
+Reason: an explicitly owned fixture tool can return a saved response before any external operation occurs, while keeping the initial experiment deterministic and consistent with D007's dependency-free prototype. Official Claude/Codex hooks can affect model-visible post-tool output after the real tool already ran, so they do not alone provide side-effect-free replay.
 
-Revisit when: a controlled sample app and verified host/orchestrator integration can start a fresh run in an isolated worktree while clearly separating injected, live, and unmatched events.
+Revisit when: the stdio subset is validated with a real supported host, and a controlled orchestrator can start fresh runs in isolated worktrees while clearly separating injected, live, and unmatched events. Revisit the SDK choice before expanding protocol support.
