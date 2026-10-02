@@ -24,7 +24,7 @@ Latest verification: all 11 tests passed, syntax checks passed, and the demo kep
 
 Local Markdown targets and whitespace checked. A real editor session and Claude session remain untested; Claude CLI is not installed on this machine.
 
-An ACTIVE Codex heartbeat, `chronicle-review-and-improve`, is configured every 30 minutes in this chat. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). The user authorized verified commits and normal pushes to origin/main. Check Git status, log, and upstream to determine publication status; this document does not assume a pending push succeeded.
+An ACTIVE Codex heartbeat, `chronicle-review-and-improve`, runs on a 30-minute schedule and targets up to about 25 minutes of focused work per activation, carrying on across multiple tasks when time and runtime allow. Codex controls actual duration, and the first scheduled activation has not been verified. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). The user authorized verified commits and normal pushes to origin/main. Check Git status, log, and upstream to determine publication status; this document does not assume a pending push succeeded.
 
 Scheduled development consumes model usage and requires an available runtime. No always-on server or recorder service was deployed. Claude recording hooks remain separately event-driven during an enabled host session. The first scheduled development cycle has not yet been verified.
 

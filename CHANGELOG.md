@@ -9,6 +9,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 - Added a concrete autonomous task queue with verification criteria, handoff updates, and scope boundaries.
 - Defined a review → fix → tests → final review cycle, with findings and evidence stored in REVIEW.md.
 - Configured ACTIVE heartbeat `chronicle-review-and-improve`, every 30 minutes, with user-authorized commits and normal pushes after verification. First scheduled execution is not yet verified. Runtime availability and model usage remain constraints; no always-on server was deployed.
+- Expanded each activation prompt to target up to about 25 minutes of focused work across multiple viable tasks; Codex controls the actual duration.
 
 ### 2026-10-02 — First local implementation
 

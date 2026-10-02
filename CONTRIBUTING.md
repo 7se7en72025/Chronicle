@@ -11,7 +11,7 @@ Chronicle has an early local prototype and implementation is authorized. Start w
 5. Update the affected living documents in the same change.
 6. Review the final diff before committing or submitting a pull request.
 
-Contributors and agents update documents as they work. A Codex heartbeat is configured for scheduled review, improvement, verification, commits, and normal pushes. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and maintain [REVIEW.md](REVIEW.md). These development runs consume model usage and require an available local runtime; Chronicle itself does not include an always-on development service.
+Contributors and agents update documents as they work. A Codex heartbeat is scheduled every 30 minutes and targets up to about 25 minutes of focused review, fixes, verification, commits, and normal pushes. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and maintain [REVIEW.md](REVIEW.md). Codex controls actual duration; scheduled runs consume model usage and require an available runtime. Chronicle itself does not include an always-on development service.
 
 ## Which document owns what?
 

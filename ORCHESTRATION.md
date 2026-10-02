@@ -6,7 +6,7 @@ Continuously review and improve the local Chronicle prototype from this chat wit
 
 This uses a Codex thread heartbeat, not a background AI service implemented in Chronicle. Intended cadence: every 30 minutes. Scheduler configuration is authoritative; this file describes the development workflow.
 
-Configured heartbeat: `chronicle-review-and-improve`, ACTIVE as of 2026-10-02. The first scheduled execution remains unverified. The user also authorized regular verified commits and pushes to this repository.
+Configured heartbeat: `chronicle-review-and-improve`, ACTIVE as of 2026-10-02. It is scheduled every 30 minutes. Each activation targets up to about 25 minutes of focused work, continuing across independent review, implementation, verification, documentation, commit, and push steps instead of stopping after one small change. The exact runtime is controlled by Codex and is not guaranteed to fill the entire window. The first scheduled execution remains unverified.
 
 The desktop runtime must be available to execute local work. Do not assume closed-app, sleeping-computer, offline, or exhausted-account execution. Agent runs consume model usage; the finished local recorder and Git helper have a separate no-model path.
 
@@ -18,7 +18,7 @@ The desktop runtime must be available to execute local work. Do not assume close
 4. Choose the highest-impact actionable finding, or one pending queue task if the focused review finds no issue. Mark it in progress, implement a focused change, and run meaningful verification. If blocked, record specific evidence and choose another viable independent task.
 5. Review the final diff in a second pass, including edge cases and regression risks. Update REVIEW.md with findings, fix evidence, checks, unresolved concerns, and next step. Mark the task verified only if acceptance criteria pass; otherwise preserve an accurate pending or blocked state.
 6. Update HANDOFF.md and relevant plan, architecture, decisions, changelog, and run instructions.
-7. If a meaningful verified change exists, inspect the final diff, stage only task-related files, commit with a clear message, and push normally to the configured repository branch. Do not create empty or unchanged-status-only commits. Report the commit and push outcome accurately, then end the run.
+7. Continue with the next viable queue task until roughly 25 minutes of this activation have elapsed, unless all scope is complete or a concrete stopping condition applies. Before ending, update HANDOFF.md with the next task. If meaningful verified changes exist, inspect the final diff, stage only task-related files, commit with a clear message, and push normally. Do not create empty or unchanged-status-only commits. Report commit and push outcome accurately.
 
 Do not launch an unbounded nested loop, another recurring automation, or duplicate worker chats. Do not run parallel writers in this checkout. If another run is modifying the same task, defer rather than interleave writes. Queue status is cooperative coordination, not an enforced process lock.
 
@@ -49,4 +49,4 @@ Marketplace publication, purchases, account changes, external messages, destruct
 
 When every queued task is verified, report completion and require user direction for new scope. If no task can progress, record concrete blockers and avoid repetitive edits. Respect a human stop or pause request immediately.
 
-This is scheduled continuation, not a guarantee of uninterrupted 24/7 execution. Moving development to an always-on server requires a separate setup.
+The intended loop is a scheduled activation every 30 minutes with up to about 25 minutes of focused work per activation. It is not a continuously running process. Codex controls actual run duration and availability; the local desktop must be available. An always-on server would require separate deployment.
