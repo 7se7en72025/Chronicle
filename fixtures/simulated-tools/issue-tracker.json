@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "kind": "chronicle.simulated-tool-cassette",
+  "fixtureId": "sample-issue-tracker-v1",
+  "allowedTools": ["fixture.issue.lookup", "fixture.issue.search"],
+  "calls": [
+    {
+      "id": "lookup-42",
+      "tool": "fixture.issue.lookup",
+      "input": { "issueId": "42" },
+      "response": { "issueId": "42", "title": "Keep headings when selecting README edits", "status": "open" }
+    },
+    {
+      "id": "search-readme",
+      "tool": "fixture.issue.search",
+      "input": { "query": "README headings", "limit": 2 },
+      "response": { "results": [{ "path": "README.md", "line": 1 }, { "path": "GETTING_STARTED.md", "line": 4 }] }
+    }
+  ]
+}

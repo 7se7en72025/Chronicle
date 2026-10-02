@@ -44,13 +44,15 @@ Use these terms consistently:
 
 **Exit:** Claude and Codex fixtures map to one versioned contract; unknown fields are ignored and unsupported source/boundary pairs fail closed without workspace mutation; sensitive raw payloads are absent; recovery fixtures preserve prior checkpoint and gap records.
 
-### 3. Add controlled simulated-tool replay
+### 3. Add controlled simulated-tool replay — response injector partially implemented
 
 **Why:** record/replay research supports reproducing a failure when the relevant state and inputs are preserved. It does not support replaying arbitrary APIs safely.
 
-**Build:** a sample coding task with a local app and a small allowlisted tool simulator. Freeze the initial repository, tool responses, and app state. Let the user fork at an observed boundary, change the instruction, and start a **new** agent run in an isolated worktree. Label events as injected fixture responses, live calls, or unmatched/missing. Keep live network and destructive tools disabled by default.
+**Implemented subcomponent:** `src/simulated-replay.js` consumes a bounded schema-1 JSON cassette with an explicit allowlist and exact ordered tool/input matching. It injects cloned fixture responses with hashes, refuses unknown tools, mismatches, exhaustion, and incomplete sequences, and has no live fallback or network path. `npm run demo:replay` repeats the same two fixture responses without a model request. This is a response-injection library/demo, not an agent run, workspace replay, or environment restore.
 
-**Exit:** repeated fixture runs start from the same verified state; a recorded response can be substituted without contacting its original service; unmatched inputs stop or are clearly shown; the original workspace and fixture data remain unchanged.
+**Still needed:** a sample coding task/local app, frozen initial repo/app fixture, and host/orchestrator integration that starts a fresh run from an isolated worktree with a revised instruction. Clearly label injected, live, and unmatched events. Keep live network and destructive tools disabled by default.
+
+**Exit:** repeated fixture runs start from the same verified state; a recorded response can be substituted without contacting its original service; unmatched inputs stop or are clearly shown; the original workspace and fixture data remain unchanged; and an actual host/orchestrator run is validated separately before claiming fresh agent retries.
 
 ### 4. Consider browser and richer environment snapshots
 

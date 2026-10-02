@@ -10,9 +10,10 @@ From this repository:
 npm test
 npm run check
 npm run demo
+npm run demo:replay
 ```
 
-The demo creates a temporary Git fixture, changes 80 lines, selects the hunk containing the wanted 40 changes, and creates a separate output worktree. It prints both locations and retains them for inspection. It never edits your project to perform the demonstration.
+The first demo creates a temporary Git fixture, changes 80 lines, selects the hunk containing the wanted 40 changes, and creates a separate output worktree. It prints both locations and retains them for inspection. `npm run demo:replay` injects two deterministic responses from a local cassette. It does not launch an agent or edit your project.
 
 ## Review beside your agent in VS Code
 

@@ -55,3 +55,13 @@ Undo only restores the selected paths in a Chronicle-created output worktree to 
 Reason: users need a no-model way to reverse a mistaken selection, while later work and unrelated files must remain untouched. Deleting branches/worktrees is a separate explicit cleanup action.
 
 Revisit when: active-workspace mutation or broader operation cleanup is designed with its own recovery and confirmation contract.
+
+## D010 — Keep simulated tool replay fixture-only until a host can safely intercept
+
+Status: accepted for the prototype.
+
+The first replay component accepts bounded schema-versioned JSON cassettes, matches calls in exact order using canonical JSON input hashes, and injects cloned responses from an explicit local-tool allowlist. Mismatches and exhausted recordings fail closed; there is no live-tool fallback. The component does not launch an agent or mutate a workspace.
+
+Reason: response substitution can be tested deterministically without contacting the original service or assuming that an observed hook can intercept a result. Current Codex and Claude hooks are passive recorders in this repository; they cannot provide transparent tool replacement.
+
+Revisit when: a controlled sample app and verified host/orchestrator integration can start a fresh run in an isolated worktree while clearly separating injected, live, and unmatched events.

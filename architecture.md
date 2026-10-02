@@ -184,6 +184,12 @@ Claude and Codex hook payloads pass through `src/event-contract.js`, which maps 
 
 Status describes evidence available from the adapter: Claude `PostToolUse` and `PostToolUseFailure` are host-reported success/failure; Codex `PostToolUse` is `observed` with `boundary-only` certainty; start, end, interrupt, and pre-tool boundaries are not tool outcomes. A snapshot reference points at the checkpoint containing the event. If recording fails after event normalization, a gap reference points at the bounded gap record. This schema is fixture-tested only; real host event delivery and timestamp provenance remain subject to O004.
 
+## 9.1 Controlled simulated-tool response fixtures
+
+`src/simulated-replay.js` is an implemented fixture-level response injector, separate from the passive host hooks. Its schema-1 cassette is capped at 1 MiB and 256 calls and can name only the bundled `fixture.issue.lookup` and `fixture.issue.search` simulated tools. Calls are consumed in order and must exactly match the canonical JSON input; a mismatch, unsupported tool, exhausted cassette, or incomplete run throws a typed error. Responses are cloned before returning and evidence contains hashes plus `kind: injected-fixture`. The module has no live-call fallback, network client, or workspace mutation. Run `npm run demo:replay` to see the deterministic fixture.
+
+This does not launch an AI agent, recreate an earlier environment, or wire into Codex/Claude tool execution. Building the sample coding task and isolated-worktree orchestrator remains queued; see O014 and [upgrades.md](upgrades.md). Fixture cassettes are test assets, not a policy for retaining real prompts or tool payloads.
+
 ## 10. Main data records
 
 | Record | What it stores |
