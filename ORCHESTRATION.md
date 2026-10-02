@@ -6,7 +6,7 @@ Continuously review and improve the local Chronicle prototype from this chat wit
 
 This uses a Codex thread heartbeat, not a background AI service implemented in Chronicle. Intended cadence: every 30 minutes. Scheduler configuration is authoritative; this file describes the development workflow.
 
-Configured heartbeat: `chronicle-review-and-improve`, ACTIVE as of 2026-10-02. It is scheduled every 30 minutes. Each activation targets up to about 25 minutes of focused work, continuing across independent review, implementation, verification, documentation, commit, and push steps instead of stopping after one small change. The exact runtime is controlled by Codex and is not guaranteed to fill the entire window. The first scheduled execution remains unverified.
+Configured heartbeat: `chronicle-review-and-improve`, ACTIVE as of 2026-10-02. It is scheduled every 30 minutes. Each activation targets up to about 25 minutes of focused work, continuing across independent review, implementation, verification, documentation, commit, and push steps instead of stopping after one small change. The exact runtime is controlled by Codex and is not guaranteed to fill the entire window. The first scheduled review activation ran on 2026-10-02.
 
 The desktop runtime must be available to execute local work. Do not assume closed-app, sleeping-computer, offline, or exhausted-account execution. Agent runs consume model usage; the finished local recorder and Git helper have a separate no-model path.
 
@@ -28,8 +28,8 @@ Reviewer, implementer, and verifier are sequential stages in this thread. Do not
 
 | ID | State | Task | Acceptance criteria |
 | --- | --- | --- | --- |
-| O001 | Pending | Persist and expose capture gaps | Skipped/busy/failed recording boundaries remain inspectable without storing raw secret-bearing payloads; CLI and review UI show coverage honestly; integration tests pass |
-| O002 | Pending | Recover interrupted recording storage | Interrupted JSON/blob writes and stale locks have a safe, explicit recovery path; a live recorder is never unlocked or killed; interruption tests pass |
+| O001 | Verified | Persist and expose capture gaps | Skipped/busy/failed recording boundaries remain inspectable without storing raw secret-bearing payloads; CLI and review UI show coverage honestly; integration tests pass |
+| O002 | Verified | Recover interrupted recording storage | Interrupted JSON/blob temps move into quarantine; unfinished journals are listed; only a confirmed dead-owner lock is archived; live/unreadable locks remain; interruption tests pass |
 | O003 | Pending | Recover branch operations | Reconcile prepared/applying/failed journal states with actual branches and worktrees; preserve modified output workspaces; verify interruption and conflict cases |
 | O004 | Pending | Validate a real editor and Claude integration | Record actual host versions, command activation, capture events, trust/install behavior, and a full review-to-output flow; report unavailable prerequisites instead of inventing a pass |
 | O005 | Pending | Guarded undo for Chronicle output | Restore only Chronicle-owned operation effects after checking destination contents; refuse to overwrite later edits; meaningful tests and UI/CLI guidance |

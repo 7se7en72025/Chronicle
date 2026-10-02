@@ -58,9 +58,14 @@ class Chronicle {
   constructor(root, options = {}) {
     this.root = fs.realpathSync(git(root, ['rev-parse', '--show-toplevel']).trim());
     const base = options.storage || process.env.CHRONICLE_HOME || path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), '.local', 'share'), 'Chronicle');
-    this.store = path.join(path.resolve(base), hash(this.root).slice(0, 24));
-    if (this.store.startsWith(this.root + path.sep)) throw new Error('Snapshot storage must be outside the recorded repository');
-    for (const dir of ['blobs', 'checkpoints', 'operations', 'worktrees']) fs.mkdirSync(path.join(this.store, dir), { recursive: true, mode: 0o700 });
+    let storageBase = path.resolve(base), probe = storageBase;
+    const remainder = [];
+    while (!fs.existsSync(probe)) { remainder.unshift(path.basename(probe)); const parent = path.dirname(probe); if (parent === probe) break; probe = parent; }
+    storageBase = path.resolve(fs.realpathSync(probe), ...remainder);
+    this.store = path.join(storageBase, hash(this.root).slice(0, 24));
+    const relativeStore = path.relative(this.root, this.store);
+    if (!relativeStore || (relativeStore !== '..' && !relativeStore.startsWith('..' + path.sep) && !path.isAbsolute(relativeStore))) throw new Error('Snapshot storage must be outside the recorded repository');
+    for (const dir of ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery']) fs.mkdirSync(path.join(this.store, dir), { recursive: true, mode: 0o700 });
   }
 
   exclusive(action) {
@@ -109,13 +114,7 @@ class Chronicle {
       if (fingerprint(first) !== fingerprint(second) || git(this.root, ['rev-parse', 'HEAD']).trim() !== head || git(this.root, ['ls-files', '--stage', '-z']) !== index) throw new Error('Workspace changed during capture. Retry after writes finish.');
       const files = Object.create(null);
       for (const [name, file] of Object.entries(first.files)) {
-        const target = path.join(this.store, 'blobs', file.hash);
-        try {
-          const fd = fs.openSync(target, 'wx', 0o600);
-          try { fs.writeFileSync(fd, file.bytes); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
-        }
-        catch (error) { if (error.code !== 'EEXIST') throw error; }
-        if (hash(fs.readFileSync(target)) !== file.hash) throw new Error('Existing blob is damaged; checkpoint was not saved');
+        this.writeBlob(file.bytes, file.hash);
         files[name] = { hash: file.hash, mode: file.mode };
       }
       const checkpoint = { schema: 1, id: crypto.randomUUID(), label: String(label).slice(0, 200), createdAt: new Date().toISOString(), root: this.root, head, files, tracked: first.tracked, excluded: first.excluded, event };
@@ -128,6 +127,32 @@ class Chronicle {
 
   list() {
     return fs.readdirSync(path.join(this.store, 'checkpoints')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'checkpoints', n), 'utf8'))).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  gaps(from, to) {
+    const checkpoints = from && to ? [this.checkpoint(from), this.checkpoint(to)] : [];
+    const start = checkpoints.length ? Math.min(...checkpoints.map(cp => Date.parse(cp.createdAt))) : -Infinity;
+    const end = checkpoints.length ? Math.max(...checkpoints.map(cp => Date.parse(cp.createdAt))) : Infinity;
+    return fs.readdirSync(path.join(this.store, 'gaps')).filter(name => name.endsWith('.json')).map(name => JSON.parse(fs.readFileSync(path.join(this.store, 'gaps', name), 'utf8'))).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  recordGap(event, error) {
+    const dir = path.join(this.store, 'gaps');
+    const entries = fs.readdirSync(dir);
+    if (entries.length >= 1000) {
+      const limit = path.join(dir, 'limit-reached.json');
+      if (!fs.existsSync(limit)) writeJson(limit, { schema: 1, kind: 'capture-gap-limit', createdAt: new Date().toISOString(), message: 'Capture-gap history reached its 1000-event limit; later gaps may not be recorded.' });
+      return;
+    }
+    const detail = String(error?.message || '');
+    const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
+    const clean = value => typeof value === 'string' ? value.slice(0, 200) : undefined;
+    const gap = {
+      schema: 1, kind: 'capture-gap', id: crypto.randomUUID(), repoId: hash(this.root), createdAt: new Date().toISOString(),
+      status: 'skipped', reason, source: 'claude-code', boundary: clean(event.boundary), sessionId: clean(event.sessionId), toolUseId: clean(event.toolUseId), tool: clean(event.tool)
+    };
+    writeJson(path.join(dir, gap.id + '.json'), gap);
+    return gap;
   }
 
   checkpoint(id) {
@@ -143,6 +168,25 @@ class Chronicle {
     const bytes = fs.readFileSync(path.join(this.store, 'blobs', file.hash));
     if (hash(bytes) !== file.hash) throw new Error('Snapshot integrity check failed');
     return bytes;
+  }
+
+  writeBlob(bytes, digest) {
+    const target = path.join(this.store, 'blobs', digest);
+    try {
+      const existing = fs.readFileSync(target);
+      if (hash(existing) !== digest) throw new Error('Existing blob is damaged; checkpoint was not saved');
+      return;
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    // Publish a fully written and fsynced blob atomically. A crash can leave only an
+    // unreferenced temporary file; it cannot poison the permanent content hash.
+    const temp = target + '.' + crypto.randomUUID() + '.tmp';
+    const fd = fs.openSync(temp, 'wx', 0o600);
+    try { fs.writeFileSync(fd, bytes); fs.fsyncSync(fd); }
+    finally { fs.closeSync(fd); }
+    try { fs.linkSync(temp, target); }
+    catch (error) { if (error.code !== 'EEXIST') throw error; }
+    finally { try { fs.unlinkSync(temp); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
+    if (hash(fs.readFileSync(target)) !== digest) throw new Error('Snapshot integrity check failed after writing blob');
   }
 
   compare(from, to) {
@@ -172,7 +216,7 @@ class Chronicle {
       }
       changes.push({ path: name, type: !a ? 'added' : !b ? 'deleted' : 'modified', hunks });
     }
-    return { from, to, changes, excluded: [...before.excluded, ...after.excluded], modelRequests: 0 };
+    return { from, to, changes, excluded: [...before.excluded, ...after.excluded], gaps: this.gaps(from, to), modelRequests: 0 };
   }
 
   preview(from, to, selected) {
@@ -249,6 +293,48 @@ class Chronicle {
 
   operations() {
     return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
+  }
+
+  recoverStorage(confirmDeadLock = false) {
+    const lock = path.join(this.store, 'operation.lock');
+    let staleLock;
+    try {
+      const raw = fs.readFileSync(lock, 'utf8');
+      const match = raw.match(/^\s*(\d+)\s*$/);
+      const pid = match ? Number(match[1]) : 0;
+      if (!pid) throw new Error('operation.lock has no readable process ID. Inspect it manually; Chronicle made no changes.');
+      try { process.kill(pid, 0); throw new Error(`Chronicle process ${pid} is still running. Recovery made no changes.`); }
+      catch (error) {
+        if (error.code !== 'ESRCH') throw error;
+      }
+      if (!confirmDeadLock) throw new Error(`The lock owner process ${pid} is not running. To preserve it and recover interrupted files, rerun: node "${path.join(__dirname, 'cli.js')}" recover --confirm-stale-lock`);
+      staleLock = { file: lock, pid };
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+
+    let movedLock;
+    if (staleLock) {
+      const folder = path.join(this.store, 'recovery', crypto.randomUUID()); fs.mkdirSync(folder);
+      movedLock = path.join(folder, 'operation.lock');
+      fs.renameSync(staleLock.file, movedLock);
+    }
+    try {
+      return this.exclusive(() => {
+        const folder = path.join(this.store, 'recovery', crypto.randomUUID()); fs.mkdirSync(folder);
+        const quarantined = [];
+        for (const dir of ['blobs', 'checkpoints', 'operations']) {
+          const source = path.join(this.store, dir);
+          for (const name of fs.readdirSync(source).filter(name => name.endsWith('.tmp'))) {
+            const from = path.join(source, name), to = path.join(folder, dir + '-' + name);
+            fs.renameSync(from, to); quarantined.push({ original: dir + '/' + name, savedAs: to });
+          }
+        }
+        const pendingOperations = this.operations().filter(operation => operation.state !== 'completed');
+        return { quarantined, pendingOperations, staleLock: movedLock || null, modelRequests: 0 };
+      });
+    } catch (error) {
+      // The dead lock has already been preserved if a concurrent recorder won the race.
+      throw error;
+    }
   }
 }
 

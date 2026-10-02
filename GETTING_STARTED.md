@@ -39,6 +39,8 @@ node /path/to/Chronicle/src/cli.js capture "Before agent"
 node /path/to/Chronicle/src/cli.js capture "After agent"
 node /path/to/Chronicle/src/cli.js list
 node /path/to/Chronicle/src/cli.js diff BEFORE_ID AFTER_ID
+node /path/to/Chronicle/src/cli.js gaps
+node /path/to/Chronicle/src/cli.js recover
 node /path/to/Chronicle/src/cli.js preview BEFORE_ID AFTER_ID HUNK_ID
 node /path/to/Chronicle/src/cli.js branch BEFORE_ID AFTER_ID chronicle/my-selection HUNK_ID
 node /path/to/Chronicle/src/cli.js operations
@@ -60,7 +62,7 @@ Restart the session after changing plugin files. Node must be available in the h
 
 Hook payload handling is tested locally, including a failed tool that leaves a partial edit. A real Claude Code session has not been tested on this machine. The hook records limited event identifiers and status, not prompts, tool input/output, or transcript contents. File snapshots can still contain secrets: filename exclusions are not content redaction.
 
-Hook failures report a capture gap on stderr and do not block the agent. A busy recorder skips capture rather than inventing an exact timeline. Review in VS Code or use the CLI; neither requires an agent chat turn. Codex users can use manual checkpoints now; a native Codex adapter is not implemented.
+Hook failures write a bounded, local capture-gap record and report the issue on stderr without blocking the agent. Gap records store event identifiers and a fixed reason category; raw prompts, commands, and tool errors are not saved. `gaps` lists them, and the review panel shows gaps in the selected checkpoint interval. Each repository retains at most 1,000 gap entries, after which it records a limit marker. A busy recorder skips capture rather than inventing an exact timeline. Review in VS Code or use the CLI; neither requires an agent chat turn. Codex users can use manual checkpoints now; a native Codex adapter is not implemented.
 
 ## Storage, limits, and recovery
 
@@ -70,8 +72,11 @@ Hook failures report a capture gap on stderr and do not block the agent. A busy 
 - `.env` variants, private-key filenames, dependency/build directories, symlinks, binary files, non-UTF-8 files, and unsupported Git modes are excluded and reported. The policy is fixed in this prototype.
 - Branch output refuses captures with exclusions. Use a small supported text fixture for now.
 - Snapshots use JSON metadata and content-addressed blobs. SQLite migration and retention controls are planned.
+- `recover` moves interrupted `.tmp` files into a timestamped recovery folder without deleting them and lists unfinished branch journals for inspection. Run it when Chronicle is idle.
+- If `recover` reports a stale PID and no Chronicle process is running, rerun it with `--confirm-stale-lock`. The stale lock file is preserved in the recovery folder. Live locks, unreadable locks, or a busy recorder are never removed.
+- Blob publication is atomic; a crash may leave a uniquely named temporary file. Recovery quarantines it, and a later capture can safely publish the same content hash.
 - `operations` lists completed, failed, or interrupted operations. Failed worktrees are retained for manual inspection. Automatic recovery and undo are not implemented.
-- An interrupted process can leave `operation.lock` in the repository's store. Confirm no Chronicle process is running before removing that exact lock file. Never remove a live lock.
+- If a lock has an unreadable process ID, stop and inspect it manually; Chronicle will not guess whether its owner is alive.
 - Chronicle worktrees are not command sandboxes. Git checkout filters can execute repository-configured programs; only use trusted repositories. Chronicle disables Git lifecycle hooks for its internal commands.
 
 Nothing is automatically pushed, uploaded, committed, or sent to a model. Recorded files are private local artifacts, but the prototype does not provide encryption or configurable secret scanning.

@@ -6,6 +6,9 @@ const os = require('node:os');
 const path = require('node:path');
 const { Chronicle, git, hash, safePath } = require('../src/engine');
 const { recordHook } = require('../src/hook');
+const { spawnSync } = require('node:child_process');
+const { spawn } = require('node:child_process');
+const { once } = require('node:events');
 
 function fixture(t, content = 'one\ntwo\nthree\n') {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-test-'));
@@ -86,10 +89,69 @@ test('invalid selections, branch names, and escaping paths are rejected', t => {
   for (const name of ['../outside', '/absolute', '.git/config', 'C:/outside', 'bad\\name']) assert.throws(() => safePath(root, name), /Unsafe/);
 });
 
+test('storage symlinks cannot redirect snapshots into the recorded repository', t => {
+  const { root } = fixture(t);
+  const base = path.dirname(root);
+  const alias = path.join(base, 'storage-alias');
+  fs.symlinkSync(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.throws(() => new Chronicle(root, { storage: alias }), /outside the recorded repository/);
+  assert.equal(fs.existsSync(path.join(root, 'blobs')), false);
+});
+
 test('corrupted snapshots fail integrity checks', t => {
   const { engine } = fixture(t); const cp = engine.capture(); const entry = cp.files['README.md'];
   fs.writeFileSync(path.join(engine.store, 'blobs', entry.hash), 'tampered');
   assert.throws(() => engine.bytes(entry), /integrity/);
+});
+
+test('interrupted blob publication leaves no poisoned content hash', t => {
+  const { engine } = fixture(t);
+  const originalLink = fs.linkSync;
+  const originalUnlink = fs.unlinkSync;
+  fs.linkSync = () => { const error = new Error('simulated interruption'); error.code = 'EIO'; throw error; };
+  fs.unlinkSync = file => {
+    if (file.startsWith(path.join(engine.store, 'blobs')) && file.endsWith('.tmp')) { const error = new Error('simulated crash before temp cleanup'); error.code = 'EIO'; throw error; }
+    return originalUnlink(file);
+  };
+  try { assert.throws(() => engine.capture(), /simulated crash before temp cleanup/); }
+  finally { fs.linkSync = originalLink; fs.unlinkSync = originalUnlink; }
+  const digest = hash(Buffer.from('one\ntwo\nthree\n'));
+  const entriesAfterInterruption = fs.readdirSync(path.join(engine.store, 'blobs')).filter(name => name.startsWith(digest));
+  assert.equal(entriesAfterInterruption.length, 1);
+  assert.match(entriesAfterInterruption[0], /\.tmp$/);
+  const checkpoint = engine.capture();
+  assert.equal(engine.bytes(checkpoint.files['README.md']).toString(), 'one\ntwo\nthree\n');
+  assert.equal(fs.existsSync(path.join(engine.store, 'blobs', digest)), true);
+});
+
+test('storage recovery quarantines interrupted files without deleting data', t => {
+  const { engine } = fixture(t);
+  const blobTemp = path.join(engine.store, 'blobs', 'dead-write.tmp'); fs.writeFileSync(blobTemp, 'partial blob');
+  const checkpointTemp = path.join(engine.store, 'checkpoints', 'dead-checkpoint.tmp'); fs.writeFileSync(checkpointTemp, 'partial metadata');
+  const operationTemp = path.join(engine.store, 'operations', 'dead-operation.tmp'); fs.writeFileSync(operationTemp, '{"state":"applying"');
+  const pending = path.join(engine.store, 'operations', 'pending.json'); fs.writeFileSync(pending, JSON.stringify({ id: 'pending', state: 'applying' }));
+  const result = engine.recoverStorage();
+  assert.equal(result.quarantined.length, 3);
+  assert.equal(result.pendingOperations[0].id, 'pending');
+  assert.equal(fs.existsSync(blobTemp), false);
+  assert.equal(fs.readFileSync(result.quarantined.find(f => f.original.startsWith('blobs/')).savedAs, 'utf8'), 'partial blob');
+  assert.equal(fs.existsSync(path.join(engine.store, 'operation.lock')), false);
+});
+
+test('storage recovery refuses a live lock and explicitly preserves a dead lock', async t => {
+  const { engine } = fixture(t);
+  const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { windowsHide: true, stdio: 'ignore' });
+  t.after(() => { if (child.exitCode === null) child.kill(); });
+  await once(child, 'spawn');
+  const lock = path.join(engine.store, 'operation.lock'); fs.writeFileSync(lock, String(child.pid), { flag: 'wx' });
+  assert.throws(() => engine.recoverStorage(true), /still running/);
+  assert.equal(fs.existsSync(lock), true);
+  child.kill(); await once(child, 'exit');
+  assert.throws(() => engine.recoverStorage(false), /confirm-stale-lock/);
+  assert.equal(fs.existsSync(lock), true);
+  const recovered = engine.recoverStorage(true);
+  assert.equal(fs.existsSync(lock), false);
+  assert.equal(fs.readFileSync(recovered.staleLock, 'utf8'), String(child.pid));
 });
 
 test('existing branches produce failed journal entries and preserve source', t => {
@@ -111,6 +173,41 @@ test('failed Claude tool boundaries capture partial edits without storing tool s
   assert.equal(cp.event.status, 'failed');
   assert.equal(engine.bytes(cp.files['README.md']).toString(), 'partially written before failure\n');
   assert.equal(JSON.stringify(cp).includes('SECRET_'), false);
+});
+
+test('failed capture is recorded as a bounded gap and attached to its checkpoint interval', t => {
+  const { root, engine } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before blocked tool');
+  const payload = { cwd: root, hook_event_name: 'PostToolUseFailure', session_id: 'safe-session-id', tool_name: 'Bash', tool_use_id: 'safe-tool-id', tool_input: { command: 'SECRET_COMMAND' }, error: 'SECRET_ERROR at private/path' };
+  engine.exclusive(() => assert.throws(() => recordHook(payload, options), /Chronicle is busy/));
+  const gap = engine.gaps();
+  assert.equal(gap.length, 1);
+  assert.equal(gap[0].reason, 'RECORDER_BUSY');
+  assert.equal(gap[0].sessionId, payload.session_id);
+  assert.equal(JSON.stringify(gap).includes('SECRET_'), false);
+  assert.equal(JSON.stringify(gap).includes(root), false);
+  const after = engine.capture('After blocked tool');
+  assert.equal(engine.compare(before.id, after.id).gaps.length, 1);
+});
+
+test('CLI can inspect gaps without invoking a model or exposing raw tool errors', t => {
+  const { root, engine } = fixture(t);
+  engine.recordGap({ boundary: 'PostToolUseFailure', sessionId: 'session-safe', tool: 'Bash' }, new Error('busy during SECRET_COMMAND at private/path'));
+  const cli = path.join(__dirname, '..', 'src', 'cli.js');
+  const result = spawnSync(process.execPath, [cli, 'gaps'], { cwd: root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /RECORDER_BUSY/);
+  assert.equal(result.stdout.includes('SECRET_COMMAND'), false);
+  assert.equal(result.stdout.includes(root), false);
+});
+
+test('gap history is capped and exposes the overflow state', t => {
+  const { engine } = fixture(t);
+  for (let i = 0; i < 1001; i++) engine.recordGap({ boundary: 'PostToolUse', tool: 'Bash' }, new Error('busy'));
+  const gaps = engine.gaps();
+  assert.equal(gaps.filter(g => g.kind === 'capture-gap').length, 1000);
+  assert.equal(gaps.some(g => g.kind === 'capture-gap-limit'), true);
 });
 
 test('concurrent operations stop rather than interleave mutations', t => {

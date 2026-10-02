@@ -55,4 +55,6 @@ test('editor command flow requires preview and produces a separate selected work
   const injection = '<script>alert(1)</script>';
   const hostile = exports.render({}, { changes: [{ path: injection, type: 'modified', hunks: [{ id: 'h', patch: injection }] }], excluded: [] }, { label: injection }, { label: 'result' });
   assert.equal(hostile.includes(injection), false); assert.match(hostile, /&lt;script&gt;/);
+  const gapHtml = exports.render({}, { changes: [], excluded: [], gaps: [{ kind: 'capture-gap', createdAt: 'now', boundary: 'PostToolUseFailure', tool: 'Bash', reason: 'RECORDER_BUSY', sessionId: 'session-1' }] }, { label: 'from' }, { label: 'to' });
+  assert.match(gapHtml, /Capture gaps \(1\)/); assert.match(gapHtml, /RECORDER_BUSY/);
 });

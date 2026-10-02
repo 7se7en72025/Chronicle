@@ -4,11 +4,19 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Capture gaps and atomic blobs
+
+- Persisted bounded, sanitized failed-capture events; added CLI inspection and checkpoint-interval review display.
+- Changed snapshot blob creation to fsynced temporary files plus atomic content-hash publication; added interruption/retry coverage.
+- Added explicit storage recovery that quarantines incomplete temp files, reports unfinished journals, and only archives locks after confirming their owner process is dead and the user confirms.
+- Resolve storage directory symlinks before enforcing the outside-repository boundary; added a regression test against redirecting the store into the source tree.
+- Review and verification passed: 18 tests, syntax checks, and the 40-of-80 demonstration. Branch-operation journal reconciliation remains open.
+
 ### 2026-10-02 — Autonomous development workflow
 
 - Added a concrete autonomous task queue with verification criteria, handoff updates, and scope boundaries.
 - Defined a review → fix → tests → final review cycle, with findings and evidence stored in REVIEW.md.
-- Configured ACTIVE heartbeat `chronicle-review-and-improve`, every 30 minutes, with user-authorized commits and normal pushes after verification. First scheduled execution is not yet verified. Runtime availability and model usage remain constraints; no always-on server was deployed.
+- Configured ACTIVE heartbeat `chronicle-review-and-improve`, every 30 minutes, with user-authorized commits and normal pushes after verification. The first scheduled review activation ran on 2026-10-02. Runtime availability and model usage remain constraints; no always-on server was deployed.
 - Expanded each activation prompt to target up to about 25 minutes of focused work across multiple viable tasks; Codex controls the actual duration.
 
 ### 2026-10-02 — First local implementation

@@ -1,6 +1,6 @@
 # Chronicle architecture
 
-Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude hook payload adapter exist. Full host integration, automatic recovery, undo, finer selection, and environment replay remain incomplete.
+Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude hook payload adapter exist. Real host validation, branch-operation recovery, undo, finer selection, and environment replay remain incomplete.
 
 ## Implemented slice
 
@@ -10,9 +10,11 @@ Status: target architecture with an early working prototype. The local engine, C
 - `src/hook.js` and `hooks/hooks.json`: Claude session/tool-boundary adapter, including failure events. Tested with payload fixtures, not a real Claude session.
 - `scripts/demo.js`: keeps 40 of 80 edits in a disposable fixture.
 
+Hook capture failures produce sanitized, bounded local gap records visible through the CLI and checkpoint comparison. Raw prompts, commands, tool errors, and repository paths are not stored in these records. A 1,000-event cap produces an explicit limit marker.
+
 The prototype uses CommonJS JavaScript and atomic JSON metadata to avoid build and native database dependencies. TypeScript, SQLite, and React below remain target choices, not installed dependencies. See [D007](DECISIONS.md#d007--dependency-free-first-slice) and [run instructions](GETTING_STARTED.md).
 
-Journals expose incomplete operations for manual inspection; they do not implement automatic recovery or undo. Snapshots are captured at observed boundaries, with a two-pass stability check rather than a filesystem-wide atomic snapshot. Branch output rejects checkpoints with reported exclusions. Git-ignored files are outside capture coverage. Existing staged entries are recorded as evidence, but staging intent is not recreated in the output worktree.
+Storage recovery quarantines interrupted temporary files and reports unfinished branch journals without deleting their contents. Dead-owner locks require an explicit flag and are archived; live or unreadable locks are preserved. Automatic branch/worktree reconciliation and undo remain incomplete. Snapshots are captured at observed boundaries, with a two-pass stability check rather than a filesystem-wide atomic snapshot. Branch output rejects checkpoints with reported exclusions. Git-ignored files are outside capture coverage. Existing staged entries are recorded as evidence, but staging intent is not recreated in the output worktree.
 
 ## 1. What we are building first
 
@@ -97,9 +99,9 @@ Only saved on-disk contents are captured initially. Unsaved editor buffers are o
 
 ### Storage rules
 
-Store metadata and blobs in a per-user application-data directory, keyed by repository identity. Keep them outside the project's tracked files.
+Store metadata and blobs in a per-user application-data directory, keyed by repository identity. Resolve existing storage-path symlinks before creating the store, and reject any final path inside the recorded repository.
 
-Each checkpoint references immutable file versions. Preserve bytes, line endings, encoding, and supported file modes. Write blobs durably before committing metadata that references them; recover incomplete recording operations on startup.
+Each checkpoint references immutable file versions. Preserve bytes, line endings, encoding, and supported file modes. Blobs are fsynced to a temporary file and linked to the final content hash atomically before checkpoint metadata references them. A crash can leave unreferenced temporary files; `recover` moves them to local quarantine without deleting them. Recovering unfinished branch journals remains manual.
 
 Exclude secrets, dependency folders, build output, and oversized files through explicit capture rules. Exclusions reduce restoration coverage and must be shown in the interface. Local-only storage still needs retention controls and a delete-history action. Upload nothing by default.
 

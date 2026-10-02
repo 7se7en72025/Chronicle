@@ -8,14 +8,14 @@ Status: first local slice implemented. Milestones remain incomplete until every 
 - [ ] Verify lifecycle events, failures, installation, trust, and review surface.
 - [x] Demonstrate direct local selection and output through the CLI/demo and mocked editor integration.
 
-Exit condition: verified capability matrix and minimal working integration, once implementation is requested.
+Exit condition: verified capability matrix and a minimal integration validated inside its real supported host.
 
 ## 1. Local recording
 
 - [x] Save an immutable baseline including supported pre-existing changes.
 - [x] Record file versions and supported event metadata from hook payloads.
-- [x] Report exclusions and uncertain attribution; capture failures report skipped boundaries on stderr.
-- [ ] Recover interrupted recording operations.
+- [x] Report exclusions and uncertain attribution; hook capture failures persist bounded, sanitized gaps visible from the CLI and checkpoint-interval review.
+- [x] Recover interrupted recording operations without deleting orphan data or overriding live locks.
 
 Exit condition: saved contents are accurate and manual changes are not mislabeled as agent edits.
 
@@ -31,7 +31,7 @@ Exit condition: keep a chosen subset of README changes without model regeneratio
 
 - [x] Apply selections in independent Git worktrees.
 - [x] Preserve original contents, index, and branch.
-- [ ] Journal operations and recover after interruption.
+- [ ] Reconcile incomplete branch journals and recover output after interruption.
 - [ ] Refuse undo that would overwrite later edits.
 
 Exit condition: demonstrate branch output and recovery with dirty baselines and conflicts.

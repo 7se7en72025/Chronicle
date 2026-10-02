@@ -15,18 +15,21 @@ The current direction is a local companion for Codex or Claude Code: record supp
 - Added Claude hook configuration and bounded payload recording for session/tool success/failure boundaries. Attribution remains explicitly uncertain.
 - Added the 40-of-80 demo and [GETTING_STARTED.md](GETTING_STARTED.md).
 - Updated architecture, decisions, plan, and contribution instructions to reflect actual prototype coverage.
+- Persisted sanitized capture gaps for failed Claude hook checkpoints; exposed them in the CLI and review intervals.
+- Made blob publication atomic so interruption cannot leave partial data at its permanent content hash.
+- Added a recovery command that quarantines interrupted metadata/blob temps, lists unfinished journals, and explicitly archives only locks whose owner process is dead.
 
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
 ## Verification
 
-Latest verification: all 11 tests passed, syntax checks passed, and the demo kept 40 of 80 changed lines. Tests cover original index preservation, dirty baselines, additions/deletions, UTF-8/BOM/CRLF, exclusions, corrupted blobs, invalid selections, lock contention, Git environment overrides, failure journals, and failed-hook payloads. Editor flow is tested with a mocked VS Code host, including preview gating and content escaping.
+Latest verification: all 18 tests passed, syntax checks passed, and the demo kept 40 of 80 changed lines. Added checks for storage-symlink redirection, sanitized capture gaps, checkpoint interval association, CLI visibility, history cap, interrupted blob publication/retry, quarantine recovery, live/stale lock handling, and gap display in the panel. Editor interactions use a mocked VS Code host.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude session remain untested; Claude CLI is not installed on this machine.
 
-An ACTIVE Codex heartbeat, `chronicle-review-and-improve`, runs on a 30-minute schedule and targets up to about 25 minutes of focused work per activation, carrying on across multiple tasks when time and runtime allow. Codex controls actual duration, and the first scheduled activation has not been verified. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). The user authorized verified commits and normal pushes to origin/main. Check Git status, log, and upstream to determine publication status; this document does not assume a pending push succeeded.
+An ACTIVE Codex heartbeat, `chronicle-review-and-improve`, runs on a 30-minute schedule and targets up to about 25 minutes of focused work per activation, carrying on across multiple tasks when time and runtime allow. The first scheduled review activation ran on 2026-10-02; its actual duration is runtime-controlled. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). The user authorized verified commits and normal pushes to origin/main. Check Git status, log, and upstream to determine publication status; this document does not assume a pending push succeeded.
 
-Scheduled development consumes model usage and requires an available runtime. No always-on server or recorder service was deployed. Claude recording hooks remain separately event-driven during an enabled host session. The first scheduled development cycle has not yet been verified.
+Scheduled development consumes model usage and requires an available runtime. No always-on server or recorder service was deployed. Claude recording hooks remain separately event-driven during an enabled host session.
 
 ## Open choices
 
@@ -34,4 +37,4 @@ Real Claude/VS Code integration validation, configurable exclusions, retention, 
 
 ## Next concrete task
 
-First scheduled cycle: review current implementation for actionable correctness and preservation issues. Fix the highest-impact viable finding, or begin O001 capture-gap reporting if the focused review finds none. Run checks, review the resulting diff, update documents, then commit and push verified task-related changes. Real-host validation remains a queue task; unavailable prerequisites must not block independent engine work.
+The first scheduled review fixed three issues: failed hook captures were invisible after stderr output, interrupted blob writes could poison a permanent content hash, and storage symlinks could redirect snapshots into the repository. O001 and O002 are complete. Continue with O003 operation-journal recovery. Real-host validation remains a queue task; unavailable prerequisites must not block independent engine work.

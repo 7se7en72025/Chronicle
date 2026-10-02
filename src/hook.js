@@ -13,7 +13,9 @@ function recordHook(payload, options) {
     status: payload.hook_event_name === 'PostToolUseFailure' ? 'failed' : payload.hook_event_name === 'PostToolUse' ? 'succeeded' : 'boundary'
   };
   // Never persist stdin wholesale: prompts, tool inputs, errors, and transcripts can contain secrets.
-  return new Chronicle(payload.cwd, options).capture([event.boundary, event.tool].filter(Boolean).join(' · '), event);
+  const engine = new Chronicle(payload.cwd, options);
+  try { return engine.capture([event.boundary, event.tool].filter(Boolean).join(' · '), event); }
+  catch (error) { engine.recordGap(event, error); throw error; }
 }
 
 if (require.main === module) {
