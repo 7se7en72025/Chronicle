@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Fix the Windows overnight-task installer by using Task Scheduler's default battery-start restriction instead of an unsupported PowerShell switch.
 - Add a safe heartbeat/laptop-runner switch-over runbook with actual cycle caps and sleep, login, AC-power, usage, and stop-marker limits.
 - Clarify that fixture-level simulated response injection exists while fresh-agent orchestration and full environment restoration remain future work.
 - Close a storage-path symlink bypass: resolve the repository-specific store before creating history folders, and reject canonical paths inside the recorded workspace.
