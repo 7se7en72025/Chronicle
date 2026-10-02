@@ -349,6 +349,22 @@ class Chronicle {
     return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
   }
 
+  recordCheck(operationId, label, exitCode) {
+    return this.exclusive(() => {
+      if (typeof operationId !== 'string' || !/^[a-f0-9-]{36}$/.test(operationId)) throw new Error('Invalid operation ID');
+      if (typeof label !== 'string' || !label.trim() || label.length > 120 || /[\r\n\0]/.test(label)) throw new Error('Check label must be 1–120 characters on one line');
+      if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new Error('Exit code must be an integer from 0 to 255');
+      const journal = path.join(this.store, 'operations', operationId + '.json');
+      const operation = JSON.parse(fs.readFileSync(journal, 'utf8'));
+      if (operation.id !== operationId || operation.state !== 'completed' || operation.manifest?.schema !== 1 || !Array.isArray(operation.manifest.checks)) throw new Error('Check evidence can only be recorded for a completed manifest-backed operation');
+      if (operation.manifest.checks.length >= 100) throw new Error('Check evidence limit reached for this operation');
+      const check = { id: crypto.randomUUID(), label: label.trim(), exitCode, outcome: exitCode === 0 ? 'reported-pass' : 'reported-fail', source: 'user-reported', recordedAt: new Date().toISOString() };
+      operation.manifest.checks.push(check);
+      writeJson(journal, operation);
+      return check;
+    });
+  }
+
   compareOperations(firstId, secondId) {
     if (firstId === secondId) throw new Error('Choose two different operations to compare');
     const read = id => {

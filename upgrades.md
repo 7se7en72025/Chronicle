@@ -28,11 +28,11 @@ Use these terms consistently:
 
 **Why:** [SWE-bench](https://arxiv.org/abs/2310.06770) uses real tasks whose solutions can span files and require executable checks. [AgentSuite](https://proceedings.mlr.press/v306/suh26a.html) cautions that task, environment, and evaluation defects distort outcomes.
 
-**Implemented:** each completed output operation now saves a versioned manifest with source checkpoints, baseline commit, selected change IDs, observed host attribution, captured gap/exclusion counts, measured Node/platform facts, and output file hashes/modes. The CLI and VS Code review surface compare two completed operations' saved outputs without rerunning the agent. See [architecture.md](architecture.md), `compare-operations`, and **Chronicle: Compare Saved Branches** in [GETTING_STARTED.md](GETTING_STARTED.md).
+**Implemented:** each completed output operation now saves a versioned manifest with source checkpoints, baseline commit, selected change IDs, observed host attribution, captured gap/exclusion counts, measured Node/platform facts, and output file hashes/modes. The CLI and VS Code review surface compare two completed operations' saved outputs without rerunning the agent. Developers can manually record their own check labels and exit codes; Chronicle marks these reports as user-reported and never runs commands. See [architecture.md](architecture.md), `compare-operations`, `record-check`, and **Chronicle: Compare Saved Branches** in [GETTING_STARTED.md](GETTING_STARTED.md).
 
-**Still needed:** record explicitly run checks and their exit status, optional host-reported cost. Missing values must remain “unavailable.”
+**Still needed:** collect optional host-reported cost and validate the workflow in a real editor/agent host. Missing values must remain “unavailable.”
 
-**Exit:** fixed fixture, two selections, same named checks, byte-verifiable outputs, and a visual comparison that clearly distinguishes recorded facts from missing data. The CLI and VS Code now compare two saved selections, but checks and cost are not recorded. Do not add an automatic semantic pass/fail score.
+**Exit:** fixed fixture, two selections, same named checks, byte-verifiable outputs, and a visual comparison that clearly distinguishes recorded facts from missing data. The CLI and VS Code compare two saved selections; user-run check reports are identified as unverified reports and missing cost remains unavailable. Validate the flow in a real editor/agent host before calling the phase complete. Do not add an automatic semantic pass/fail score.
 
 ### 2. Define a durable event and evidence contract
 

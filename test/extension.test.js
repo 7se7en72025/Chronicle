@@ -49,10 +49,12 @@ test('editor command flow requires preview and produces a separate selected work
   await receiver({ type: 'apply', selected, branch: 'chronicle/editor' });
   assert.equal(messages.at(-1).type, 'applied');
   assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'after\n');
-  engine.createBranch(a.id, b.id, selected, 'chronicle/editor-copy');
+  engine.recordCheck(engine.operations().find(op => op.branch === 'chronicle/editor').id, 'npm test', 0);
+  const copy = engine.createBranch(a.id, b.id, selected, 'chronicle/editor-copy');
+  engine.recordCheck(copy.id, 'lint', 3);
   await commands.get('chronicle.compareOperations')();
   assert.equal(errors.length, 0);
-  assert.match(html, /Saved branch comparison/); assert.match(html, /chronicle\/editor-copy/); assert.match(html, /Check results: Not recorded/); assert.match(html, /Reported cost: Unavailable/);
+  assert.match(html, /Saved branch comparison/); assert.match(html, /chronicle\/editor-copy/); assert.match(html, /npm test — reported-pass \(exit 0, user-reported\)/); assert.match(html, /lint — reported-fail \(exit 3, user-reported\)/); assert.match(html, /Reported cost: Unavailable/);
   assert.match(html, /chronicle\/editor · saved result/); assert.match(html, /README\.md/);
   vscode.workspace.isTrusted = true;
   await commands.get('chronicle.undoOperation')();
@@ -70,7 +72,7 @@ test('editor command flow requires preview and produces a separate selected work
   assert.match(gapHtml, /Capture gaps \(1\)/); assert.match(gapHtml, /RECORDER_BUSY/);
   const groupsHtml = exports.render({}, { changes: [{ path: 'README.md', type: 'modified', hunks: [{ id: 'h', patch: 'diff', groups: [{ id: 'h:g0', patch: '-old\n+new' }, { id: 'h:g1', patch: '-later\n+kept' }] }] }], excluded: [] }, { label: 'from' }, { label: 'to' });
   assert.match(groupsHtml, /Keep this hunk \(2 change groups\)/); assert.match(groupsHtml, /Keep change group 1 \(linked replacement lines stay together\)/); assert.match(groupsHtml, /data-parent="h"/);
-  const comparisonHtml = exports.renderComparison({}, { first: { id: 'one', branch: injection, manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, second: { id: 'two', branch: 'chronicle/good', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, files: [{ path: injection, status: 'changed', first: { hash: 'a'.repeat(64), mode: '100644' }, second: { hash: 'b'.repeat(64), mode: '100644' } }] });
+  const comparisonHtml = exports.renderComparison({}, { first: { id: 'one', branch: injection, manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [{ label: injection, outcome: 'reported-fail', exitCode: 1, source: 'user-reported' }], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, second: { id: 'two', branch: 'chronicle/good', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, files: [{ path: injection, status: 'changed', first: { hash: 'a'.repeat(64), mode: '100644' }, second: { hash: 'b'.repeat(64), mode: '100644' } }] });
   assert.equal(comparisonHtml.includes(injection), false); assert.match(comparisonHtml, /&lt;script&gt;/); assert.match(comparisonHtml, /default-src 'none'/);
   const input = (value, dataset, checked) => ({ value, dataset, checked, addEventListener(name, fn) { this[name] = fn; } });
   const boxes = [input('h', { hasGroups: 'true' }, true), input('h:g0', { parent: 'h' }, true), input('h:g1', { parent: 'h' }, true)];

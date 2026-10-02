@@ -4,6 +4,12 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Record user-run check evidence
+
+- Added `record-check` for developers to attach a short label and exit code after they run a check themselves. Chronicle stores the timestamp and marks the outcome as user-reported; it does not execute or independently verify the command.
+- The saved-branch comparison now shows each recorded check with its source and outcome. Labels stay bounded and rendered as escaped text; no command arguments are needed.
+- Tests and final verification are tracked in O012 and [REVIEW.md](REVIEW.md).
+
 ### 2026-10-02 — Compare saved branches in VS Code
 
 - Added **Chronicle: Compare Saved Branches**, a read-only view for selecting two completed operations and comparing their recorded files, output modes, runtime, coverage, and unavailable check/cost values. Stored paths and branch names are HTML-escaped; the panel runs no scripts, checks, or agents.

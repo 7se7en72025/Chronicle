@@ -26,12 +26,13 @@ The current direction is a local companion for Codex or Claude Code: record supp
 - Added a Codex CLI plugin-hook adapter and scoped hook manifest. Codex `PostToolUse` is recorded as observed because the official hook event does not establish tool success/failure.
 - Added schema-versioned evidence manifests to completed branches and a no-model CLI comparison for added/deleted/changed/identical output files. Checks and cost remain unavailable until measured; see O010 in [ORCHESTRATION.md](ORCHESTRATION.md).
 - Added **Chronicle: Compare Saved Branches** in VS Code; it compares two selected completed manifests without executing checks or agents. O011 is under test; explicit user-run check-result recording is queued as O012.
+- Added `record-check` for developer-reported check labels and exit codes; it does not run or verify project commands. O012 is verified at CLI/editor-fixture level.
 
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
 ## Verification
 
-Latest verification: all 29 tests pass, including manifest comparisons across two selections, added/deleted/changed/identical paths, and the VS Code comparison command/rendering. `npm run check`, the 40-of-80 `npm run demo`, local Markdown links, package JSON parsing, and `git diff --check` pass. Full results and the second-pass diff review are in [REVIEW.md](REVIEW.md). Codex hook behavior and editor interactions remain fixture-tested, not host-validated.
+Latest verification: all 29 tests pass, including branch manifest comparisons, reported check pass/fail validation, CLI serialization, and VS Code comparison rendering/escaping. `npm run check`, the 40-of-80 `npm run demo`, local Markdown links, package JSON parsing, and `git diff --check` pass. Full results and second-pass diff review are in [REVIEW.md](REVIEW.md). Codex hook behavior and editor interactions remain fixture-tested, not host-validated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -45,4 +46,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-O010's branch-manifest and CLI-comparison slice and O011's mocked VS Code comparison are verified. O012 will define user-invoked check evidence. O004 still needs a real editor session; Claude CLI is absent, while Codex CLI plugin trust and hook delivery remain unverified. The ACTIVE heartbeat will continue the roadmap queue. See [upgrades.md](upgrades.md) for research-backed sequencing and [REVIEW.md](REVIEW.md) for current verification.
+O010–O012 are verified at their documented levels. O013 is next: version the privacy-bounded shared event evidence contract for host adapters. O004 still needs a real editor session; Claude CLI is absent, while Codex CLI plugin trust and hook delivery remain unverified. The ACTIVE heartbeat will continue the roadmap queue. See [upgrades.md](upgrades.md) for research-backed sequencing and [REVIEW.md](REVIEW.md) for current verification.

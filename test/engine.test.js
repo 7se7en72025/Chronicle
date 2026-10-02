@@ -82,6 +82,12 @@ test('branch manifests compare saved outputs and label unmeasured checks and cos
   assert.deepEqual(a.manifest.checks, []);
   assert.equal(a.manifest.reportedCost, null);
   assert.equal(a.manifest.outputFiles.find(file => file.path === 'a.txt').hash, hash(Buffer.from('a1\n')));
+  const pass = engine.recordCheck(a.id, 'npm test', 0);
+  const fail = engine.recordCheck(a.id, 'lint', 2);
+  assert.deepEqual([pass.outcome, fail.outcome], ['reported-pass', 'reported-fail']);
+  assert.equal(pass.source, 'user-reported');
+  assert.throws(() => engine.recordCheck(a.id, 'invalid', 256), /integer from 0 to 255/);
+  assert.throws(() => engine.recordCheck(a.id, 'bad\nlabel', 0), /one line/);
   const comparison = engine.compareOperations(a.id, b.id);
   assert.deepEqual(comparison.files.map(file => [file.path, file.status]), [
     ['a.txt', 'changed'], ['added.txt', 'deleted'], ['b.txt', 'changed'], ['common.txt', 'identical'], ['deleted.txt', 'added'], ['README.md', 'identical']
@@ -94,6 +100,11 @@ test('branch manifests compare saved outputs and label unmeasured checks and cos
   });
   assert.equal(cli.status, 0, cli.stderr);
   assert.deepEqual(JSON.parse(cli.stdout).files.map(file => [file.path, file.status]), comparison.files.map(file => [file.path, file.status]));
+  const recordCli = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'cli.js'), 'record-check', b.id, '7', 'smoke check'], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) }
+  });
+  assert.equal(recordCli.status, 0, recordCli.stderr);
+  assert.deepEqual([JSON.parse(recordCli.stdout).outcome, JSON.parse(recordCli.stdout).source], ['reported-fail', 'user-reported']);
 });
 
 test('selection ignores user diff colors and blank-context formatting', t => {
