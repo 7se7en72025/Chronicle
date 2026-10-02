@@ -4,6 +4,11 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Add research-backed upgrade and learning notes
+
+- Read five primary papers on failure reproduction, coding-agent interfaces and task complexity, controlled browser-agent environments, and benchmark validity.
+- Added a staged roadmap, research learnings, and explicit replay-level boundaries in the architecture. Recommendations are labeled as inferences; no proposed upgrade is described as implemented. See [upgrades.md](upgrades.md), [learnings.md](learnings.md), and [architecture.md](architecture.md).
+
 ### 2026-10-02 — Audit first-release coverage and normalize Git diffs
 
 - Force plain diff output and standard blank-context rows so user Git display settings cannot hide changes or corrupt within-hunk selection offsets. Added an isolated Git-home regression covering both partial previews and branch output.

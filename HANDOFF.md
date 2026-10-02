@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Added the research-backed [upgrade roadmap](upgrades.md) and [learnings](learnings.md); clarified current versus proposed capabilities in [architecture.md](architecture.md). Five primary papers inform the recommendations; replay and environment-restore claims are explicitly bounded.
 - Completed O008's [first-release audit](RELEASE_AUDIT.md). Fixed Git color/blank-context settings breaking selection and the undo confirmation's missing branch name. Actual host/UI validation remains outstanding; installed Codex CLI 0.159.2 was checked through version/help only.
 
 - Added within-hunk change groups for nearby edits, keeping contiguous replacements together. Preview and branch output rebuild from saved file line slices; BOM/CRLF, stale IDs, multi-line replacements, insertions, and deletions are covered. O006 is verified; details are in [REVIEW.md](REVIEW.md).
@@ -42,4 +43,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-O001–O003, O005, O006, and O008 are verified at their documented levels; O007 remains fixture-level. No currently viable queue task remains. O004 still needs Claude CLI and actual editor UI access; Codex CLI is present but plugin trust and hook delivery remain unverified. Resume with the disposable-host validation procedure in [RELEASE_AUDIT.md](RELEASE_AUDIT.md) when those prerequisites are available. Do not add scope or make unchanged-status commits while waiting.
+O001–O003, O005, O006, O008, and the user-requested research/documentation pass are verified at their documented levels; O007 remains fixture-level. No current implementation queue task remains. O004 still needs a real editor session; Claude CLI is absent, while Codex CLI is present but plugin trust and hook delivery remain unverified. Resume with the disposable-host validation procedure in [RELEASE_AUDIT.md](RELEASE_AUDIT.md) when host/UI access is available. See [upgrades.md](upgrades.md) for proposed work; none of those proposals is implemented by this documentation update.

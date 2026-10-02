@@ -56,6 +56,8 @@ The broader vision includes controlled environment replay and branch comparison.
 | [Development orchestration](ORCHESTRATION.md) | Autonomous task queue, verification, and operating boundaries |
 | [Latest review](REVIEW.md) | Concrete findings, fixes, checks, and remaining concerns |
 | [First-release audit](RELEASE_AUDIT.md) | Verified local coverage, actual host support, and remaining release gates |
+| [Upgrade roadmap](upgrades.md) | Research-informed, staged product and engineering proposals |
+| [Research learnings](learnings.md) | Paper findings, Chronicle implications, and evidence limits |
 
 ## Keeping this repo current
 

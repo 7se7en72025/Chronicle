@@ -36,6 +36,7 @@ Reviewer, implementer, and verifier are sequential stages in this thread. Do not
 | O006 | Verified | Finer change-group selection | Exposes contiguous changed-line groups within hunks, links replacement lines, validates reconstructed preview/branch bytes, preserves UTF-8 BOM and CRLF fixtures; UI rendering and full tests pass |
 | O007 | Verified (fixture-level) | Evaluate and add a Codex capture adapter | Official hook events were checked; supported boundaries are configured, passed through the shared privacy-safe recorder, and fixture-tested. Real Codex CLI validation remains part of O004's host prerequisite. |
 | O008 | Verified (local audit) | First-release audit | Current tests/check/demo pass; RELEASE_AUDIT.md records actual host coverage and limitations; docs reconciled and local result presented. Release readiness still depends on O004. |
+| O009 | Verified (documentation) | Research-backed roadmap and architecture | upgrades.md sequences proposed work; learnings.md synthesizes primary papers and separates evidence from inference; architecture.md distinguishes implemented behavior from future replay tiers; relative links and consistency checks pass. No proposed capability is presented as shipped. |
 
 Task priority may change to address a concrete bug or unmet prerequisite within PLAN.md. Record the reason. Do not expand to hosted collaboration, browser/database replay, billing, or production deployment without user direction.
 

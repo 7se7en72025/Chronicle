@@ -1,6 +1,6 @@
 # Chronicle architecture
 
-Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude/Codex hook payload adapters exist. Real host validation, automatic operation resumption, and environment replay remain incomplete; guarded output undo and within-hunk change-group selection are implemented but still need real-host validation.
+Status: implementation reference plus proposed target architecture. The local engine, CLI, VS Code panel, and Claude/Codex hook payload adapters exist. See [RELEASE_AUDIT.md](RELEASE_AUDIT.md) for current evidence. Real host validation, automatic operation resumption, and environment replay remain incomplete; guarded output undo and within-hunk change-group selection are implemented but still need real-host validation. Proposed upgrades and their order are in [upgrades.md](upgrades.md); research findings and their limits are in [learnings.md](learnings.md).
 
 ## Implemented slice
 
@@ -61,6 +61,8 @@ flowchart TD
 ```
 
 The review panel talks directly to the local engine. Selecting changes must not require sending a chat message to the agent.
+
+The external host is an event source, not a state snapshot. A hook tells Chronicle that a host boundary occurred; it does not by itself prove exclusive authorship, reveal hidden reasoning, or establish that every file/tool event was seen. Mark event status according to what that host actually reports, and retain explicit capture gaps.
 
 ## 4. Recommended stack
 
@@ -123,21 +125,19 @@ Treat source and destination separately:
 - **Source result:** the checkpoint containing those changes.
 - **Destination:** the workspace or branch receiving the selection.
 
-If the destination has changed, the engine checks whether the patch still applies. A conflict opens a manual resolution flow or stops the operation. It never silently asks a model to resolve it.
-
-Use [Git's patch applicability checks](https://git-scm.com/docs/git-apply) before mutation. Patch success proves textual applicability, not that the application still works.
+Applying a selection to a different, already changing destination is not implemented. A future active-workspace action must capture freshness, check applicability, preview conflicts, and keep a guarded undo record. [Git's patch applicability checks](https://git-scm.com/docs/git-apply) establish textual applicability, not that the application still works.
 
 For the first release, support regular text files. Handle file creation and deletion as whole-file choices. Defer partial rename handling, binary editing, symlinks, submodules, and notebook-aware selection; show unsupported cases clearly.
 
 ## 7. Branches and isolated application
 
-The default action is **Create branch with selection**:
+The current action is **Create branch with selection**:
 
-1. Resolve the chosen baseline and selected diff.
+1. Resolve the chosen baseline, result, and selected change IDs.
 2. Create a separate Git worktree from the baseline's underlying commit.
 3. Restore supported saved baseline contents there, including captured pre-existing changes.
-4. Check and apply the selected patch in that worktree.
-5. Verify the resulting files against the preview and show the output branch.
+4. Reconstruct selected files from immutable baseline/result line slices. This implementation does not run an agent again or apply into a moving destination.
+5. Verify output file bytes against the complete preview and show the output branch.
 
 This branch contains baseline contents plus the selected changes. The original workspace retains its current contents. Creating a branch does not remove unwanted edits from the original workspace.
 
@@ -210,7 +210,7 @@ Local storage, Git execution, and optional future hosting have their own resourc
 
 ## 12. User flow
 
-1. Install Chronicle's editor extension and the supported agent adapter.
+1. Install Chronicle's editor extension and the supported agent adapter. The real host path remains under validation; see [the release audit](RELEASE_AUDIT.md).
 2. Enable recording for a repository and review capture exclusions.
 3. Work with the agent normally.
 4. Open Chronicle's timeline and choose a checkpoint pair.
@@ -220,6 +220,19 @@ Local storage, Git execution, and optional future hosting have their own resourc
 8. Open that workspace, run checks if desired, and commit through the normal Git workflow.
 
 Branch comparison initially shows file differences and any explicitly run checks. It cannot promise browser screenshots, agent cost totals, or successful behavior without recording that evidence.
+
+## 15. Research-informed replay boundary
+
+The research review in [learnings.md](learnings.md) motivates preserving failure inputs, treating host interface and environment as part of an agent run, and auditing task, environment, tools, and evaluation separately. It does not demonstrate that Chronicle can restore hidden agent or arbitrary system state.
+
+Keep four capabilities separate in product language:
+
+1. **Inspect recorded state:** browse saved workspace checkpoints, observed event boundaries, gaps, and diffs. This is the local prototype's current timeline-level capability.
+2. **Select and reconstruct files:** preview selected recorded edits and build them into a separate worktree. This is implemented for the documented file types and has no model request.
+3. **Fresh retry from a workspace:** launch a new host run from a chosen workspace with a revised instruction. This starts new reasoning, can spend host model/tool credits, and does not restore the prior agent's hidden context. It is not implemented.
+4. **Simulated or full environment replay:** inject recorded responses in a controlled fixture, or restore more of an OS/browser/database. These need explicit adapters, isolation, state coverage, privacy, and interruption recovery. They are deferred.
+
+For a future branch comparison, report measured artifacts rather than a single quality score: input checkpoint and commit, selected change IDs, host/adapter version, recorded coverage, environment facts actually captured, check command and exit result, file diff, and host-reported cost when available. Label unavailable data. Passing a recorded test suite does not prove correctness outside those checks.
 
 ## 13. Build sequence and acceptance criteria
 
