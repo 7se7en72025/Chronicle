@@ -13,6 +13,34 @@ const MAX_TOTAL = 32 * 1024 * 1024;
 const forbidden = /(^|\/)(\.git|\.env(?:\..*)?|node_modules|dist|build|\.chronicle-dev|\.ssh)(\/|$)|\.(pem|key|p12|pfx)$/i;
 const lines = text => text.match(/[^\n]*\n|[^\n]+$/g) || [];
 
+function changeGroups(hunk) {
+  const rows = hunk.patch.split(/\r?\n/).slice(1);
+  const groups = [];
+  let oldOffset = 0, newOffset = 0, pending;
+  const flush = () => {
+    if (!pending) return;
+    groups.push({
+      oldStart: hunk.oldStart + pending.oldOffset, newStart: hunk.newStart + pending.newOffset,
+      oldCount: pending.oldCount, newCount: pending.newCount, patch: pending.rows.join('\n')
+    });
+    pending = undefined;
+  };
+  for (const row of rows) {
+    if (row.startsWith('-') || row.startsWith('+')) {
+      if (!pending) pending = { oldOffset, newOffset, oldCount: 0, newCount: 0, rows: [] };
+      pending.rows.push(row);
+      if (row.startsWith('-')) { pending.oldCount++; oldOffset++; }
+      else { pending.newCount++; newOffset++; }
+    } else if (row.startsWith(' ')) {
+      flush(); oldOffset++; newOffset++;
+    }
+    // The "\ No newline at end of file" marker describes the prior edit and
+    // does not consume a source or result line.
+  }
+  flush();
+  return groups.map((group, index) => ({ ...group, id: hunk.id + ':g' + index }));
+}
+
 function git(root, args, accepted = [0]) {
   // Inherited Git overrides can redirect commands to a different repository/index.
   const env = { ...process.env };
@@ -212,6 +240,7 @@ class Chronicle {
             const oldCount = h[2] === undefined ? 1 : Number(h[2]), newCount = h[4] === undefined ? 1 : Number(h[4]);
             return { id: fileId + ':' + i, oldStart: Number(h[1]) - (oldCount ? 1 : 0), oldCount, newStart: Number(h[3]) - (newCount ? 1 : 0), newCount, patch: patch.slice(h.index, headers[i + 1]?.index || patch.length) };
           });
+          hunks = hunks.map(hunk => ({ ...hunk, groups: changeGroups(hunk) }));
         } finally { fs.rmSync(temp, { recursive: true, force: true }); }
       }
       changes.push({ path: name, type: !a ? 'added' : !b ? 'deleted' : 'modified', hunks });
@@ -222,21 +251,22 @@ class Chronicle {
   preview(from, to, selected) {
     if (!Array.isArray(selected) || selected.some(id => typeof id !== 'string')) throw new Error('Selection must be a list of hunk IDs');
     const diff = this.compare(from, to), chosen = new Set(selected);
-    const known = new Set(diff.changes.flatMap(f => f.hunks.map(h => h.id)));
+    const known = new Set(diff.changes.flatMap(f => f.hunks.flatMap(h => [h.id, ...(h.groups || []).map(group => group.id)])));
     for (const id of chosen) if (!known.has(id)) throw new Error('Stale or invalid selection');
     const before = this.checkpoint(from), after = this.checkpoint(to), result = [];
     for (const change of diff.changes) {
       const hunks = change.hunks.filter(h => chosen.has(h.id));
-      if (!hunks.length) continue;
+      const groups = change.hunks.flatMap(h => (h.groups || []).filter(group => chosen.has(h.id) || chosen.has(group.id)));
+      if (!hunks.length && !groups.length) continue;
       const oldLines = lines(text(this.bytes(before.files[change.path]))), newLines = lines(text(this.bytes(after.files[change.path])));
       let content;
-      if (hunks[0].wholeFile) content = after.files[change.path] ? text(this.bytes(after.files[change.path])) : null;
+      if (hunks[0]?.wholeFile) content = after.files[change.path] ? text(this.bytes(after.files[change.path])) : null;
       else {
         const output = []; let cursor = 0;
-        for (const hunk of hunks) {
-          if (hunk.oldStart < cursor) throw new Error('Overlapping selection');
-          output.push(...oldLines.slice(cursor, hunk.oldStart), ...newLines.slice(hunk.newStart, hunk.newStart + hunk.newCount));
-          cursor = hunk.oldStart + hunk.oldCount;
+        for (const group of groups.sort((a, b) => a.oldStart - b.oldStart || a.newStart - b.newStart)) {
+          if (group.oldStart < cursor) throw new Error('Overlapping selection');
+          output.push(...oldLines.slice(cursor, group.oldStart), ...newLines.slice(group.newStart, group.newStart + group.newCount));
+          cursor = group.oldStart + group.oldCount;
         }
         output.push(...oldLines.slice(cursor)); content = output.join('');
       }

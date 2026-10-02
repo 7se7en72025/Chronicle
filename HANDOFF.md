@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Added within-hunk change groups for nearby edits, keeping contiguous replacements together. Preview and branch output rebuild from saved file line slices; BOM/CRLF, stale IDs, multi-line replacements, insertions, and deletions are covered. O006 is verified; details are in [REVIEW.md](REVIEW.md).
 - Added guarded undo for selected paths in Chronicle's output worktree through CLI and VS Code. It validates branch, staged state, and file bytes/modes; retains output and can resume a partial undo after revalidation. O005 is verified; details and limits are in [REVIEW.md](REVIEW.md).
 - Implemented immutable supported-file capture, byte integrity checks, checkpoint diffs, complete-hunk selection, preview, and separate branch/worktree output.
 - Added VS Code commands with preview gating and escaped webview content, plus direct CLI commands.
@@ -25,18 +26,18 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Latest verification: all 25 tests pass, including guarded undo conflicts, partial recovery, file additions/deletions, and mocked VS Code confirmation. `npm run check`, the 40-of-80 `npm run demo`, Markdown relative links, `package.json` parsing, and `git diff --check` pass. Codex hook behavior is fixture-tested; editor interactions remain mocked.
+Latest verification: all 27 tests pass, including within-hunk selection, linked replacements, insertions/deletions, encoding and line endings, guarded undo, and mocked VS Code selection behavior. `npm run check`, the 40-of-80 `npm run demo`, Markdown relative links, `package.json` parsing, and `git diff --check` pass. Codex hook behavior is fixture-tested; editor interactions remain mocked.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
-An ACTIVE Codex heartbeat, `chronicle-review-and-improve`, runs on a 30-minute schedule and targets up to about 25 minutes of focused work per activation, carrying on across multiple tasks when time and runtime allow. The first scheduled review activation ran on 2026-10-02; its actual duration is runtime-controlled. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). Latest verified implementation was committed as `98f3c4d` and pushed to `origin/main`; this handoff records that result.
+An ACTIVE Codex heartbeat, `chronicle-review-and-improve`, runs on a 30-minute schedule and targets up to about 25 minutes of focused work per activation, carrying on across multiple tasks when time and runtime allow. The first scheduled review activation ran on 2026-10-02; its actual duration is runtime-controlled. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O006 is verified; consult the current Git history for publication status.
 
 Scheduled development consumes model usage and requires an available runtime. No always-on server or recorder service was deployed. Claude recording hooks remain separately event-driven during an enabled host session.
 
 ## Open choices
 
-Real Claude/VS Code and Codex host validation, configurable exclusions, retention, SQLite/TypeScript migration, automatic operation resumption, and finer selection remain outstanding. Codex adapter is fixture-tested only. First slice uses JavaScript and JSON metadata as recorded in D007. Branch output rejects checkpoints with reported exclusions.
+Real Claude/VS Code and Codex host validation, configurable exclusions, retention, SQLite/TypeScript migration, and automatic operation resumption remain outstanding. Codex adapter is fixture-tested only. First slice uses JavaScript and JSON metadata as recorded in D007. Branch output rejects checkpoints with reported exclusions. O006's within-hunk groups are implemented and fixture-verified.
 
 ## Next concrete task
 
-O001–O003 and O005 are verified at their documented levels; O007 remains fixture-level. `undo <operation-id>` restores only selected paths in Chronicle output after checking branch, staged state, bytes, and modes. It can resume an interrupted undo and refuses later edits. O004 remains blocked on Claude CLI and desktop UI access. Next, advance O006, finer change-group selection; keep O004 blocked until a real host/UI runtime is available.
+O001–O003, O005, and O006 are verified at their documented levels; O007 remains fixture-level. Within-hunk groups keep contiguous replacement lines linked and preserve UTF-8 BOM/CRLF in fixtures. O004 remains blocked on Claude CLI and desktop UI access. Next, run O008, the first-release audit; keep O004 blocked until a real host/UI runtime is available.

@@ -1,10 +1,10 @@
 # Chronicle architecture
 
-Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude/Codex hook payload adapters exist. Real host validation, automatic operation resumption, undo, finer selection, and environment replay remain incomplete.
+Status: target architecture with an early working prototype. The local engine, CLI, VS Code panel, and Claude/Codex hook payload adapters exist. Real host validation, automatic operation resumption, and environment replay remain incomplete; guarded output undo and within-hunk change-group selection are implemented but still need real-host validation.
 
 ## Implemented slice
 
-- `src/engine.js`: byte-hashed UTF-8 snapshots, checkpoint diffs, complete-hunk selection, result previews, separate Git worktree output, and operation journals.
+- `src/engine.js`: byte-hashed UTF-8 snapshots, checkpoint diffs, whole-hunk and within-hunk change-group selection, result previews, separate Git worktree output, and operation journals.
 - `src/cli.js`: direct local commands with no model requests.
 - `src/extension.js`: VS Code commands and a webview for selection, preview, and branch output.
 - `src/hook.js` and `hooks/hooks.json`: Claude session/tool-boundary adapter, including failure events. `plugin.json` and `hooks/codex-hooks.json` configure a Codex CLI lifecycle adapter using supported `SessionStart`, `SessionEnd`, `Interrupt`, `PreToolUse`, and `PostToolUse` events. Codex has no distinct post-tool-failure hook in the current event docs; its post-tool event is recorded as observed, not assumed successful. Both adapters are fixture-tested; real host sessions remain unverified.
@@ -111,11 +111,11 @@ The engine compares two immutable checkpoints and produces a versioned diff. Eve
 
 Initial selection units:
 
-1. Whole files.
+1. Whole files for additions, deletions, or mode changes.
 2. Complete diff hunks: groups of nearby edits.
-3. Later, individual change groups within a hunk.
+3. Adjacent changed-line groups within a hunk. A contiguous replacement's removed and added lines stay linked; unchanged context separates groups.
 
-For replacements, keep removed and added lines linked where necessary. Show the complete resulting file before applying. Line selection must produce a valid patch, not simply concatenate selected green lines.
+Show the complete resulting file before applying. Group selection rebuilds from saved baseline and result line slices, preserving untouched lines, UTF-8 BOMs, and line endings. It is not arbitrary per-line selection: split or dependent edits still need review as a linked group.
 
 Treat source and destination separately:
 
@@ -214,7 +214,7 @@ Local storage, Git execution, and optional future hosting have their own resourc
 2. Enable recording for a repository and review capture exclusions.
 3. Work with the agent normally.
 4. Open Chronicle's timeline and choose a checkpoint pair.
-5. Review changed files and select the desired hunks.
+5. Review changed files and select full hunks or change groups within them.
 6. Preview the resulting files and any applicability conflicts.
 7. Create a branch containing the selection.
 8. Open that workspace, run checks if desired, and commit through the normal Git workflow.
@@ -233,7 +233,7 @@ Record a dirty starting workspace and successive immutable checkpoints. Verify t
 
 ### Milestone 2: selective review
 
-Implement whole-file and hunk selection with complete result previews. Demonstrate the README example with a chosen subset. Reject stale selections and invalid patches.
+Implement whole-file, hunk, and within-hunk change-group selection with complete result previews. Demonstrate the README example with a chosen subset. Reject stale selections and invalid patches.
 
 ### Milestone 3: branch output and recovery
 
@@ -241,7 +241,7 @@ Apply selections in independent worktrees. Verify that original files, index, an
 
 ### Milestone 4: finer selection and a second adapter
 
-Add line-level change groups, replacement handling, and encoding/line-ending edge cases. Then integrate a second host through the same engine contract.
+Within-hunk change groups, linked replacements, and UTF-8 BOM/CRLF preservation are implemented (O006). The remaining milestone work is a second host through the same engine contract after real host feasibility is verified.
 
 For release, verify that the direct review/select/apply flow makes zero model requests, that manual edits survive, and that an unsupported capture or file type is visibly reported. Record checks as passed, failed, or not run; absence of a check is not success.
 

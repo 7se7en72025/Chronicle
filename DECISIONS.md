@@ -12,7 +12,9 @@ Direct review, preview, and Git application make no automatic model requests. Ag
 
 ## D003 — Start with files and hunks
 
-Support regular text files and complete hunks before finer line groups. Replacements and dependent edits can make arbitrary selections invalid. Revisit after patch correctness and recovery are verified.
+Support regular text files, complete hunks, and contiguous change groups within hunks. Keep replacement lines linked and use unchanged context to separate groups. Do not offer arbitrary individual-line choices that can split replacements; validate the complete preview before apply.
+
+Status: implemented in the prototype; UTF-8 BOM and CRLF output plus linked replacements are fixture-tested. Revisit if a future diff model can prove finer selections safe.
 
 ## D004 — Default to a separate worktree
 

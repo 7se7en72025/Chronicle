@@ -25,7 +25,7 @@ The demo creates a temporary Git fixture, changes 80 lines, selects the hunk con
 7. Choose hunks, click **Preview selection**, then **Create branch from preview**.
 8. Open the output workspace when prompted. Review and commit its changes through your normal Git workflow.
 
-The original workspace keeps all its current edits. Branch output is baseline plus selected changes; it may also contain pre-existing baseline edits, and it remains uncommitted. Selection is by complete hunks, not arbitrary individual lines yet.
+The original workspace keeps all its current edits. Branch output is baseline plus selected changes; it may also contain pre-existing baseline edits, and it remains uncommitted. Select a full hunk or some change groups within a hunk. Replacement lines stay linked, and the preview shows the complete resulting file.
 
 The helper uses saved file bytes. Unsaved editor buffers are not captured. Do not use the prototype on valuable or sensitive work until you have reviewed its capture policy and limitations.
 
@@ -48,7 +48,7 @@ node /path/to/Chronicle/src/cli.js undo OPERATION_ID
 node /path/to/Chronicle/src/cli.js reconcile
 ```
 
-Quote paths containing spaces. The diff command returns hunk IDs; supply one or more of them to preview and branch. IDs are tied to the checkpoint pair, so selections from another pair are rejected.
+Quote paths containing spaces. The diff command returns hunk IDs and, for multi-edit hunks, change-group IDs. Supply one or more to preview and branch. A change group keeps contiguous replacement lines together; unchanged context separates groups. IDs are tied to the checkpoint pair, so selections from another pair are rejected.
 
 Undo restores only selected paths in Chronicle's separate output worktree to their saved baseline. It checks their current bytes and file modes first, and refuses if the branch gained commits or those paths have staged or later changes. The original recording workspace is untouched; the output branch and worktree remain available. In VS Code, use **Chronicle: Undo Output Operation** and confirm the selected operation. If an undo is interrupted, rerunning it can resume only while each selected path still matches either Chronicle's output or the saved baseline.
 

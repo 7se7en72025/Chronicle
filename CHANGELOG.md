@@ -4,6 +4,11 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Select change groups inside hunks
+
+- Added stable checkpoint-pair IDs for contiguous changed-line groups within a hunk. Replacement lines remain linked; the VS Code review UI offers group checkboxes alongside whole-hunk selection. The preview rebuilds from saved baseline/result slices, preserving unchanged lines and line endings.
+- Verified partial selection in a single hunk, a two-line replacement, output branch bytes, UTF-8 BOM/CRLF preservation, stale group rejection, and UI rendering. Full suite and final checks recorded in [REVIEW.md](REVIEW.md).
+
 ### 2026-10-02 — Add guarded undo for output operations
 
 - Added CLI and VS Code undo actions scoped to selected paths in Chronicle's output worktree. The operation refuses later edits, staged selected files, changed branches, or new commits; it retains the branch/worktree and can resume an interrupted undo after validating every affected path.

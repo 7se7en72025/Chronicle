@@ -1,6 +1,6 @@
 # Latest development review
 
-Status: reviewed and updated during the second scheduled activation (2026-10-02). This is a single-agent review log, not evidence of independent approval.
+Status: reviewed and updated through the fourth scheduled activation (2026-10-02). This is a single-agent review log, not evidence of independent approval.
 
 ## Review scope
 
@@ -37,3 +37,15 @@ Added CLI `undo <operation-id>` and a modal-confirmed VS Code command. Tests cov
 **Final second pass:** reviewed the operation guard, atomic same-directory restore, confirmation flow, tests, and all related docs. Checks passed: 25 tests, syntax, demo, Markdown links, package JSON, and whitespace. No independent reviewer participated. Implementation commit `98f3c4d` is pushed to `origin/main`; matching handoff and review publication notes follow. O005 is verified at prototype scope.
 
 **Next:** advance O006, finer change-group selection. Resume O004 only when real host/UI access becomes available.
+
+## Fourth activation — within-hunk selection (2026-10-02)
+
+**P2 — Users could only choose an entire Git hunk even when it contained separate edits (closed).** `src/engine.js:compare` exposed each Git hunk as one selection ID, and `preview` replaced the whole hunk's line range. This prevented keeping one nearby edit while discarding another without asking the agent to regenerate it.
+
+Added linked change groups by parsing the hunk's `-`, `+`, and unchanged-context rows. A contiguous replacement remains one group; unchanged context separates groups. `preview` accepts either legacy hunk IDs or group IDs and reconstructs the result from immutable checkpoint line slices. UI shows group choices only where a hunk has multiple groups. Added tests for two independent edits in a single hunk, linked two-line replacements, standalone insertions/deletions, selected-branch output, BOM/CRLF preservation, and UI rendering and parent/child selection events. Full-suite results are recorded below.
+
+**Remaining concerns:** grouping is diff-context-based, not semantic dependency analysis. Changes without unchanged context remain one group; code may still depend on unselected edits. Users must review the complete preview. Capture remains UTF-8 text only.
+
+**Final second pass:** verified hunk offsets against patch context counts, replacement grouping, standalone insertion/deletion groups, stale-pair IDs, and overlap-safe reconstruction from saved source/result lines. Reviewed UI parent/child checkbox behavior; selecting a child clears the hunk selection, and changing a hunk clears child choices. The event behavior is exercised in the VS Code webview harness. All 27 tests, syntax check, 40-of-80 demo, Markdown links, package JSON, and whitespace checks pass. No independent agent reviewed this change. O006 is verified at prototype scope; the second-host portion of milestone 4 remains blocked by O004.
+
+**Next:** O008 first-release audit. Keep O004's host validation blocked until a real host/UI runtime is available.

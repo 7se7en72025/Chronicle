@@ -58,8 +58,52 @@ test('CRLF, Unicode, BOM, and missing final newline survive selected output', t 
   const { engine, file } = fixture(t, '\ufeffhello\r\n世界\r\nlast');
   const a = engine.capture(); fs.writeFileSync(file, '\ufeffhello\r\nchanged 世界\r\nlast'); const b = engine.capture();
   const diff = engine.compare(a.id, b.id);
-  const preview = engine.preview(a.id, b.id, diff.changes.flatMap(f => f.hunks.map(h => h.id)));
+  const group = diff.changes[0].hunks[0].groups[0];
+  const preview = engine.preview(a.id, b.id, [group.id]);
   assert.equal(preview.files[0].content, '\ufeffhello\r\nchanged 世界\r\nlast');
+});
+
+test('change groups split nearby edits and keep each replacement linked', t => {
+  const original = Array.from({ length: 20 }, (_, i) => 'line ' + i + '\r\n');
+  const { engine, file } = fixture(t, original.join(''));
+  const before = engine.capture(), changed = [...original];
+  changed[2] = 'wanted 2a\r\n'; changed[3] = 'wanted 2b\r\n';
+  for (const i of [6, 10]) changed[i] = 'wanted ' + i + '\r\n';
+  fs.writeFileSync(file, changed.join(''));
+  const after = engine.capture(), diff = engine.compare(before.id, after.id);
+  assert.equal(diff.changes[0].hunks.length, 1);
+  const hunk = diff.changes[0].hunks[0];
+  assert.equal(hunk.groups.length, 3);
+  assert.equal(hunk.groups[0].oldCount, 2); assert.equal(hunk.groups[0].newCount, 2);
+  assert.equal(hunk.groups[1].oldCount, 1); assert.equal(hunk.groups[1].newCount, 1);
+  assert.match(hunk.groups[0].patch, /-line 2[\s\S]*-line 3[\s\S]*\+wanted 2a[\s\S]*\+wanted 2b/);
+  assert.match(hunk.groups[1].patch, /-line 6\r?\n\+wanted 6/);
+  const selected = [hunk.groups[0].id, hunk.groups[2].id];
+  const expected = [...original]; expected[2] = changed[2]; expected[3] = changed[3]; expected[10] = changed[10];
+  assert.equal(engine.preview(before.id, after.id, selected).files[0].content, expected.join(''));
+  assert.equal(engine.preview(before.id, after.id, [hunk.id]).files[0].content, changed.join(''));
+  assert.equal(engine.preview(before.id, after.id, [hunk.id, hunk.groups[1].id]).files[0].content, changed.join(''));
+  const operation = engine.createBranch(before.id, after.id, selected, 'chronicle/group-selection');
+  assert.equal(fs.readFileSync(path.join(operation.target, 'README.md'), 'utf8'), expected.join(''));
+  changed[15] = 'later pair\r\n'; fs.writeFileSync(file, changed.join(''));
+  const later = engine.capture();
+  assert.throws(() => engine.preview(before.id, later.id, [hunk.groups[0].id]), /Stale or invalid/);
+});
+
+test('change groups preserve standalone insertions and deletions within one hunk', t => {
+  const original = Array.from({ length: 20 }, (_, i) => 'line ' + i + '\n');
+  const { engine, file } = fixture(t, original.join(''));
+  const before = engine.capture(), changed = original.filter((_, index) => index !== 2);
+  changed.splice(5, 0, 'inserted\n'); fs.writeFileSync(file, changed.join(''));
+  const after = engine.capture(), hunk = engine.compare(before.id, after.id).changes[0].hunks[0];
+  assert.equal(hunk.groups.length, 2);
+  const deletion = hunk.groups.find(group => group.oldCount === 1 && group.newCount === 0);
+  const insertion = hunk.groups.find(group => group.oldCount === 0 && group.newCount === 1);
+  assert.ok(deletion); assert.ok(insertion);
+  const withoutDeleted = original.filter((_, index) => index !== 2);
+  const withInserted = [...original.slice(0, 6), 'inserted\n', ...original.slice(6)];
+  assert.equal(engine.preview(before.id, after.id, [deletion.id]).files[0].content, withoutDeleted.join(''));
+  assert.equal(engine.preview(before.id, after.id, [insertion.id]).files[0].content, withInserted.join(''));
 });
 
 test('whole-file additions, deletions, and baseline deletions are restored', t => {

@@ -61,4 +61,21 @@ test('editor command flow requires preview and produces a separate selected work
   assert.equal(hostile.includes(injection), false); assert.match(hostile, /&lt;script&gt;/);
   const gapHtml = exports.render({}, { changes: [], excluded: [], gaps: [{ kind: 'capture-gap', createdAt: 'now', boundary: 'PostToolUseFailure', tool: 'Bash', reason: 'RECORDER_BUSY', sessionId: 'session-1' }] }, { label: 'from' }, { label: 'to' });
   assert.match(gapHtml, /Capture gaps \(1\)/); assert.match(gapHtml, /RECORDER_BUSY/);
+  const groupsHtml = exports.render({}, { changes: [{ path: 'README.md', type: 'modified', hunks: [{ id: 'h', patch: 'diff', groups: [{ id: 'h:g0', patch: '-old\n+new' }, { id: 'h:g1', patch: '-later\n+kept' }] }] }], excluded: [] }, { label: 'from' }, { label: 'to' });
+  assert.match(groupsHtml, /Keep this hunk \(2 change groups\)/); assert.match(groupsHtml, /Keep change group 1 \(linked replacement lines stay together\)/); assert.match(groupsHtml, /data-parent="h"/);
+  const input = (value, dataset, checked) => ({ value, dataset, checked, addEventListener(name, fn) { this[name] = fn; } });
+  const boxes = [input('h', { hasGroups: 'true' }, true), input('h:g0', { parent: 'h' }, true), input('h:g1', { parent: 'h' }, true)];
+  const elements = Object.fromEntries(['all', 'none', 'preview', 'apply', 'status', 'output', 'branch'].map(id => [id, { replaceChildren() {}, value: 'chronicle/test' }]));
+  let posted, messageListener;
+  const script = groupsHtml.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+  vm.runInNewContext(script, {
+    acquireVsCodeApi: () => ({ postMessage: message => { posted = message; } }),
+    document: { querySelectorAll: () => boxes, getElementById: id => elements[id] },
+    window: { addEventListener: (name, fn) => { messageListener = fn; } }
+  });
+  boxes[1].checked = false; boxes[1].change(); elements.preview.onclick();
+  assert.deepEqual([...posted.selected], ['h:g1']);
+  messageListener({ data: { type: 'preview', files: [], message: 'ok' } });
+  boxes[0].checked = true; boxes[0].change(); elements.preview.onclick();
+  assert.deepEqual([...posted.selected], ['h']);
 });

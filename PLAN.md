@@ -38,8 +38,8 @@ Exit condition: demonstrate branch output and recovery with dirty baselines and 
 
 ## 4. Finer selection and another host
 
-- [ ] Add line-level change groups and linked replacements.
-- [ ] Verify encoding and line-ending preservation.
+- [x] Add within-hunk change groups and keep contiguous replacement lines linked.
+- [x] Verify UTF-8 BOM and CRLF preservation in selected results.
 - [ ] Integrate a second host through the same engine contract.
 
 Exit condition: both hosts report actual capture coverage; direct review/select/apply makes no model requests.
