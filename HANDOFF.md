@@ -4,12 +4,13 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout at `C:\Users\RAIYYAN\Desktop\Code\Chronicle-night-runner`; a temporary `STOP` marker holds model cycles until the documented source state is synchronized. The user reports that the chat heartbeat is paused.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout at `C:\Users\RAIYYAN\Desktop\Code\Chronicle-night-runner`. Its first model cycle stopped at an unsupported CLI flag and wrote `STOP`; the flag is fixed locally and must be published and synchronized before retry. The user reports that the chat heartbeat is paused.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
 ## Latest work
 
+- Fixed the runner's unsupported `--ask-for-approval` option after the registered task stopped before model execution. Codex CLI 0.160.0 accepts `--config approval_policy=never`; the complete option set exits zero with `--help`, and all five focused runner tests pass. The sibling checkout is still held by the failure `STOP` marker until the fix is synchronized; see [REVIEW.md](REVIEW.md).
 - Fixed the unsupported battery-setting switch in the Windows installer, verified the corrected settings object and five runner tests, then registered the Task Scheduler entry against the clean sibling checkout. With the temporary `STOP` marker present, the task started and exited before any model invocation. The task is `Ready`, points to the sibling checkout, disallows battery starts, and has no overall execution limit; see [REVIEW.md](REVIEW.md). The unrelated untracked `BOLPREP.md` in this checkout remains untouched.
 - Expanded the overnight-runner handoff in [ORCHESTRATION.md](ORCHESTRATION.md): pause the chat heartbeat before starting the laptop writer, verify its login/task/log state, and stop/remove the task before returning to chat mode.
 - Corrected replay scope wording in [upgrades.md](upgrades.md) and [architecture.md](architecture.md): the bounded fixture response injector exists; fresh-agent orchestration and full environment restoration remain unimplemented.
@@ -50,7 +51,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** fast-forward the clean sibling checkout to this handoff commit, remove its temporary runner `STOP` marker, start the registered task, and verify the runner log shows a bounded Codex cycle. Keep the chat heartbeat paused. Real Codex/Claude hook and editor validation remains separate; use the no-prompt MCP discovery steps in [GETTING_STARTED.md](GETTING_STARTED.md) when a supported host is available.
+**Next:** publish and fast-forward the corrected runner invocation into the clean sibling checkout, remove the supervisor's failure `STOP` marker, start the registered task again, and verify actual Codex cycle progress. Keep the chat heartbeat paused. Real Codex/Claude hook and editor validation remains separate; use the no-prompt MCP discovery steps in [GETTING_STARTED.md](GETTING_STARTED.md) when a supported host is available.
 
 ## Open choices
 
@@ -58,4 +59,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Start and observe the first bounded Codex runner cycle after synchronizing the clean sibling checkout and clearing the temporary `STOP` marker. The cycle may stop if the queue is blocked or complete; verify its actual log and repository state. O004 still needs a real editor/agent host for event-delivery and UI checks. See [REVIEW.md](REVIEW.md) for evidence and limits.
+Retry and observe the first bounded Codex runner cycle after synchronizing the CLI option fix and clearing the failure `STOP` marker. The cycle may stop if the queue is blocked or complete; verify its actual log and repository state. O004 still needs a real editor/agent host for event-delivery and UI checks. See [REVIEW.md](REVIEW.md) for evidence and limits.

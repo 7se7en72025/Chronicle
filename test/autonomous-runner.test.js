@@ -86,7 +86,7 @@ test('autonomous runner invokes one isolated cycle and honors the stop marker', 
 
   const marker = fs.readFileSync(path.join(fixture.tempRoot, 'called.txt'), 'utf8');
   assert.match(marker, /network_access=false/);
-  assert.match(marker, /--ask-for-approval never/);
+  assert.match(marker, /--config approval_policy=never/);
   assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Queue complete/);
   assert.equal(git(fixture.repo, 'status', '--porcelain'), '');
 });
