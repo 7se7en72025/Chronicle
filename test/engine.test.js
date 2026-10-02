@@ -303,6 +303,13 @@ test('interrupted blob publication leaves no poisoned content hash', t => {
 
 test('storage recovery quarantines interrupted files without deleting data', t => {
   const { engine } = fixture(t);
+  const legacyCheckpoint = engine.capture('Legacy checkpoint', { source: 'claude-code', boundary: 'PostToolUse' });
+  const legacyCheckpointPath = path.join(engine.store, 'checkpoints', legacyCheckpoint.id + '.json');
+  const legacyCheckpointBytes = fs.readFileSync(legacyCheckpointPath);
+  const legacyGap = { schema: 1, kind: 'capture-gap', id: 'legacy-gap', createdAt: new Date().toISOString(), status: 'skipped', reason: 'RECORDER_BUSY', source: 'claude-code', boundary: 'PostToolUseFailure' };
+  const legacyGapPath = path.join(engine.store, 'gaps', 'legacy-gap.json');
+  fs.writeFileSync(legacyGapPath, JSON.stringify(legacyGap));
+  const legacyGapBytes = fs.readFileSync(legacyGapPath);
   const blobTemp = path.join(engine.store, 'blobs', 'dead-write.tmp'); fs.writeFileSync(blobTemp, 'partial blob');
   const checkpointTemp = path.join(engine.store, 'checkpoints', 'dead-checkpoint.tmp'); fs.writeFileSync(checkpointTemp, 'partial metadata');
   const operationTemp = path.join(engine.store, 'operations', 'dead-operation.tmp'); fs.writeFileSync(operationTemp, '{"state":"applying"');
@@ -313,6 +320,8 @@ test('storage recovery quarantines interrupted files without deleting data', t =
   assert.equal(fs.existsSync(blobTemp), false);
   assert.equal(fs.readFileSync(result.quarantined.find(f => f.original.startsWith('blobs/')).savedAs, 'utf8'), 'partial blob');
   assert.equal(fs.existsSync(path.join(engine.store, 'operation.lock')), false);
+  assert.deepEqual(fs.readFileSync(legacyCheckpointPath), legacyCheckpointBytes);
+  assert.deepEqual(fs.readFileSync(legacyGapPath), legacyGapBytes);
 });
 
 test('storage recovery refuses a live lock and explicitly preserves a dead lock', async t => {
@@ -378,6 +387,13 @@ test('failed Claude tool boundaries capture partial edits without storing tool s
   const cp = recordHook({ cwd: root, hook_event_name: 'PostToolUseFailure', session_id: 'session', tool_name: 'Bash', tool_use_id: 'tool-1', error: 'SECRET_ERROR' }, options);
   assert.equal(engine.list().length, 2);
   assert.equal(cp.event.status, 'failed');
+  assert.equal(cp.event.contract, 'chronicle.adapter-event');
+  assert.equal(cp.event.contractVersion, 1);
+  assert.match(cp.event.eventId, /^[a-f0-9-]{36}$/);
+  assert.equal(cp.event.statusCertainty, 'host-reported');
+  assert.equal(cp.event.timestampSource, 'recorder');
+  assert.equal(cp.event.references.snapshotId, cp.id);
+  assert.equal(cp.event.references.gapId, null);
   assert.equal(engine.bytes(cp.files['README.md']).toString(), 'partially written before failure\n');
   assert.equal(JSON.stringify(cp).includes('SECRET_'), false);
 });
@@ -387,13 +403,25 @@ test('Codex hook boundaries record local file changes without storing prompts or
   const options = { storage: path.dirname(engine.store) };
   const before = recordHook({ cwd: root, hook_event_name: 'PreToolUse', session_id: 'codex-session', turn_id: 'turn-1', tool_name: 'apply_patch', tool_use_id: 'tool-2', tool_input: { command: 'SECRET_PROMPT' } }, options, 'codex-cli');
   fs.writeFileSync(file, 'Codex output\n');
-  const after = recordHook({ cwd: root, hook_event_name: 'PostToolUse', session_id: 'codex-session', turn_id: 'turn-1', tool_name: 'apply_patch', tool_use_id: 'tool-2', tool_response: 'SECRET_OUTPUT' }, options, 'codex-cli');
+  const after = recordHook({ cwd: root, hook_event_name: 'PostToolUse', session_id: 'private/session token', turn_id: 'turn-1', tool_name: 'apply_patch', tool_use_id: 'tool-2', tool_response: 'SECRET_OUTPUT' }, options, 'codex-cli');
   assert.equal(before.event.source, 'codex-cli');
+  assert.equal(before.event.contractVersion, 1);
+  assert.equal(before.event.statusCertainty, 'boundary-only');
+  assert.equal(before.event.references.snapshotId, before.id);
   assert.equal(after.event.status, 'observed');
+  assert.equal(after.event.statusCertainty, 'boundary-only');
+  assert.equal(after.event.references.snapshotId, after.id);
   assert.equal(after.event.turnId, 'turn-1');
+  assert.equal(after.event.sessionId, undefined);
+  assert.equal(Number.isNaN(Date.parse(after.event.recordedAt)), false);
+  assert.equal(after.event.privacy, 'metadata-only');
   assert.equal(engine.bytes(after.files['README.md']).toString(), 'Codex output\n');
   assert.equal(JSON.stringify([before, after]).includes('SECRET_'), false);
   assert.throws(() => recordHook({ cwd: root, hook_event_name: 'PostToolUseFailure', session_id: 'codex-session' }, options, 'codex-cli'), /Unsupported/);
+  assert.throws(() => recordHook({ cwd: root, hook_event_name: 'NewHostEvent', session_id: 'codex-session' }, options, 'codex-cli'), /Unsupported/);
+  assert.throws(() => recordHook({ cwd: root, hook_event_name: 'PostToolUse', session_id: 'session' }, options, 'unknown-adapter'), /Unsupported/);
+  assert.equal(engine.list().length, 2);
+  assert.equal(engine.gaps().length, 0);
 });
 
 test('Codex plugin config references only fixture-supported lifecycle hooks', () => {
@@ -415,6 +443,10 @@ test('failed capture is recorded as a bounded gap and attached to its checkpoint
   assert.equal(gap.length, 1);
   assert.equal(gap[0].reason, 'RECORDER_BUSY');
   assert.equal(gap[0].sessionId, payload.session_id);
+  assert.equal(gap[0].event.contractVersion, 1);
+  assert.equal(gap[0].event.references.snapshotId, null);
+  assert.equal(gap[0].event.references.gapId, gap[0].id);
+  assert.equal(gap[0].event.statusCertainty, 'host-reported');
   assert.equal(JSON.stringify(gap).includes('SECRET_'), false);
   assert.equal(JSON.stringify(gap).includes(root), false);
   const after = engine.capture('After blocked tool');

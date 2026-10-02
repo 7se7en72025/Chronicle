@@ -145,7 +145,11 @@ class Chronicle {
         this.writeBlob(file.bytes, file.hash);
         files[name] = { hash: file.hash, mode: file.mode };
       }
-      const checkpoint = { schema: 1, id: crypto.randomUUID(), label: String(label).slice(0, 200), createdAt: new Date().toISOString(), root: this.root, head, files, tracked: first.tracked, excluded: first.excluded, event };
+      const checkpointId = crypto.randomUUID();
+      const capturedEvent = event?.contract === 'chronicle.adapter-event' && event.contractVersion === 1
+        ? { ...event, references: { ...event.references, snapshotId: checkpointId, gapId: null } }
+        : event;
+      const checkpoint = { schema: 1, id: checkpointId, label: String(label).slice(0, 200), createdAt: new Date().toISOString(), root: this.root, head, files, tracked: first.tracked, excluded: first.excluded, event: capturedEvent };
       // Index evidence is separate; no command stages or resets the original index.
       checkpoint.index = index;
       writeJson(path.join(this.store, 'checkpoints', checkpoint.id + '.json'), checkpoint);
@@ -175,9 +179,14 @@ class Chronicle {
     const detail = String(error?.message || '');
     const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
     const clean = value => typeof value === 'string' ? value.slice(0, 200) : undefined;
+    const gapId = crypto.randomUUID();
+    const gapEvent = event?.contract === 'chronicle.adapter-event' && event.contractVersion === 1
+      ? { ...event, references: { ...event.references, snapshotId: null, gapId } }
+      : undefined;
     const gap = {
-      schema: 1, kind: 'capture-gap', id: crypto.randomUUID(), repoId: hash(this.root), createdAt: new Date().toISOString(),
-      status: 'skipped', reason, source: event.source === 'codex-cli' ? 'codex-cli' : 'claude-code', boundary: clean(event.boundary), sessionId: clean(event.sessionId), toolUseId: clean(event.toolUseId), tool: clean(event.tool)
+      schema: 1, kind: 'capture-gap', id: gapId, repoId: hash(this.root), createdAt: new Date().toISOString(),
+      status: 'skipped', reason, source: event.source === 'codex-cli' ? 'codex-cli' : 'claude-code', boundary: clean(event.boundary), sessionId: clean(event.sessionId), toolUseId: clean(event.toolUseId), tool: clean(event.tool),
+      ...(gapEvent ? { event: gapEvent } : {})
     };
     writeJson(path.join(dir, gap.id + '.json'), gap);
     return gap;

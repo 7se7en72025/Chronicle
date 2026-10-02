@@ -34,13 +34,15 @@ Use these terms consistently:
 
 **Exit:** fixed fixture, two selections, same named checks, byte-verifiable outputs, and a visual comparison that clearly distinguishes recorded facts from missing data. The CLI and VS Code compare two saved selections; user-run check reports are identified as unverified reports and missing cost remains unavailable. Validate the flow in a real editor/agent host before calling the phase complete. Do not add an automatic semantic pass/fail score.
 
-### 2. Define a durable event and evidence contract
+### 2. Define a durable event and evidence contract — implemented at fixture level
 
 **Why:** [ReCrash](https://homes.cs.washington.edu/~mernst/pubs/reproduce-failures-ecoop2008-abstract.html) motivates preserving relevant failure inputs for reproduction, while [BrowserGym](https://arxiv.org/abs/2412.05467) shows the value of standard task/action interfaces across controlled environments.
 
-**Build:** version adapter records with host, session, event ID, boundary, status certainty, timestamp, workspace snapshot reference, capture-gap reference, and privacy classification. Distinguish “observed,” “reported success,” and “reported failure.” Specify schema migration, bounded payloads, retention, and deletion behavior before migrating from JSON to SQLite.
+**Implemented:** Claude and Codex fixtures now map to versioned `chronicle.adapter-event` schema 1 with host, bounded session/event identifiers, boundary, status certainty, Chronicle-recorded timestamp, snapshot/gap reference, and metadata-only privacy classification. “Observed,” “reported success,” and “reported failure” remain distinct. Unknown source/boundary pairs fail closed; recovery tests preserve existing schema-1 checkpoint and gap bytes. See [architecture.md](architecture.md) and O013 in [ORCHESTRATION.md](ORCHESTRATION.md).
 
-**Exit:** Claude and Codex fixtures map to one versioned contract; unknown fields/events do not break capture; sensitive raw payloads are absent; recovery and migration tests preserve prior checkpoints.
+**Still needed:** verify event delivery and fields in real hosts under O004; define user-facing retention/deletion controls and migration policy before moving beyond local JSON records or to SQLite.
+
+**Exit:** Claude and Codex fixtures map to one versioned contract; unknown fields are ignored and unsupported source/boundary pairs fail closed without workspace mutation; sensitive raw payloads are absent; recovery fixtures preserve prior checkpoint and gap records.
 
 ### 3. Add controlled simulated-tool replay
 

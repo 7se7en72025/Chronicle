@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Standardized Claude/Codex fixture events on a privacy-bounded versioned contract with outcome certainty and checkpoint/gap references; unsupported adapter events fail closed, and recovery leaves prior records byte-identical.
+
 ### 2026-10-02 — Add a guarded Windows laptop runner
 
 - Added an optional login-time Task Scheduler setup for bounded local Codex CLI review cycles, with serialized runs, clean-main/authorized-origin guards, 25-minute timeout, network disabled, AC-power requirement, and stop-on-error behavior.

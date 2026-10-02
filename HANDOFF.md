@@ -1,6 +1,6 @@
 # Current handoff
 
-Updated: 2026-10-02.
+Updated: 2026-10-03.
 
 ## State
 
@@ -26,8 +26,9 @@ The current direction is a local companion for Codex or Claude Code: record supp
 - Added a recovery command that quarantines interrupted metadata/blob temps, lists unfinished journals, and explicitly archives only locks whose owner process is dead.
 - Added a Codex CLI plugin-hook adapter and scoped hook manifest. Codex `PostToolUse` is recorded as observed because the official hook event does not establish tool success/failure.
 - Added schema-versioned evidence manifests to completed branches and a no-model CLI comparison for added/deleted/changed/identical output files. Checks and cost remain unavailable until measured; see O010 in [ORCHESTRATION.md](ORCHESTRATION.md).
-- Added **Chronicle: Compare Saved Branches** in VS Code; it compares two selected completed manifests without executing checks or agents. O011 is under test; explicit user-run check-result recording is queued as O012.
+- Added **Chronicle: Compare Saved Branches** in VS Code; it compares two selected completed manifests without executing checks or agents. O011 is verified at mocked-editor level; explicit user-run check-result recording was queued as O012 and is now verified.
 - Added `record-check` for developer-reported check labels and exit codes; it does not run or verify project commands. O012 is verified at CLI/editor-fixture level.
+- Added the shared `chronicle.adapter-event` v1 schema for fixture-supported Claude/Codex hook events, including status certainty and checkpoint/gap references. Unsupported events fail closed, and recovery preserves prior record bytes; O013 is verified at fixture level only.
 
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
@@ -37,11 +38,11 @@ Verification: all 34 tests pass serially, including 5 Windows PowerShell runner 
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
-The chat heartbeat `chronicle-review-and-improve` was previously configured every 30 minutes. The optional local Windows runner must not run concurrently against this checkout. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O006 is verified; consult Git history for publication status.
+The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes. The optional local Windows runner must not run concurrently against this checkout. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O013 is verified at fixture level only; consult Git history for publication status.
 
 Scheduled development consumes model usage and requires an available runtime. The runner is not installed as a server or recorder service, and no Scheduled Task was registered. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** the user must choose which scheduler owns this checkout. The laptop runner is not registered or started because the chat heartbeat is still active. If the user chooses laptop ownership, pause the heartbeat, then install and validate one real bounded cycle. Otherwise continue O013 only through the heartbeat. No real Task Scheduler lifecycle or model cycle has been validated.
+**Next:** continue with the controlled simulated-tool fixture in [upgrades.md](upgrades.md), while real-host O004 remains blocked on host access. The laptop runner is not registered because the chat heartbeat is still active; do not enable a second writer. No real Task Scheduler lifecycle or model cycle has been validated.
 
 ## Open choices
 
@@ -49,4 +50,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-The next host-dependent step is to choose one scheduler: keep the current chat heartbeat, or pause it, run the local task installer, and observe one bounded cycle. Codex CLI installation/login are verified; Task Scheduler behavior is not. Do not activate both against this checkout. Once the local runner path is verified, resume O013 or O004 according to [upgrades.md](upgrades.md). See [REVIEW.md](REVIEW.md) for evidence and limits.
+The next independent local roadmap task is the controlled simulated-tool fixture in [upgrades.md](upgrades.md). O004 still needs a real editor/agent host for event-delivery and UI checks. Keep the laptop runner inactive while the 30-minute chat heartbeat owns this checkout. See [REVIEW.md](REVIEW.md) for evidence and limits.

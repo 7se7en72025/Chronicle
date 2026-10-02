@@ -1,6 +1,6 @@
 # Chronicle architecture
 
-Status: implementation reference plus proposed target architecture. The local engine, CLI, VS Code panel, and Claude/Codex hook payload adapters exist. See [RELEASE_AUDIT.md](RELEASE_AUDIT.md) for current evidence. Real host validation, automatic operation resumption, and environment replay remain incomplete; guarded output undo and within-hunk change-group selection are implemented but still need real-host validation. Proposed upgrades and their order are in [upgrades.md](upgrades.md); research findings and their limits are in [learnings.md](learnings.md).
+Status: implementation reference plus proposed target architecture. The local engine, CLI, VS Code panel, Claude/Codex hook payload adapters, and schema-1 adapter-event evidence contract exist at fixture-tested scope. See [RELEASE_AUDIT.md](RELEASE_AUDIT.md) for current evidence. Real host validation, automatic operation resumption, and environment replay remain incomplete; guarded output undo and within-hunk change-group selection are implemented but still need real-host validation. Proposed upgrades and their order are in [upgrades.md](upgrades.md); research findings and their limits are in [learnings.md](learnings.md).
 
 ## Implemented slice
 
@@ -40,9 +40,9 @@ There are three parts:
 
 For the first rich interface, use a VS Code extension with a webview beside the agent. This is Chronicle's editor panel; it does not require modifying the vendor's own interface. VS Code documents [webview views and panels](https://code.visualstudio.com/api/extension-guides/webview).
 
-Codex supports plugin packaging and local hooks, but each host's available events and UI must be verified. The official MCP UI quickstart describes tools for ChatGPT and Codex, with an optional iframe component inside ChatGPT. That is not sufficient evidence that the same custom panel can be embedded in Codex Desktop. See [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins) and the [MCP app quickstart](https://developers.openai.com/plugins/build/app-quickstart).
+Codex supports plugin packaging and local hooks, but each host's available events and UI must be verified. The official MCP UI quickstart describes tools for ChatGPT and Codex, with an optional iframe component inside ChatGPT. That is not sufficient evidence that the same custom panel can be embedded in Codex Desktop. See [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins), [Codex hook events](https://developers.openai.com/codex/hooks/), and the [MCP app quickstart](https://developers.openai.com/plugins/build/app-quickstart).
 
-Claude Code provides events such as `PreToolUse`, `PostToolUse`, and `PostToolUseFailure`. These are useful recording boundaries, subject to the actual tool and host behavior. See [Claude Code hooks](https://code.claude.com/docs/en/hooks).
+Claude Code provides events such as `PreToolUse`, `PostToolUse`, and `PostToolUseFailure`. Its documentation defines the latter as a tool execution failure and the former post-event as successful completion. Codex's configured local hook set provides pre/post observations but no separate post-tool-failure boundary in the current adapter. These are useful recording boundaries, subject to actual host behavior. See [Claude Code hooks](https://code.claude.com/docs/en/hooks) and [Codex hook events](https://developers.openai.com/codex/hooks/).
 
 The feasibility milestone must choose one supported agent/editor combination. Do not advertise identical integration across every Codex and Claude surface.
 
@@ -177,6 +177,12 @@ Each adapter declares its actual capabilities:
 Hooks supply observations. MCP can expose commands, but an MCP server alone does not passively intercept all agent activity. The first plugin package can bundle host configuration and local hook entry points; its executables must actually be installed and trusted in the execution environment.
 
 The adapter must not claim exact agent-state restoration based solely on file snapshots or a copied transcript.
+
+### Implemented event-evidence contract (schema 1)
+
+Claude and Codex hook payloads pass through `src/event-contract.js`, which maps only fixture-supported source/boundary pairs into `chronicle.adapter-event` version 1. The record contains a Chronicle event UUID, recorder timestamp and timestamp source, host/source and boundary, bounded safe identifiers, metadata-only privacy classification, attribution caveat, status and certainty, and an explicit snapshot or capture-gap reference. Raw prompts, tool inputs/responses, error strings, and unknown host fields are not copied. Unrecognized adapters or boundaries are rejected before workspace capture. Checkpoints retain their existing schema 1 envelope; the event contract is versioned independently. Existing checkpoint and gap records are not rewritten by this addition, and recovery tests confirm their bytes remain unchanged.
+
+Status describes evidence available from the adapter: Claude `PostToolUse` and `PostToolUseFailure` are host-reported success/failure; Codex `PostToolUse` is `observed` with `boundary-only` certainty; start, end, interrupt, and pre-tool boundaries are not tool outcomes. A snapshot reference points at the checkpoint containing the event. If recording fails after event normalization, a gap reference points at the bounded gap record. This schema is fixture-tested only; real host event delivery and timestamp provenance remain subject to O004.
 
 ## 10. Main data records
 
