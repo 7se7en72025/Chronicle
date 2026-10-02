@@ -4,6 +4,12 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Save and compare branch evidence
+
+- Completed branch operations now save schema-versioned manifests with checkpoint IDs, baseline commit, selected change IDs, observed host labels, capture coverage, measured runtime facts, and output file hashes/modes.
+- Added read-only `compare-operations` output for added, deleted, changed, and identical paths across two completed branches. Check results and reported cost stay clearly unavailable until measured; no test or agent run is started by comparison.
+- Focused and full verification plus final diff review are recorded in [REVIEW.md](REVIEW.md). Visual comparison remains queued.
+
 ### 2026-10-02 — Add research-backed upgrade and learning notes
 
 - Read five primary papers on failure reproduction, coding-agent interfaces and task complexity, controlled browser-agent environments, and benchmark validity.

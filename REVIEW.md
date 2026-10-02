@@ -1,6 +1,6 @@
 # Latest development review
 
-Status: first-release local audit completed (2026-10-02); real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
+Status: first-release local audit completed; roadmap execution is active. Real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
 
 ## Review scope
 
@@ -72,4 +72,16 @@ Added linked change groups by parsing the hunk's `-`, `+`, and unchanged-context
 
 **Final review:** verified the roadmap orders real host validation before comparison/replay scope, fresh retries are labeled model/tool-consuming, and simulated tools are kept inside a controlled fixture. No claim of exact agent-state or arbitrary external-action restoration was added. Updated README entry points, changelog, handoff, and queue. Documentation-only checks pass: 86 relative Markdown links resolve, six JSON files parse, and `git diff --check` is clean. Application tests were not run because no application code changed. O009 is complete at documentation scope.
 
-**Next:** no implementation queue work is currently viable until real host/UI access is available for O004. The user requested research docs and the repo now contains them; wait for that prerequisite or new direction rather than implement unvalidated replay scope.
+**Next:** the latest roadmap implementation and verification are recorded below. O004 still requires real host/UI access.
+
+## Roadmap activation — O010 evidence manifests and comparison (2026-10-02)
+
+**P2 — Completed branches lacked comparable per-operation evidence (closed for the CLI/file layer).** `src/engine.js:createBranch` journaled selected IDs and output hashes but did not persist a versioned manifest with source, measured environment, or coverage, and no read-only comparison existed. Added schema-1 manifests and `compareOperations`; `src/cli.js` exposes `compare-operations`. The report categorizes saved paths as added/deleted/changed/identical. It explicitly leaves checks empty and cost unavailable; it does not imply tests ran. Visual comparison and measured check results are queued in O011.
+
+The regression fixture creates two distinct selections and verifies changed, added, deleted, and identical output paths, plus source/selection/environment fields and unavailable checks/cost. It rejects comparing one operation to itself and invokes the CLI to confirm serialized output. The first parallel full-suite run hit the machine's low remaining temporary space (about 1.1 GB free) and exposed a reversed directional expectation; after correcting it, the suite was rerun serially.
+
+**Verification:** the serial suite passes all 29 tests; syntax check and demo pass; demo retains 40/80 selected lines with 0 model requests. Fifteen Markdown files' relative links resolve, package JSON parses, and `git diff --check` passes.
+
+**Second-pass review:** manifest values are taken from the selected saved checkpoint pair, verified output files, and measured runtime; prompt/tool payloads are not copied. Same-operation comparison is rejected. The test exercises directional added/deleted plus changed/identical classifications and CLI serialization. Checks are explicitly empty and cost null. Visual comparison, command/check execution capture, and reported check exit status remain unimplemented. The first parallel test attempt hit `ENOSPC` when fixture creation tried to copy Git templates; the serial rerun passed after fixture cleanup. No independent review was performed.
+
+**Next:** start O011's safe check-evidence contract and visual comparison design; resume O004 only with real host/UI access.

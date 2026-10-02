@@ -24,13 +24,15 @@ Use these terms consistently:
 
 **Exit:** documented matrix of events actually observed in that host, successful review and branch flow, and demonstrated preservation of source/index. Until this passes, label host support experimental.
 
-### 1. Make evidence comparable
+### 1. Make evidence comparable — partially implemented
 
 **Why:** [SWE-bench](https://arxiv.org/abs/2310.06770) uses real tasks whose solutions can span files and require executable checks. [AgentSuite](https://proceedings.mlr.press/v306/suh26a.html) cautions that task, environment, and evaluation defects distort outcomes.
 
-**Build:** persist a small run manifest for each branch: source checkpoint IDs, baseline commit, selected change IDs, adapter/host version when known, capture coverage, environment facts actually measured, checks explicitly run, exit status, and optional host-reported cost. Add a side-by-side branch view for file changes and these check results. Missing values remain “unavailable.”
+**Implemented:** each completed output operation now saves a versioned manifest with source checkpoints, baseline commit, selected change IDs, observed host attribution, captured gap/exclusion counts, measured Node/platform facts, and output file hashes/modes. The CLI can compare two completed operations' saved outputs without rerunning the agent. See [architecture.md](architecture.md) and `compare-operations` in [GETTING_STARTED.md](GETTING_STARTED.md).
 
-**Exit:** fixed fixture, two selections, same named checks, byte-verifiable outputs, and a comparison that clearly distinguishes recorded facts from missing data. Do not add an automatic semantic pass/fail score.
+**Still needed:** record explicitly run checks and their exit status, optional host-reported cost, and add a visual side-by-side branch view. Missing values must remain “unavailable.”
+
+**Exit:** fixed fixture, two selections, same named checks, byte-verifiable outputs, and a visual comparison that clearly distinguishes recorded facts from missing data. The current CLI comparison is an initial partial step; checks and cost are not recorded. Do not add an automatic semantic pass/fail score.
 
 ### 2. Define a durable event and evidence contract
 

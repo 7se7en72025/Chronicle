@@ -24,12 +24,13 @@ The current direction is a local companion for Codex or Claude Code: record supp
 - Made blob publication atomic so interruption cannot leave partial data at its permanent content hash.
 - Added a recovery command that quarantines interrupted metadata/blob temps, lists unfinished journals, and explicitly archives only locks whose owner process is dead.
 - Added a Codex CLI plugin-hook adapter and scoped hook manifest. Codex `PostToolUse` is recorded as observed because the official hook event does not establish tool success/failure.
+- Added schema-versioned evidence manifests to completed branches and a no-model CLI comparison for added/deleted/changed/identical output files. Checks and cost remain unavailable until measured; see O010 in [ORCHESTRATION.md](ORCHESTRATION.md).
 
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
 ## Verification
 
-Latest verification: all 28 tests pass, including selection under custom global Git formatting, within-hunk selection, linked replacements, insertions/deletions, encoding and line endings, guarded undo, and mocked VS Code selection/confirmation behavior. `npm run check` and the 40-of-80 `npm run demo` pass; documentation and final-diff checks are recorded in [REVIEW.md](REVIEW.md). Codex hook behavior is fixture-tested; editor interactions remain mocked.
+Latest verification: all 29 tests pass, including manifest comparisons across two selections and added/deleted/changed/identical paths. `npm run check`, the 40-of-80 `npm run demo`, local Markdown links, package JSON parsing, and `git diff --check` pass. Full results and the second-pass diff review are in [REVIEW.md](REVIEW.md). Codex hook behavior is fixture-tested; editor interactions remain mocked.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -43,4 +44,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-O001–O003, O005, O006, O008, and the user-requested research/documentation pass are verified at their documented levels; O007 remains fixture-level. No current implementation queue task remains. O004 still needs a real editor session; Claude CLI is absent, while Codex CLI is present but plugin trust and hook delivery remain unverified. Resume with the disposable-host validation procedure in [RELEASE_AUDIT.md](RELEASE_AUDIT.md) when host/UI access is available. See [upgrades.md](upgrades.md) for proposed work; none of those proposals is implemented by this documentation update.
+O010's branch-manifest and CLI-comparison slice is verified; the full roadmap phase still needs user-invoked check evidence and a visual comparison (O011). O004 still needs a real editor session; Claude CLI is absent, while Codex CLI plugin trust and hook delivery remain unverified. The ACTIVE heartbeat will continue the roadmap queue. See [upgrades.md](upgrades.md) for research-backed sequencing and [REVIEW.md](REVIEW.md) for current verification.

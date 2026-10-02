@@ -318,6 +318,24 @@ class Chronicle {
         op.state = 'completed';
         op.files = [...expected].map(([name, file]) => ({ path: name, hash: hash(file.bytes) }));
         op.deletedPaths = [...new Set(headFiles.filter(name => !expected.has(name)))];
+        const source = this.checkpoint(from), result = this.checkpoint(to);
+        const intervalGaps = this.gaps(from, to);
+        op.manifest = {
+          schema: 1,
+          checkpoints: { from, to },
+          baselineCommit: baseline.head,
+          selectedChangeIds: [...selected],
+          host: { source: result.event?.source || 'unknown', attribution: result.event?.attribution || 'unknown' },
+          captureCoverage: {
+            excludedFiles: source.excluded.length + result.excluded.length,
+            gaps: intervalGaps.length,
+            boundaries: [source.event?.boundary, result.event?.boundary].filter(Boolean)
+          },
+          environment: { node: process.version, platform: process.platform, architecture: process.arch },
+          outputFiles: op.files.map(file => ({ ...file, mode: expected.get(file.path).mode })),
+          checks: [],
+          reportedCost: null
+        };
         writeJson(journal, op);
         return op;
       } catch (error) {
@@ -329,6 +347,28 @@ class Chronicle {
 
   operations() {
     return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
+  }
+
+  compareOperations(firstId, secondId) {
+    if (firstId === secondId) throw new Error('Choose two different operations to compare');
+    const read = id => {
+      if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid operation ID');
+      const operation = JSON.parse(fs.readFileSync(path.join(this.store, 'operations', id + '.json'), 'utf8'));
+      if (operation.id !== id || operation.state !== 'completed' || !operation.manifest || operation.manifest.schema !== 1) throw new Error('Operation has no completed comparison manifest');
+      return operation;
+    };
+    const first = read(firstId), second = read(secondId);
+    const files = new Map();
+    for (const [side, operation] of [['first', first], ['second', second]]) for (const file of operation.manifest.outputFiles) {
+      const previous = files.get(file.path) || { path: file.path, first: null, second: null };
+      previous[side] = { hash: file.hash, mode: file.mode };
+      files.set(file.path, previous);
+    }
+    const comparisons = [...files.values()].sort((a, b) => a.path.localeCompare(b.path)).map(file => ({
+      ...file,
+      status: !file.first ? 'added' : !file.second ? 'deleted' : file.first.hash === file.second.hash && file.first.mode === file.second.mode ? 'identical' : 'changed'
+    }));
+    return { first: { id: first.id, branch: first.branch, manifest: first.manifest }, second: { id: second.id, branch: second.branch, manifest: second.manifest }, files: comparisons, modelRequests: 0 };
   }
 
   undoOperation(id) {

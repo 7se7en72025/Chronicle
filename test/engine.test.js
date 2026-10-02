@@ -54,6 +54,48 @@ test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => 
   assert.equal(engine.reconcileOperations()[0].modifiedSinceCompletion, false);
 });
 
+test('branch manifests compare saved outputs and label unmeasured checks and cost as unavailable', t => {
+  const { root, engine } = fixture(t, 'base\n');
+  fs.writeFileSync(path.join(root, 'a.txt'), 'a0\n');
+  fs.writeFileSync(path.join(root, 'b.txt'), 'b0\n');
+  fs.writeFileSync(path.join(root, 'common.txt'), 'same\n');
+  fs.writeFileSync(path.join(root, 'deleted.txt'), 'keep unless selected\n');
+  git(root, ['add', '.']); git(root, ['commit', '-m', 'Add fixture files']);
+  const before = engine.capture('Before');
+  fs.writeFileSync(path.join(root, 'a.txt'), 'a1\n');
+  fs.writeFileSync(path.join(root, 'b.txt'), 'b1\n');
+  fs.writeFileSync(path.join(root, 'added.txt'), 'new file\n');
+  fs.unlinkSync(path.join(root, 'deleted.txt'));
+  const after = engine.capture('After');
+  const changes = engine.compare(before.id, after.id).changes;
+  const aId = changes.find(change => change.path === 'a.txt').hunks[0].id;
+  const bId = changes.find(change => change.path === 'b.txt').hunks[0].id;
+  const addedId = changes.find(change => change.path === 'added.txt').hunks[0].id;
+  const deletedId = changes.find(change => change.path === 'deleted.txt').hunks[0].id;
+  const a = engine.createBranch(before.id, after.id, [aId, addedId, deletedId], 'chronicle/manifest-a');
+  const b = engine.createBranch(before.id, after.id, [bId], 'chronicle/manifest-b');
+  assert.equal(a.manifest.schema, 1);
+  assert.deepEqual(a.manifest.checkpoints, { from: before.id, to: after.id });
+  assert.equal(a.manifest.baselineCommit, before.head);
+  assert.deepEqual(a.manifest.selectedChangeIds, [aId, addedId, deletedId]);
+  assert.equal(a.manifest.host.source, 'manual');
+  assert.deepEqual(a.manifest.checks, []);
+  assert.equal(a.manifest.reportedCost, null);
+  assert.equal(a.manifest.outputFiles.find(file => file.path === 'a.txt').hash, hash(Buffer.from('a1\n')));
+  const comparison = engine.compareOperations(a.id, b.id);
+  assert.deepEqual(comparison.files.map(file => [file.path, file.status]), [
+    ['a.txt', 'changed'], ['added.txt', 'deleted'], ['b.txt', 'changed'], ['common.txt', 'identical'], ['deleted.txt', 'added'], ['README.md', 'identical']
+  ]);
+  assert.equal(comparison.first.manifest.reportedCost, null);
+  assert.throws(() => engine.compareOperations(a.id, a.id), /two different operations/);
+  assert.equal(comparison.modelRequests, 0);
+  const cli = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'cli.js'), 'compare-operations', a.id, b.id], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) }
+  });
+  assert.equal(cli.status, 0, cli.stderr);
+  assert.deepEqual(JSON.parse(cli.stdout).files.map(file => [file.path, file.status]), comparison.files.map(file => [file.path, file.status]));
+});
+
 test('selection ignores user diff colors and blank-context formatting', t => {
   const { root, engine, file } = fixture(t, 'one\n\nthree\n\nfive\n');
   const before = engine.capture();
