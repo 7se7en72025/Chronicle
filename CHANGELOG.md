@@ -5,7 +5,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 ## Unreleased
 
 - Standardized Claude/Codex fixture events on a privacy-bounded versioned contract with outcome certainty and checkpoint/gap references; unsupported adapter events fail closed, and recovery leaves prior records byte-identical.
-- Added a bounded allowlisted simulated-tool response cassette and deterministic demo. It refuses unmatched calls without a live fallback; fresh-agent/workspace orchestration remains pending.
+- Added a bounded allowlisted simulated-tool response cassette and scripted task demo in two disposable worktrees from one baseline. It refuses unmatched calls without a live fallback; real AI-agent/workspace orchestration remains pending.
 
 ### 2026-10-02 — Add a guarded Windows laptop runner
 

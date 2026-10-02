@@ -48,9 +48,9 @@ Use these terms consistently:
 
 **Why:** record/replay research supports reproducing a failure when the relevant state and inputs are preserved. It does not support replaying arbitrary APIs safely.
 
-**Implemented subcomponent:** `src/simulated-replay.js` consumes a bounded schema-1 JSON cassette with an explicit allowlist and exact ordered tool/input matching. It injects cloned fixture responses with hashes, refuses unknown tools, mismatches, exhaustion, and incomplete sequences, and has no live fallback or network path. `npm run demo:replay` repeats the same two fixture responses without a model request. This is a response-injection library/demo, not an agent run, workspace replay, or environment restore.
+**Implemented subcomponent:** `src/simulated-replay.js` consumes a bounded schema-1 JSON cassette with an explicit allowlist and exact ordered tool/input matching. It injects cloned fixture responses with hashes, refuses unknown tools, mismatches, exhaustion, and incomplete sequences, and has no live fallback or network path. `npm run demo:replay` repeats the same responses in two disposable Git worktrees rooted at the same commit; a deterministic scripted README task receives alternate instructions and the original fixture remains clean. This is not an AI-agent run, host tool interception, or environment restore.
 
-**Still needed:** a sample coding task/local app, frozen initial repo/app fixture, and host/orchestrator integration that starts a fresh run from an isolated worktree with a revised instruction. Clearly label injected, live, and unmatched events. Keep live network and destructive tools disabled by default.
+**Still needed:** a local app/fixture reset contract and verified host/orchestrator integration that starts a fresh AI-agent run from an isolated worktree with a revised instruction and substitutes responses at the actual tool boundary. Clearly label injected, live, and unmatched events. Keep live network and destructive tools disabled by default.
 
 **Exit:** repeated fixture runs start from the same verified state; a recorded response can be substituted without contacting its original service; unmatched inputs stop or are clearly shown; the original workspace and fixture data remain unchanged; and an actual host/orchestrator run is validated separately before claiming fresh agent retries.
 

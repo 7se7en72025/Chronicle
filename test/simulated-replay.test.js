@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createSimulatedReplay } = require('../src/simulated-replay');
+const os = require('node:os');
+const { runSampleReplay, INITIAL_README } = require('../src/sample-replay');
 
 const fixturePath = path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 const loadCassette = () => JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
@@ -62,4 +64,21 @@ test('simulated replay rejects malformed schemas, unknown fixture tools, and ove
   const tooManyCalls = Array.from({ length: 257 }, (_, index) => ({ id: `call-${index}`, tool: 'fixture.issue.lookup', input: { issueId: String(index) }, response: {} }));
   assert.throws(() => createSimulatedReplay({ ...cassette, calls: tooManyCalls }), { code: 'SIMULATED_REPLAY_INVALID_CASSETTE' });
   assert.throws(() => createSimulatedReplay({ ...cassette, calls: [{ ...cassette.calls[0], response: { broken: undefined } }] }), { code: 'SIMULATED_REPLAY_INVALID_JSON' });
+});
+
+test('scripted sample forks two Git worktrees from one baseline and leaves the source untouched', t => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-simulated-test-'));
+  t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+  const sandbox = path.join(fixtureRoot, 'sandbox');
+  fs.mkdirSync(sandbox);
+  const result = runSampleReplay(sandbox, loadCassette());
+  assert.equal(result.identicalOutput, false);
+  assert.equal(result.runs.length, 2);
+  assert.equal(result.runs[0].baseline, result.runs[1].baseline);
+  assert.notEqual(result.runs[0].output, result.runs[1].output);
+  assert.equal(result.runs[0].output.includes('## Setup'), false);
+  assert.equal(result.runs[1].output.includes('## Setup'), true);
+  assert.ok(result.runs.every(run => run.evidence.every(item => item.kind === 'injected-fixture')));
+  assert.equal(fs.readFileSync(path.join(sandbox, 'source', 'README.md'), 'utf8'), INITIAL_README);
+  assert.throws(() => runSampleReplay(path.resolve(__dirname, '..'), loadCassette()), /under the system temp folder/);
 });

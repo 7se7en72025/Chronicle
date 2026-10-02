@@ -186,9 +186,9 @@ Status describes evidence available from the adapter: Claude `PostToolUse` and `
 
 ## 9.1 Controlled simulated-tool response fixtures
 
-`src/simulated-replay.js` is an implemented fixture-level response injector, separate from the passive host hooks. Its schema-1 cassette is capped at 1 MiB and 256 calls and can name only the bundled `fixture.issue.lookup` and `fixture.issue.search` simulated tools. Calls are consumed in order and must exactly match the canonical JSON input; a mismatch, unsupported tool, exhausted cassette, or incomplete run throws a typed error. Responses are cloned before returning and evidence contains hashes plus `kind: injected-fixture`. The module has no live-call fallback, network client, or workspace mutation. Run `npm run demo:replay` to see the deterministic fixture.
+`src/simulated-replay.js` is an implemented fixture-level response injector, separate from the passive host hooks. Its schema-1 cassette is capped at 1 MiB and 256 calls and can name only the bundled `fixture.issue.lookup` and `fixture.issue.search` simulated tools. Calls are consumed in order and must exactly match the canonical JSON input; a mismatch, unsupported tool, exhausted cassette, or incomplete run throws a typed error. Responses are cloned before returning and evidence contains hashes plus `kind: injected-fixture`. The module has no live-call fallback or network client. Run `npm run demo:replay` to see two disposable Git worktrees started from the same baseline and modified by a fixed scripted README task under different instructions; the source fixture remains clean.
 
-This does not launch an AI agent, recreate an earlier environment, or wire into Codex/Claude tool execution. Building the sample coding task and isolated-worktree orchestrator remains queued; see O014 and [upgrades.md](upgrades.md). Fixture cassettes are test assets, not a policy for retaining real prompts or tool payloads.
+The sample is a scripted task, not an AI-agent run. It does not recreate an app/browser environment or wire into Codex/Claude tool execution. Verified host/orchestrator integration for real fresh-agent retries remains queued; see O014 and [upgrades.md](upgrades.md). Fixture cassettes are test assets, not a policy for retaining real prompts or tool payloads.
 
 ## 10. Main data records
 
