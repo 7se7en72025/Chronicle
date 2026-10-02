@@ -2,25 +2,35 @@
 
 ## Purpose
 
-Continuously review and improve the local Chronicle prototype from this chat without requiring a new prompt for every task. The user authorized autonomous development orchestration on 2026-10-02 and specified the cycle: review, update, review again.
+Continuously review and improve the local Chronicle prototype without requiring a new prompt for every task. The user authorized autonomous development orchestration on 2026-10-02 and specified the cycle: review, update, review again.
 
-This uses a Codex thread heartbeat, not a background AI service implemented in Chronicle. Intended cadence: every 30 minutes. Scheduler configuration is authoritative; this file describes the development workflow.
+The existing chat heartbeat runs review work when this chat runtime is available. An optional Windows Codex CLI runner is provided for a logged-in laptop session. These are alternatives for the same checkout: never run both at once because they do not share a process lock. Scheduler configuration is authoritative; this file describes the development workflow.
 
 Configured heartbeat: `chronicle-review-and-improve`, ACTIVE as of 2026-10-02. It is scheduled every 30 minutes. Each activation targets up to about 25 minutes of focused work, continuing across independent review, implementation, verification, documentation, commit, and push steps instead of stopping after one small change. The exact runtime is controlled by Codex and is not guaranteed to fill the entire window. The first scheduled review activation ran on 2026-10-02.
 
-The desktop runtime must be available to execute local work. Do not assume closed-app, sleeping-computer, offline, or exhausted-account execution. Agent runs consume model usage; the finished local recorder and Git helper have a separate no-model path.
+The chat heartbeat still depends on its desktop runtime. The local runner depends on Windows being awake, this user being logged in, internet/model access, valid Codex CLI authentication, and available account usage. Model-driven runs consume usage; the finished local recorder and Git helper have a separate no-model path.
+
+## Optional Windows laptop runner
+
+`scripts/run-autonomous.ps1` starts one `codex exec` cycle every 30 minutes, allowing up to 25 minutes per cycle. `scripts/install-autonomous-task.ps1` registers it at this user's Windows logon; it runs with limited user privileges, waits until AC power is available, and does not wake the laptop. Windows Task Scheduler's zero execution limit allows the supervisor process to continue indefinitely; each Codex child still has a 25-minute timeout ([Microsoft task scheduler setting](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskschedulerschema-executiontimelimit-settingstype-element)). Before installing, verify `codex --version` and `codex login status`. The installer refuses to register when the CLI is absent or unauthenticated. Run `scripts/uninstall-autonomous-task.ps1` to request a graceful stop and, after the active run ends, remove the task.
+
+The runner requires a clean `main` checkout and the exact authorized `origin` URL before each model call. It uses `codex exec --sandbox workspace-write --ask-for-approval never` with `sandbox_workspace_write.network_access=false`, a single-process mutex, a per-run timeout, and logs under `%LOCALAPPDATA%\Chronicle\runner`. It stops on an error, timeout, dirty result, unexpected branch/remote, or the explicit queue-complete marker; inspect logs and remove the `STOP` file to resume after resolving the cause. Codex runs must commit only verified work; network access is disabled, so the runner does not push. The chat workflow remains responsible for normal pushes.
+
+Run JSONL and final-summary files can contain source excerpts or tool output. They remain under the user's local profile and are not automatically deleted; inspect their contents and storage use, and do not commit or share them.
+
+Do not install or start this local task while the chat heartbeat is active on the same checkout. Pause the heartbeat first to prevent overlapping writers. This checkout is shared with the user; leave it idle while an unattended cycle is running. The task has not been registered in the current host: this environment cannot resolve the Codex executable, and we have not verified CLI authentication or real Task Scheduler behavior. The test suite uses a fake CLI and does not call a model or register a scheduled task.
 
 ## Work loop
 
-1. Read AGENTS.md, HANDOFF.md, PLAN.md, REVIEW.md, and this queue. Incorporate newer human instructions.
+1. Read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md. Incorporate newer human instructions.
 2. Inspect Git status and current work before making changes. Preserve existing uncommitted prototype and documentation work.
 3. Review current code and recent changes for concrete bugs, regressions, missing checks, and stale claims. Record actionable findings with file/function evidence in REVIEW.md. Prioritize preservation of user work and correctness over cosmetic edits.
 4. Choose the highest-impact actionable finding, or one pending queue task if the focused review finds no issue. Mark it in progress, implement a focused change, and run meaningful verification. If blocked, record specific evidence and choose another viable independent task.
 5. Review the final diff in a second pass, including edge cases and regression risks. Update REVIEW.md with findings, fix evidence, checks, unresolved concerns, and next step. Mark the task verified only if acceptance criteria pass; otherwise preserve an accurate pending or blocked state.
 6. Update HANDOFF.md and relevant plan, architecture, decisions, changelog, and run instructions.
-7. Continue with the next viable queue task until roughly 25 minutes of this activation have elapsed, unless all scope is complete or a concrete stopping condition applies. Before ending, update HANDOFF.md with the next task. If meaningful verified changes exist, inspect the final diff, stage only task-related files, commit with a clear message, and push normally. Do not create empty or unchanged-status-only commits. Report commit and push outcome accurately.
+7. Continue with the next viable queue task until roughly 25 minutes of this activation have elapsed, unless all scope is complete or a concrete stopping condition applies. Before ending, update HANDOFF.md with the next task. If meaningful verified changes exist, inspect the final diff, stage only task-related files, and commit with a clear message. The chat heartbeat may push normally; the local runner has networking disabled and leaves push publication to the chat workflow. Do not create empty or unchanged-status-only commits. Report commit and push outcome accurately.
 
-Do not launch an unbounded nested loop, another recurring automation, or duplicate worker chats. Do not run parallel writers in this checkout. If another run is modifying the same task, defer rather than interleave writes. Queue status is cooperative coordination, not an enforced process lock.
+Do not launch nested model loops or duplicate worker chats. The optional local supervisor is the only laptop runner for this checkout; do not register another scheduled task for it, and never run it alongside the chat heartbeat. Do not run parallel writers in this checkout. If another run is modifying the same task, defer rather than interleave writes. Queue status is cooperative coordination, not an enforced process lock.
 
 Reviewer, implementer, and verifier are sequential stages in this thread. Do not claim an independent second agent approved a change unless that review actually occurred.
 
