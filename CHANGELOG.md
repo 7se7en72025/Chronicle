@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Clarify that fixture-level simulated response injection exists while fresh-agent orchestration and full environment restoration remain future work.
 - Close a storage-path symlink bypass: resolve the repository-specific store before creating history folders, and reject canonical paths inside the recorded workspace.
 - Reject symlinked or non-directory snapshot-store children before creating internal history directories, preventing blob or metadata writes from being redirected through a pre-existing child link.
 - Documented that the fixture MCP server implements the legacy 2025-11-25 handshake only; a test now records its deterministic response to a modern `server/discover` probe.

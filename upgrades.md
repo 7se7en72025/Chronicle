@@ -11,7 +11,7 @@ Use these terms consistently:
 - **Inspect:** browse immutable checkpoint files, event boundaries, capture gaps, and diffs. This is implemented for supported files.
 - **Select and branch:** reconstruct chosen whole files, hunks, or change groups in an output worktree. This is implemented, with fixture verification and documented limits.
 - **Fresh retry:** start a new host run against a chosen workspace and revised instruction. This needs an agent host integration and uses the host's model/tool budget.
-- **Simulated replay:** rerun a controlled fixture while substituting recorded tool responses. This is future work and cannot reproduce unrecorded state or arbitrary external side effects.
+- **Simulated replay:** a bounded fixture response injector and legacy MCP stdio subset are implemented and fixture-tested. Starting a fresh real agent run through a controlled orchestrator and substituting cassette responses before tool effects remains future work; neither can reproduce unrecorded state or arbitrary external side effects.
 - **Environment restore:** restore browser memory, databases, processes, or an OS image. This is outside the first release and requires a dedicated capture/isolation contract.
 
 ## Recommended order

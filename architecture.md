@@ -254,7 +254,7 @@ Keep four capabilities separate in product language:
 1. **Inspect recorded state:** browse saved workspace checkpoints, observed event boundaries, gaps, and diffs. This is the local prototype's current timeline-level capability.
 2. **Select and reconstruct files:** preview selected recorded edits and build them into a separate worktree. This is implemented for the documented file types and has no model request.
 3. **Fresh retry from a workspace:** launch a new host run from a chosen workspace with a revised instruction. This starts new reasoning, can spend host model/tool credits, and does not restore the prior agent's hidden context. It is not implemented.
-4. **Simulated or full environment replay:** inject recorded responses in a controlled fixture, or restore more of an OS/browser/database. These need explicit adapters, isolation, state coverage, privacy, and interruption recovery. They are deferred.
+4. **Simulated or full environment replay:** a bounded fixture response injector and fixture-only MCP stdio adapter are implemented and tested without a real host. Fresh agent orchestration that substitutes recorded responses before tool effects is not implemented; restoring browser, database, process, or OS state is also deferred. Both broader forms need explicit adapters, isolation, state coverage, privacy, and interruption recovery.
 
 For a future branch comparison, report measured artifacts rather than a single quality score: input checkpoint and commit, selected change IDs, host/adapter version, recorded coverage, environment facts actually captured, check command and exit result, file diff, and host-reported cost when available. Label unavailable data. Passing a recorded test suite does not prove correctness outside those checks.
 
