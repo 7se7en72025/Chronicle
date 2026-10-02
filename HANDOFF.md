@@ -10,6 +10,8 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Completed O008's [first-release audit](RELEASE_AUDIT.md). Fixed Git color/blank-context settings breaking selection and the undo confirmation's missing branch name. Actual host/UI validation remains outstanding; installed Codex CLI 0.159.2 was checked through version/help only.
+
 - Added within-hunk change groups for nearby edits, keeping contiguous replacements together. Preview and branch output rebuild from saved file line slices; BOM/CRLF, stale IDs, multi-line replacements, insertions, and deletions are covered. O006 is verified; details are in [REVIEW.md](REVIEW.md).
 - Added guarded undo for selected paths in Chronicle's output worktree through CLI and VS Code. It validates branch, staged state, and file bytes/modes; retains output and can resume a partial undo after revalidation. O005 is verified; details and limits are in [REVIEW.md](REVIEW.md).
 - Implemented immutable supported-file capture, byte integrity checks, checkpoint diffs, complete-hunk selection, preview, and separate branch/worktree output.
@@ -26,7 +28,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-Latest verification: all 27 tests pass, including within-hunk selection, linked replacements, insertions/deletions, encoding and line endings, guarded undo, and mocked VS Code selection behavior. `npm run check`, the 40-of-80 `npm run demo`, Markdown relative links, `package.json` parsing, and `git diff --check` pass. Codex hook behavior is fixture-tested; editor interactions remain mocked.
+Latest verification: all 28 tests pass, including selection under custom global Git formatting, within-hunk selection, linked replacements, insertions/deletions, encoding and line endings, guarded undo, and mocked VS Code selection/confirmation behavior. `npm run check` and the 40-of-80 `npm run demo` pass; documentation and final-diff checks are recorded in [REVIEW.md](REVIEW.md). Codex hook behavior is fixture-tested; editor interactions remain mocked.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -40,4 +42,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-O001–O003, O005, and O006 are verified at their documented levels; O007 remains fixture-level. Within-hunk groups keep contiguous replacement lines linked and preserve UTF-8 BOM/CRLF in fixtures. O004 remains blocked on Claude CLI and desktop UI access. Next, run O008, the first-release audit; keep O004 blocked until a real host/UI runtime is available.
+O001–O003, O005, O006, and O008 are verified at their documented levels; O007 remains fixture-level. No currently viable queue task remains. O004 still needs Claude CLI and actual editor UI access; Codex CLI is present but plugin trust and hook delivery remain unverified. Resume with the disposable-host validation procedure in [RELEASE_AUDIT.md](RELEASE_AUDIT.md) when those prerequisites are available. Do not add scope or make unchanged-status commits while waiting.

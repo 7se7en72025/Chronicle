@@ -4,6 +4,12 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+### 2026-10-02 — Audit first-release coverage and normalize Git diffs
+
+- Force plain diff output and standard blank-context rows so user Git display settings cannot hide changes or corrupt within-hunk selection offsets. Added an isolated Git-home regression covering both partial previews and branch output.
+- Corrected the branch name in VS Code's undo confirmation and verified its text in the mocked editor workflow.
+- Added [first-release audit](RELEASE_AUDIT.md), reconciled installed-host claims, and retained real host/UI validation as the release blocker. Codex CLI 0.159.2 is available; lifecycle hook execution remains unverified. Checks and final review are in [REVIEW.md](REVIEW.md).
+
 ### 2026-10-02 — Select change groups inside hunks
 
 - Added stable checkpoint-pair IDs for contiguous changed-line groups within a hunk. Replacement lines remain linked; the VS Code review UI offers group checkboxes alongside whole-hunk selection. The preview rebuilds from saved baseline/result slices, preserving unchanged lines and line endings.

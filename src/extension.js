@@ -52,7 +52,7 @@ function activate(context) {
     if (!operations.length) throw new Error('No completed or interrupted Chronicle output undos are available.');
     const selected = await vscode.window.showQuickPick(operations.map(op => ({ label: op.branch, description: op.state + ' · ' + op.createdAt, detail: op.id, op })), { title: 'Choose Chronicle output to undo or resume' });
     if (!selected) return;
-    const choice = await vscode.window.showWarningMessage(`Restore Chronicle-selected files in ${selected.branch}? The separate output workspace remains in place. Later edits, staged changes to selected files, or new commits make undo refuse.`, { modal: true }, 'Undo Chronicle output');
+    const choice = await vscode.window.showWarningMessage(`Restore Chronicle-selected files in ${selected.op.branch}? The separate output workspace remains in place. Later edits, staged changes to selected files, or new commits make undo refuse.`, { modal: true }, 'Undo Chronicle output');
     if (choice !== 'Undo Chronicle output') return;
     const result = engine.undoOperation(selected.op.id);
     vscode.window.showInformationMessage(`Restored ${result.restoredPaths.length} selected paths in the Chronicle output workspace.`);

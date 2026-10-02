@@ -115,7 +115,7 @@ Initial selection units:
 2. Complete diff hunks: groups of nearby edits.
 3. Adjacent changed-line groups within a hunk. A contiguous replacement's removed and added lines stay linked; unchanged context separates groups.
 
-Show the complete resulting file before applying. Group selection rebuilds from saved baseline and result line slices, preserving untouched lines, UTF-8 BOMs, and line endings. It is not arbitrary per-line selection: split or dependent edits still need review as a linked group.
+Show the complete resulting file before applying. Group selection rebuilds from saved baseline and result line slices, preserving untouched lines, UTF-8 BOMs, and line endings. Internal Git diffs disable color and retain blank-context prefixes so global display settings cannot hide hunks or distort group offsets; an unparseable changed-file diff is refused. It is not arbitrary per-line selection: split or dependent edits still need review as a linked group.
 
 Treat source and destination separately:
 

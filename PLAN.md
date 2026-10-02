@@ -1,6 +1,6 @@
 # Chronicle build plan
 
-Status: first local slice implemented. Milestones remain incomplete until every exit condition passes, including real-host integration and recovery. Technical contracts are in [architecture.md](architecture.md).
+Status: first local slice implemented and audited in [RELEASE_AUDIT.md](RELEASE_AUDIT.md). Milestones remain incomplete until every exit condition passes, including real-host integration and recovery. Technical contracts are in [architecture.md](architecture.md).
 
 ## 0. Integration feasibility
 

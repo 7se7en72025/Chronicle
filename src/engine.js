@@ -234,8 +234,11 @@ class Chronicle {
         const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-diff-'));
         try {
           fs.writeFileSync(path.join(temp, 'before'), this.bytes(a)); fs.writeFileSync(path.join(temp, 'after'), this.bytes(b));
-          const patch = git(temp, ['diff', '--no-index', '--no-ext-diff', '--no-textconv', '--text', '--unified=3', '--', 'before', 'after'], [0, 1]);
+          // The parser requires plain headers and a prefix on every context row,
+          // including blank lines, regardless of the user's global Git settings.
+          const patch = git(temp, ['-c', 'diff.suppressBlankEmpty=false', 'diff', '--no-color', '--no-index', '--no-ext-diff', '--no-textconv', '--text', '--unified=3', '--', 'before', 'after'], [0, 1]);
           const headers = [...patch.matchAll(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@.*$/gm)];
+          if (!headers.length) throw new Error('Unable to parse the saved file diff; selection refused');
           hunks = headers.map((h, i) => {
             const oldCount = h[2] === undefined ? 1 : Number(h[2]), newCount = h[4] === undefined ? 1 : Number(h[4]);
             return { id: fileId + ':' + i, oldStart: Number(h[1]) - (oldCount ? 1 : 0), oldCount, newStart: Number(h[3]) - (newCount ? 1 : 0), newCount, patch: patch.slice(h.index, headers[i + 1]?.index || patch.length) };

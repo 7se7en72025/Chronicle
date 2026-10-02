@@ -55,6 +55,7 @@ The broader vision includes controlled environment replay and branch comparison.
 | [Getting started](GETTING_STARTED.md) | Run the prototype and understand its current limits |
 | [Development orchestration](ORCHESTRATION.md) | Autonomous task queue, verification, and operating boundaries |
 | [Latest review](REVIEW.md) | Concrete findings, fixes, checks, and remaining concerns |
+| [First-release audit](RELEASE_AUDIT.md) | Verified local coverage, actual host support, and remaining release gates |
 
 ## Keeping this repo current
 

@@ -15,7 +15,7 @@ test('editor command flow requires preview and produces a separate selected work
   fs.writeFileSync(path.join(root, 'README.md'), 'before\n'); git(root, ['add', '.']); git(root, ['commit', '-m', 'Baseline']);
   const storage = path.join(base, 'history');
   const commands = new Map(), messages = [], errors = [], disposables = [];
-  let receiver, html, picks = 0;
+  let receiver, html, undoConfirmation, picks = 0;
   class TestChronicle extends Chronicle { constructor(directory) { super(directory, { storage }); } }
   const engine = new TestChronicle(root);
   const panel = {
@@ -25,7 +25,7 @@ test('editor command flow requires preview and produces a separate selected work
   const vscode = {
     workspace: { isTrusted: true, workspaceFolders: [{ uri: { scheme: 'file', fsPath: root } }] },
     window: {
-      showInputBox: async () => 'Checkpoint', showInformationMessage: async () => undefined, showWarningMessage: async () => 'Undo Chronicle output',
+      showInputBox: async () => 'Checkpoint', showInformationMessage: async () => undefined, showWarningMessage: async message => { undoConfirmation = message; return 'Undo Chronicle output'; },
       showErrorMessage: message => errors.push(message), showQuickPick: async items => items[picks++ === 0 ? 0 : items.length - 1], createWebviewPanel: () => panel
     },
     commands: { registerCommand: (id, fn) => { commands.set(id, fn); return { dispose() {} }; }, executeCommand: async () => {} },
@@ -51,6 +51,7 @@ test('editor command flow requires preview and produces a separate selected work
   assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'after\n');
   vscode.workspace.isTrusted = true;
   await commands.get('chronicle.undoOperation')();
+  assert.match(undoConfirmation, /Restore Chronicle-selected files in chronicle\/editor\?/);
   assert.equal(fs.readFileSync(path.join(engine.operations()[0].target, 'README.md'), 'utf8'), 'before\n');
   assert.equal(engine.operations()[0].state, 'undone');
   vscode.workspace.isTrusted = false;

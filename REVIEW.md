@@ -1,6 +1,6 @@
 # Latest development review
 
-Status: reviewed and updated through the fourth scheduled activation (2026-10-02). This is a single-agent review log, not evidence of independent approval.
+Status: first-release local audit completed (2026-10-02); real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
 
 ## Review scope
 
@@ -49,3 +49,19 @@ Added linked change groups by parsing the hunk's `-`, `+`, and unchanged-context
 **Final second pass:** verified hunk offsets against patch context counts, replacement grouping, standalone insertion/deletion groups, stale-pair IDs, and overlap-safe reconstruction from saved source/result lines. Reviewed UI parent/child checkbox behavior; selecting a child clears the hunk selection, and changing a hunk clears child choices. The event behavior is exercised in the VS Code webview harness. All 27 tests, syntax check, 40-of-80 demo, Markdown links, package JSON, and whitespace checks pass. No independent agent reviewed this change. O006 is verified at prototype scope; the second-host portion of milestone 4 remains blocked by O004.
 
 **Next:** O008 first-release audit. Keep O004's host validation blocked until a real host/UI runtime is available.
+
+## First-release audit (2026-10-02)
+
+**P1 — User Git formatting can hide changes or corrupt group offsets (closed).** `src/engine.js:compare` inherited global `color.ui=always` and `diff.suppressBlankEmpty=true`. Colored hunk headers were not recognized; omitted blank-context prefixes prevented `changeGroups` from counting unchanged lines. A disposable subprocess with an isolated Git home reproduced the missing hunks before the fix. Internal diff commands now force `--no-color` and `diff.suppressBlankEmpty=false`; missing hunk headers fail closed. The regression verifies two separate groups, both partial previews, correct blank-line offsets, and selected branch bytes under that configuration.
+
+**P2 — Codex installation claim is stale (closed).** `GETTING_STARTED.md` said Codex CLI was not installed. This audit found `codex-cli 0.159.2` on PATH and corrected current docs. Version/help output establishes installation only; plugin loading, trust, actual hook execution, and UI interaction remain unverified. Historical earlier-activation evidence remains historical.
+
+**P2 — Undo confirmation omits the branch name (closed).** `src/extension.js` read `selected.branch` from a QuickPick item whose operation is stored as `selected.op`. The dialog displayed `undefined` instead of the selected branch. It now reads `selected.op.branch`; the editor harness asserts the actual confirmation text before the guarded undo.
+
+**Audit outcome:** [RELEASE_AUDIT.md](RELEASE_AUDIT.md) lists implemented local behavior, each host's evidence level, privacy/restoration boundaries, and a disposable-project procedure for O004. O008 is complete at local audit scope; no release or marketplace publication is claimed. Claude remains absent; Codex CLI is installed, but its real plugin/hook workflow and the VS Code UI remain unverified. Official plugin and hook docs were revisited without changing host settings or launching model-driven sessions.
+
+**Verification:** `npm test` passes all 28 tests; `npm run check` passes; `npm run demo` keeps 40 of 80 edits with zero model requests. Documentation link/JSON/whitespace checks and the second diff review are recorded below. No independent review was performed.
+
+**Final second pass:** inspected the complete code/test/documentation diff and the new audit. The regression uses an isolated child-process Git home, preserving the real Git configuration and index. Diff parsing now normalizes both known formatting hazards and refuses missing headers; undo confirmation uses the same operation selected for restore. All 66 relative Markdown links resolve, six tracked/config JSON files parse, and `git diff --check` passes. Host claims distinguish CLI availability from real hook/UI evidence. No additional finding remains actionable within the current available queue.
+
+**Next:** no currently viable queue task remains. Keep O004 blocked until its host/UI prerequisites are available. Resume the audit's real-host procedure then; preserve the current scope and avoid repetitive unchanged-status updates.

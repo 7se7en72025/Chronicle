@@ -54,6 +54,33 @@ test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => 
   assert.equal(engine.reconcileOperations()[0].modifiedSinceCompletion, false);
 });
 
+test('selection ignores user diff colors and blank-context formatting', t => {
+  const { root, engine, file } = fixture(t, 'one\n\nthree\n\nfive\n');
+  const before = engine.capture();
+  fs.writeFileSync(file, 'wanted\n\nthree\n\nunwanted\n');
+  const after = engine.capture();
+  const configHome = path.join(engine.store, 'test-git-home'); fs.mkdirSync(configHome);
+  fs.writeFileSync(path.join(configHome, '.gitconfig'), '[color]\n ui = always\n[diff]\n suppressBlankEmpty = true\n');
+  const script = `
+    const assert = require('node:assert/strict');
+    const { Chronicle, git } = require(${JSON.stringify(require.resolve('../src/engine'))});
+    const engine = new Chronicle(${JSON.stringify(root)}, { storage: ${JSON.stringify(path.dirname(engine.store))} });
+    assert.equal(git(engine.root, ['config', '--get', 'color.ui']).trim(), 'always');
+    const diff = engine.compare(${JSON.stringify(before.id)}, ${JSON.stringify(after.id)});
+    const groups = diff.changes[0].hunks[0].groups;
+    assert.equal(groups.length, 2);
+    assert.equal(groups[1].oldStart, 4);
+    const selected = [groups[0].id];
+    const preview = engine.preview(diff.from, diff.to, selected);
+    assert.equal(preview.files[0].content, 'wanted\\n\\nthree\\n\\nfive\\n');
+    assert.equal(engine.preview(diff.from, diff.to, [groups[1].id]).files[0].content, 'one\\n\\nthree\\n\\nunwanted\\n');
+    const op = engine.createBranch(diff.from, diff.to, selected, 'chronicle/config-proof');
+    assert.equal(require('node:fs').readFileSync(require('node:path').join(op.target, 'README.md'), 'utf8'), preview.files[0].content);
+  `;
+  const result = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8', env: { ...process.env, HOME: configHome, XDG_CONFIG_HOME: configHome }, windowsHide: true });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('CRLF, Unicode, BOM, and missing final newline survive selected output', t => {
   const { engine, file } = fixture(t, '\ufeffhello\r\n世界\r\nlast');
   const a = engine.capture(); fs.writeFileSync(file, '\ufeffhello\r\nchanged 世界\r\nlast'); const b = engine.capture();
