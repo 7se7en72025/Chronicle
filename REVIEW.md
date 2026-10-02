@@ -34,4 +34,6 @@ Added CLI `undo <operation-id>` and a modal-confirmed VS Code command. Tests cov
 
 **Remaining concerns:** per-file replacement uses a same-directory temporary file and atomic rename, so interruption before replacement leaves the selected result intact. A crash can leave that temporary sibling for manual inspection. Filesystem writes cannot be atomic against an unrelated process changing the same file at precisely the same time; Chronicle rechecks each path immediately before restore and journals partial progress. Keep Chronicle idle during undo. Undo restores saved file bytes only; it does not restore agent state, remove the branch/worktree, or reverse external side effects.
 
-**Next:** finish verification, inspect the final diff, commit and push if clean; then advance O006. Resume O004 only when real host/UI access becomes available.
+**Final second pass:** reviewed the operation guard, atomic same-directory restore, confirmation flow, tests, and all related docs. Checks passed: 25 tests, syntax, demo, Markdown links, package JSON, and whitespace. No independent reviewer participated. Implementation commit `98f3c4d` is pushed to `origin/main`; matching handoff and review publication notes follow. O005 is verified at prototype scope.
+
+**Next:** advance O006, finer change-group selection. Resume O004 only when real host/UI access becomes available.
