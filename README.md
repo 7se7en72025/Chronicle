@@ -1,78 +1,65 @@
 # Chronicle
 
-**Rewind an AI agent. Change one decision. Compare what happens next.**
+**Keep the useful parts of an AI agent's changes without generating them again.**
 
-Chronicle is a product concept for investigating failures in AI agents. Its core idea is to make a failed run a reproducible experiment: inspect what the agent knew and did, restore a supported checkpoint, try a different instruction in an isolated branch, and verify the outcome.
+Chronicle is an early local-first companion for coding agents such as Codex and Claude Code. It records supported workspace changes, shows checkpoints and diffs, and lets you select edits to apply in a separate branch.
 
-This repository currently contains the product brief only. It does not include a working application, agent integration, recorder, or deployed service.
+The first prototype includes a local engine, CLI, VS Code review extension, and an optional Claude Code hook adapter. It is not published or production-ready. The CLI and engine are tested; editor interactions are tested through a mocked host, and a real Claude session remains unverified.
 
-## The problem
+## Try it
 
-When an agent edits the wrong file, misunderstands a constraint, or takes the wrong step in a browser, a transcript rarely explains the whole failure. Reproducing it may require reconstructing the prompt, browser state, files, database, tool results, and agent checkpoint by hand. A second run can behave differently, which makes it difficult to know whether a proposed fix actually worked.
+Requirements: Node.js 20+ and Git. No npm dependencies need installing.
 
-Chronicle aims to connect those pieces in one inspectable run, with a precise explanation of which parts of the environment can and cannot be restored.
+```sh
+npm test
+npm run demo
+```
 
-## The product
+The demo keeps 40 of 80 changed lines in a separate fixture worktree. See [Getting started](GETTING_STARTED.md) to run the editor panel, CLI, and optional hooks.
 
-An engineer opens a failed run and selects a point on its timeline. Chronicle shows the instructions, evidence, tool call, arguments, result, files, browser capture, and checks associated with that point. The engineer changes one instruction and starts a new, isolated branch from the selected checkpoint.
+## The first use case
 
-The original and new branch appear side by side. Their first differing action, changed files, verified outcomes, runtime, and cost help answer three questions: Did the fix work? Did it cause another problem? Is the evidence strong enough to keep it?
+An agent changes 80 lines in a README. You want only some of those changes.
 
-When a repair is confirmed, the engineer saves the original fixture, failure condition, repaired instructions, and expected checks as a regression case. The case can then be rerun against later agent changes.
+1. Open Chronicle's review panel in your coding environment.
+2. Compare the starting checkpoint with the agent's result.
+3. Select the files or change groups you want.
+4. Preview the complete resulting document.
+5. Create a branch containing your selection.
 
-## A first demonstration
+Direct recording, review, selection, and Git application make no model requests. Asking the agent to explain, repair, or continue work can consume model credits. Arbitrary selections may conflict or depend on other edits, so Chronicle must validate the patch and show a preview.
 
-An agent builds a project dashboard and accidentally removes the existing authentication check.
+## Product boundaries
 
-1. Find the edit on the run timeline and inspect the agent's earlier view of the authentication code.
-2. Restore the workspace, fixture database, and agent checkpoint just before the edit.
-3. Branch with an instruction to preserve authentication and only show projects owned by the signed-in user.
-4. Compare the original and repaired browser output, file changes, access-control checks, and execution cost.
-5. Save the passing case as a regression test.
+- Start with one supported agent/editor combination and regular text files.
+- Keep the user in their coding workflow; no separate hosted website is required.
+- Preserve pre-existing edits and the original Git index.
+- Show capture gaps and uncertain change attribution.
+- Apply into a separate worktree by default; this does not discard edits from the original workspace.
+- Verify host UI and hook capabilities before promising integration.
 
-External actions remain simulated in the first build. The demonstration never assumes that an email, booking, or other real-world action can be undone.
+The broader vision includes controlled environment replay and branch comparison. Browser, database, and internal agent-state restoration are later scope. File snapshots cannot undo arbitrary remote actions.
 
-## Product principles
+## Documentation map
 
-- **Show evidence before explanations.** Distinguish recorded facts from generated hypotheses, and link each hypothesis to its supporting event.
-- **Restore the environment, not just the conversation.** Record exactly which files, database state, browser storage, and agent checkpoint can be recovered.
-- **Compare observable outcomes.** Use application-state assertions alongside screenshots and agent messages.
-- **Change one variable at a time.** Show the run count and variability so one successful attempt is not mistaken for proof.
-- **Turn verified repairs into repeatable tests.** Preserve the original failure fixture and identify unexpected changes as well as the expected outcome.
-- **Make boundaries visible.** Label playback, sandbox experiments, and live retries separately. A screenshot or authentication cookie does not restore an arbitrary browser process or remote backend.
-- **Protect captured information.** Redact secrets and respect access controls before recordings are shared.
+| Document | Purpose |
+| --- | --- |
+| [Architecture](architecture.md) | Components, stack, data flow, limits, and recovery |
+| [Build plan](PLAN.md) | Milestones and acceptance criteria |
+| [Design decisions](DECISIONS.md) | Choices, reasons, and when to revisit them |
+| [Current handoff](HANDOFF.md) | Current state and next concrete task |
+| [Changelog](CHANGELOG.md) | Meaningful changes |
+| [Agent instructions](AGENTS.md) | Shared working rules and documentation maintenance |
+| [Claude entry point](CLAUDE.md) | Points Claude Code to the shared instructions |
+| [Contribution workflow](CONTRIBUTING.md) | Task, review, verification, and documentation maintenance |
+| [Getting started](GETTING_STARTED.md) | Run the prototype and understand its current limits |
+| [Development orchestration](ORCHESTRATION.md) | Autonomous task queue, verification, and operating boundaries |
+| [Latest review](REVIEW.md) | Concrete findings, fixes, checks, and remaining concerns |
 
-## First-build scope
+## Keeping this repo current
 
-Start with one coding agent in a controlled workspace and a small sample application. Record tool events and screenshots at supported boundaries. Snapshot workspace files, fixture data, and agent state. Reopen a supported checkpoint in an isolated branch, compare runs, and save a verified repair as a regression case.
+Update the handoff when work changes the project state. Record durable choices in the decision log, and mark plan items complete only after acceptance criteria pass. Keep proposed behavior separate from implemented and verified behavior.
 
-Simulate external actions in the sample environment. Defer multiple agents, hosted collaboration, arbitrary live websites, real external writes, and production deployment integrations until restoration and isolation are reliable.
+Follow [the contribution workflow](CONTRIBUTING.md) for each task. Issue and PR templates in `.github` prompt contributors to record acceptance criteria, checks, and documentation updates. An ACTIVE Codex heartbeat is configured to review and improve this checkout every 30 minutes when the local runtime is available, then commit and push meaningful verified changes. See [the orchestration workflow](ORCHESTRATION.md). Scheduled development consumes model usage; Chronicle's direct recorder/review/Git path remains separate.
 
-## What the hard part is
-
-Agent conversation replay and branching already exist in frameworks such as [LangGraph](https://www.langchain.com/blog/langgraph-v0-2). Chronicle's product hypothesis is that teams need the *whole supported working environment* restored alongside that agent state—and a clear visual comparison of the evidence and verified outcomes.
-
-Browser screenshots or saved storage do not recreate JavaScript memory, an external website's database, a changed remote service, or an already completed side effect. Each integration needs explicit snapshot, restore, and action-reconciliation rules. Chronicle must report restoration coverage instead of promising universal undo.
-
-## Who it is for
-
-The initial customer hypothesis is a small team building and shipping browser-based AI agents. The primary use case is debugging and evaluating agent changes. An open-source recorder with optional paid hosted workspaces is one business model to investigate, not a validated pricing plan.
-
-Useful early measures include time to reproduce a failure, time to verify a repair, the share of failures that become saved regression cases, and the rate at which resolved failures return after agent updates.
-
-## Proposed implementation sequence
-
-1. **Recorder:** connect one coding agent to a controlled application. Capture instructions, screenshots, tool events, file changes, errors, runtime, and cost.
-2. **Restoration:** snapshot and restore the application fixture, database, workspace, and agent checkpoint at defined tool boundaries.
-3. **Branch comparison:** run one changed instruction in an isolated environment; compare the first differing action, changes, assertions, and cost.
-4. **Regression cases:** save confirmed failures and rerun them when the prompt, model, or agent code changes.
-5. **Team workflows:** add shareable, access-controlled bug capsules and comments tied to a checkpoint, with sensitive data redacted.
-
-## Open questions
-
-- Which agent framework and task type make the first integration most useful?
-- Which environment states can the first integration restore exactly and cheaply?
-- Which application assertions do teams trust as evidence that a fix worked?
-- Do teams value a portable local recorder, managed isolated workspaces, or both?
-
-The goal is a small, reproducible experiment a teammate can inspect—not a promise that any agent action in any environment can be rewound.
+The business model remains a hypothesis: an open-source local core, with optional paid collaboration or hosted workspaces later. The first goal is a useful, reliable local selection workflow.

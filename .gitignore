@@ -1,0 +1,4 @@
+node_modules/
+.chronicle-dev/
+*.vsix
+.DS_Store

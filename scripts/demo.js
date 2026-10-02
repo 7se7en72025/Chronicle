@@ -1,0 +1,25 @@
+'use strict';
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { Chronicle, git } = require('../src/engine');
+
+const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-demo-'));
+const repo = path.join(fixture, 'sample'); fs.mkdirSync(repo);
+git(repo, ['init']); git(repo, ['config', 'user.name', 'Chronicle demo']); git(repo, ['config', 'user.email', 'demo@example.invalid']); git(repo, ['config', 'core.autocrlf', 'false']);
+const original = Array.from({ length: 120 }, (_, i) => `Original line ${i + 1}\n`);
+fs.writeFileSync(path.join(repo, 'README.md'), original.join(''));
+git(repo, ['add', 'README.md']); git(repo, ['commit', '-m', 'Demo baseline']);
+const engine = new Chronicle(repo, { storage: path.join(fixture, 'history') });
+const before = engine.capture('Before agent');
+const changed = [...original];
+for (let i = 0; i < 40; i++) changed[i] = `Wanted change ${i + 1}\n`;
+for (let i = 80; i < 120; i++) changed[i] = `Unwanted change ${i + 1}\n`;
+fs.writeFileSync(path.join(repo, 'README.md'), changed.join(''));
+const after = engine.capture('After 80 edits');
+const diff = engine.compare(before.id, after.id);
+const selected = [diff.changes[0].hunks[0].id];
+const result = engine.createBranch(before.id, after.id, selected, 'chronicle/keep-40');
+const output = fs.readFileSync(path.join(result.target, 'README.md'), 'utf8');
+if (!output.includes('Wanted change 40') || output.includes('Unwanted change')) throw new Error('Demo selection failed');
+console.log(`Demo passed: kept 40 of 80 changed lines.\nModel requests: 0\nOriginal workspace: ${repo}\nSelected workspace: ${result.target}\nBoth workspaces are retained for inspection.`);
