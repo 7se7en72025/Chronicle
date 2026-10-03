@@ -4,7 +4,7 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout. The latest model cycle produced a verified push-destination fix but could not commit because Codex's `workspace-write` sandbox protects `.git`; the supervisor stopped safely and that fix was recovered and pushed. The revised runner lets the trusted supervisor validate and commit tracked-file edits, with disposable-repository regressions passing. A real cycle with automatic publication remains unverified. The user reports that the chat heartbeat is paused.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout. Its first ready cycle produced an MCP replay fix and passed sandboxed checks, but the supervisor stopped on a benign Git line-ending warning before committing. That fix was reviewed and pushed as `9826ddd`. The runner now checks Git exit codes while tolerating nonfatal stderr; a real cycle with automatic publication remains unverified. The user reports that the chat heartbeat is paused.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
@@ -49,7 +49,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 The latest MCP invalid-request regression passes 10/10 focused tests; the full `npm.cmd test` suite passes 58/58 and `npm.cmd run check` passes. The sandboxed model left six tracked edits unstaged as required. The supervisor stopped on a Git line-ending warning before committing; an authorized recovery review checked the diff and test events, then committed and pushed this change. O014 still needs supported-host discovery evidence.
 
-The replay and push-destination fixes passed their recorded full suites. The revised supervisor passes eleven focused Windows PowerShell tests, including missing/failed sandboxed check evidence and normal publication to a disposable bare remote. A real post-fix cycle with automatic publication remains unverified. Codex hook behavior and editor interactions remain host-unvalidated.
+The replay and push-destination fixes passed their recorded full suites. The revised supervisor passes eleven focused Windows PowerShell tests, including missing/failed sandboxed check evidence, Git conversion-warning settings, and normal publication to a disposable bare remote. A real post-fix cycle with automatic publication remains unverified. Codex hook behavior and editor interactions remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 

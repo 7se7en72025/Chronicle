@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Treat Git's nonfatal line-ending diagnostics as data in the Windows supervisor, and decide validation, staging, and commit success by Git exit codes.
 - Stop experimental MCP cassette replay when a tool call has a missing or invalid JSON-RPC request ID; later calls cannot consume its response.
 - Let the sandboxed Codex worker leave tracked-file edits and test evidence for the trusted runner to validate, commit, and publish without executing model-edited code outside the sandbox; preserve unsupported or failing results behind `STOP`.
 - Recheck the authorized Git push URL after each Codex cycle; stop and preserve its verified local commit if the destination changed during the run.

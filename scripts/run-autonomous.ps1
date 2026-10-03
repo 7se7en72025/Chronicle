@@ -64,6 +64,19 @@ function Write-RunnerLog([string]$Message) {
     [System.IO.File]::AppendAllText($runnerLogPath, $line, (New-Object System.Text.UTF8Encoding($false)))
 }
 
+function Invoke-GitCommand([string[]]$GitArguments) {
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = @(& git @GitArguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
+    return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
+}
+
 function Test-RunEvidence([string]$RunLogPath) {
     $testPassed = $false
     $syntaxPassed = $false
@@ -233,8 +246,8 @@ try {
                         $continueRunning = $false
                     }
                     if ($continueRunning) {
-                        $diffCheck = @(& git -C $repoRoot diff --check 2>&1)
-                        if ($LASTEXITCODE -ne 0) {
+                        $diffCheck = Invoke-GitCommand -GitArguments @('-C', $repoRoot, 'diff', '--check')
+                        if ($diffCheck.ExitCode -ne 0) {
                             Write-RunnerLog 'Git diff whitespace validation failed; preserving the edits.'
                             [System.IO.File]::WriteAllText($stopPath, "Uncommitted diff failed git diff --check; review before resuming.`n")
                             $continueRunning = $false
@@ -256,12 +269,12 @@ try {
                         }
                     }
                     if ($continueRunning) {
-                        & git -C $repoRoot add -u
-                        if ($LASTEXITCODE -ne 0) { throw 'Could not stage verified tracked edits.' }
-                        $stagedCheck = @(& git -C $repoRoot diff --cached --check 2>&1)
-                        if ($LASTEXITCODE -ne 0) { throw 'Staged diff failed whitespace validation.' }
-                        & git -c "core.hooksPath=$noHooksPath" -C $repoRoot commit -m $cycleResult.Subject
-                        if ($LASTEXITCODE -ne 0) { throw 'Could not commit verified tracked edits.' }
+                        $stage = Invoke-GitCommand -GitArguments @('-C', $repoRoot, 'add', '-u')
+                        if ($stage.ExitCode -ne 0) { throw 'Could not stage verified tracked edits.' }
+                        $stagedCheck = Invoke-GitCommand -GitArguments @('-C', $repoRoot, 'diff', '--cached', '--check')
+                        if ($stagedCheck.ExitCode -ne 0) { throw 'Staged diff failed whitespace validation.' }
+                        $commit = Invoke-GitCommand -GitArguments @('-c', "core.hooksPath=$noHooksPath", '-C', $repoRoot, 'commit', '-m', $cycleResult.Subject)
+                        if ($commit.ExitCode -ne 0) { throw 'Could not commit verified tracked edits.' }
                         $after = Get-RepositoryState
                         if ($after.Branch -ne 'main' -or $after.Origin -ne $state.Origin -or $after.OriginMain -ne $state.Head -or $after.Parent -ne $state.Head -or $after.Status.Count -gt 0) {
                             throw 'Committed result did not leave one clean child of the starting commit.'
@@ -276,8 +289,8 @@ try {
                         }
                     }
                     if ($continueRunning) {
-                        $checkOutput = @(& git -C $repoRoot show --check --oneline $after.Head 2>&1)
-                        if ($LASTEXITCODE -ne 0) {
+                        $checkOutput = Invoke-GitCommand -GitArguments @('-C', $repoRoot, 'show', '--check', '--oneline', $after.Head)
+                        if ($checkOutput.ExitCode -ne 0) {
                             Write-RunnerLog 'Committed result failed whitespace validation; preserving the local commit.'
                             [System.IO.File]::WriteAllText($stopPath, "Commit $($after.Head) failed git show --check; review before resuming.`n")
                             $continueRunning = $false

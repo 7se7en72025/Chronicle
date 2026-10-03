@@ -134,6 +134,9 @@ test('autonomous runner verifies tracked edits, commits once, and publishes to o
   const fixture = makeFixture(t);
   fixture.noStop = true;
   fixture.edit = true;
+  // Git warns on stderr while converting the worker's LF file; exit zero still means success.
+  git(fixture.repo, 'config', 'core.autocrlf', 'true');
+  git(fixture.repo, 'config', 'core.safecrlf', 'warn');
   const startingCommit = git(fixture.repo, 'rev-parse', 'HEAD');
 
   runRunner(fixture);
