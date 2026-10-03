@@ -2,6 +2,14 @@
 
 Status: first-release local audit completed; roadmap execution is active. One Codex MCP fixture call sequence is verified; full fresh-agent and editor validation remain open. This is a single-agent review log, not evidence of independent approval.
 
+## O014 replay provenance boundary (2026-10-03)
+
+**P2 — Rejected fixture calls had no structured evidence.** `src/simulated-replay-mcp.js:createSimulatedReplayMcp` emitted `injected-fixture` evidence only after successful cassette dispatch. On a mismatch or invalid attempted call it stopped replay but left stderr with only a completion error; a consumer could not distinguish rejection from a session that simply ended incomplete using the event stream. The adapter now emits one `rejected-fixture` event with fixture ID, fixed failure code, and current cassette position when it first stops. It omits raw tool names, arguments, and responses. A later call after stop produces no duplicate event. Direct and stdio mismatch tests check the evidence and unchanged position.
+
+**Boundary:** `src/engine.js:createBranch` builds manifests from checkpoints and file output. It has no session or operation identifier shared with the MCP process, so these replay events cannot truthfully be attached to existing branch manifests. The fixture server also cannot observe host tools called outside it, so it cannot classify any call as live. O014 remains in progress; a controlled orchestrator would need an explicit correlation and provenance contract before branch evidence could distinguish injected, live, and unmatched tool activity.
+
+**Verification:** focused MCP suite passes 13/13 after updating two assertions to distinguish rejection evidence from injection evidence. The full `npm test` suite passes 61/61 and `npm run check` passes. Final diff and documentation checks are recorded in the handoff. This is local fixture verification, not a real host mismatch test or an independent review.
+
 ## Codex fixture MCP calls (2026-10-03)
 
 **O014 host boundary advanced.** After the user replied “start” to the specific two-call fixture test request, Codex CLI 0.160.0 ran with temporary command-line MCP configuration and a read-only sandbox. The first CLI invocation failed before model execution because shell quoting split the prompt. The corrected invocation exited zero and emitted tool-start/completion events for `chronicle_replay/fixture.issue.lookup` followed by `chronicle_replay/fixture.issue.search`. The model reported the saved lookup response for `issueId: "42"` and the saved search response for `query: "README headings", limit: 2`; both matched the committed cassette. No shell command, file edit, or other tool call appeared in the CLI output. The two fixture responses were sent to the Codex service as authorized. The MCP configuration was temporary and no global entry was added.

@@ -47,6 +47,13 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
   let stopped = false;
   let stopCode = null;
 
+  function stop(code) {
+    if (stopped) return;
+    stopped = true;
+    stopCode = code;
+    onEvidence({ kind: 'rejected-fixture', fixtureId: replay.fixtureId, code, position: replay.position });
+  }
+
   function toolError(id, code, message) {
     return {
       jsonrpc: '2.0', id,
@@ -61,16 +68,14 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
     // This subset does not support batches. Their contents may include a call
     // whose intended cassette position cannot be established after rejection.
     if (Array.isArray(message)) {
-      stopped = true;
-      stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+      stop('SIMULATED_REPLAY_INVALID_CALL');
       return rpcError(null, -32600, 'JSON-RPC batches are not supported; replay stopped.');
     }
     const attemptedToolCall = isRecord(message) && message.method === 'tools/call';
     if (!isRecord(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string' ||
         (Object.hasOwn(message, 'id') && !(typeof message.id === 'string' || (typeof message.id === 'number' && Number.isFinite(message.id))))) {
       if (attemptedToolCall) {
-        stopped = true;
-        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+        stop('SIMULATED_REPLAY_INVALID_CALL');
       }
       return rpcError(null, -32600, 'Invalid JSON-RPC request.');
     }
@@ -86,8 +91,7 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
     }
     if (!hasId) {
       if (attemptedToolCall) {
-        stopped = true;
-        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+        stop('SIMULATED_REPLAY_INVALID_CALL');
       }
       return null;
     }
@@ -113,8 +117,7 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
     if (message.method === 'ping') return { jsonrpc: '2.0', id, result: {} };
     if (phase !== 'ready') {
       if (attemptedToolCall) {
-        stopped = true;
-        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+        stop('SIMULATED_REPLAY_INVALID_CALL');
       }
       return rpcError(id, -32002, 'Server not initialized.');
     }
@@ -126,13 +129,11 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
     if (message.method === 'tools/call') {
       if (stopped) return toolError(id, stopCode || 'SIMULATED_REPLAY_STOPPED', 'Replay has stopped. No fixture response or live fallback was used.');
       if (!isRecord(params) || typeof params.name !== 'string' || !isRecord(params.arguments)) {
-        stopped = true;
-        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+        stop('SIMULATED_REPLAY_INVALID_CALL');
         return rpcError(id, -32602, 'tools/call requires a tool name and object arguments.');
       }
       if (!availableNames.has(params.name)) {
-        stopped = true;
-        stopCode = 'SIMULATED_REPLAY_TOOL_NOT_ALLOWED';
+        stop('SIMULATED_REPLAY_TOOL_NOT_ALLOWED');
         return rpcError(id, -32602, 'Tool is not available in this fixture cassette. Replay stopped; no live fallback was used.');
       }
       try {
@@ -146,8 +147,7 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
           }
         };
       } catch (error) {
-        stopped = true;
-        stopCode = typeof error.code === 'string' ? error.code : 'SIMULATED_REPLAY_ERROR';
+        stop(typeof error.code === 'string' ? error.code : 'SIMULATED_REPLAY_ERROR');
         return toolError(id, stopCode, `Replay stopped (${stopCode}). No live fallback was used.`);
       }
     }

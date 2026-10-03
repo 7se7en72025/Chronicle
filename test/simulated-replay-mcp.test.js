@@ -71,7 +71,8 @@ test('legacy fixture MCP adapter initializes, lists read-only tools, and injects
 });
 
 test('fixture MCP adapter stops on the first unmatched call without consuming or falling back', () => {
-  const server = createSimulatedReplayMcp(cassette());
+  const evidence = [];
+  const server = createSimulatedReplayMcp(cassette(), { onEvidence: entry => evidence.push(entry) });
   initialize(server);
   const mismatch = server.handle(request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: 'other' } }));
   assert.equal(mismatch.result.isError, true);
@@ -81,6 +82,7 @@ test('fixture MCP adapter stops on the first unmatched call without consuming or
   assert.equal(afterStop.result.isError, true);
   assert.equal(server.position, 0);
   assert.equal(server.stopped, true);
+  assert.deepEqual(evidence, [{ kind: 'rejected-fixture', fixtureId: 'sample-issue-tracker-v1', code: 'SIMULATED_REPLAY_UNMATCHED', position: 0 }]);
   assert.throws(() => server.finish(), { code: 'SIMULATED_REPLAY_UNMATCHED' });
 });
 
@@ -99,6 +101,7 @@ test('stdio session rejects calls after a mismatch and exits unsuccessfully when
   assert.match(replies[1].result.content[0].text, /SIMULATED_REPLAY_UNMATCHED/);
   assert.equal(replies[2].result.isError, true);
   assert.match(replies[2].result.content[0].text, /Replay has stopped/);
+  assert.match(result.stderr, /Chronicle replay evidence .*"kind":"rejected-fixture".*"code":"SIMULATED_REPLAY_UNMATCHED".*"position":0/);
   assert.match(result.stderr, /Replay did not complete \(SIMULATED_REPLAY_UNMATCHED\)/);
 });
 
@@ -172,7 +175,7 @@ test('fixture MCP adapter stops after a tool call before initialization complete
   const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
   assert.equal(replies[1].error.code, -32002);
   assert.equal(replies[2].result.isError, true);
-  assert.doesNotMatch(result.stderr, /Chronicle replay evidence/);
+  assert.doesNotMatch(result.stderr, /"kind":"injected-fixture"/);
   assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
 });
 
@@ -228,7 +231,7 @@ test('fixture MCP adapter stops when an unsupported batch could hide a tool call
   const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
   assert.equal(replies[1].error.code, -32600);
   assert.equal(replies[2].result.isError, true);
-  assert.doesNotMatch(result.stderr, /Chronicle replay evidence/);
+  assert.doesNotMatch(result.stderr, /"kind":"injected-fixture"/);
   assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
 });
 
