@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- D015 now defines a proposed retention/deletion and JSON-to-SQLite migration contract. No delete command, automatic pruning, migration, or store mutation was added; see [DECISIONS.md](DECISIONS.md#d015--retain-local-evidence-until-explicit-dependency-aware-removal).
 - Gap recording now ignores interrupted `.tmp` files when enforcing the 1000-record cap, while leaving those files untouched for recovery inspection. The cap fixture includes a partial file and still records 1000 gaps; see [REVIEW.md](REVIEW.md).
 - The global gap-history marker now appears only when its timestamp is at or before the reviewed interval's end. A disposable fixture branches both before and after the cap and checks distinct warnings; see [REVIEW.md](REVIEW.md).
 - New branch manifests now count only actual capture-gap records and separately flag the history-limit marker; VS Code saved-branch comparison shows that later gaps may be missing. The 1000-gap disposable fixture and editor rendering check pass; see [REVIEW.md](REVIEW.md).

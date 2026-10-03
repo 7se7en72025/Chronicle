@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Document a dependency-aware local-history retention and future JSON-to-SQLite migration contract without enabling deletion or migration.
 - Count published gap records rather than interrupted temporary files toward the 1000-gap history cap.
 - Apply the global capture-gap overflow warning only to checkpoint intervals that reach its recorded time.
 - Count only recorded capture gaps in new branch manifests and separately flag the gap-history limit in saved branch comparison.

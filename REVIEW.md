@@ -1,5 +1,11 @@
 # Latest development review
 
+## Retention and migration contract (2026-10-04)
+
+**P2 — local history had no concrete removal or migration policy (design recorded).** The roadmap called for retention/deletion controls before SQLite, while `GETTING_STARTED.md` only said they were planned. [D015](DECISIONS.md#d015--retain-local-evidence-until-explicit-dependency-aware-removal) now proposes explicit, dependency-aware per-repository removal with no automatic expiry or worktree deletion, plus copy/verify/switch migration that retains the old JSON store. This is a design decision, not implemented behavior. It keeps checkpoint and operation evidence needed for review and guarded undo from being silently discarded.
+
+**Verification:** the policy was checked against the current external per-repository store, operation worktrees, fixture bindings, recovery locks, and undo contract in `src/engine.js` and [architecture.md](architecture.md). Changed Markdown links and `git diff --check` are the applicable checks; no application code or user data was changed. The next step is an explicit user-facing design and fixture recovery tests before any delete or migration command. No independent reviewer participated.
+
 ## Partial gap files and the history cap (2026-10-04)
 
 **P2 — interrupted temp files could end gap recording early (fixed).** `src/engine.js:Chronicle.recordGap` used the total entry count in the gap directory for its 1000-record cap. A preserved `.tmp` from an interrupted write consumed a slot even though no published gap existed. The cap now counts UUID-named published gap JSON records, and an existing limit marker remains terminal. It leaves temp files intact for recovery inspection.

@@ -107,3 +107,13 @@ Inspect a child-written event sidecar against its controller journal, but do not
 Reason: the sidecar records emitted fixture event metadata, not the controller's completed outcome. Copying it into a journal during recovery would blur which process persisted each event and could overwrite ambiguous replacement evidence. Separate evidence lets a reviewer inspect the gap without presenting an interrupted run as replay success.
 
 Revisit when a versioned append-only event log, durable completion marker, and real controller-death test demonstrate a safe, auditable merge rule. Do not infer host-tool activity from the fixture sidecar.
+
+## D015 — Retain local evidence until explicit, dependency-aware removal
+
+Status: proposed contract; no history deletion or migration command is implemented.
+
+Keep local evidence until the user explicitly requests removal. Do not expire, prune, or upload checkpoints, blobs, gaps, fixture records, or operation journals automatically. A future per-repository delete action must first show which checkpoints, operations, fixture bindings, and Chronicle output worktrees depend on that store. It must refuse while a writer/lock or pending recovery record exists, and must not delete a Git worktree, branch, user source file, or original index. Removal of operation evidence must not silently strand a guarded undo. Require a separate explicit action for output-worktree cleanup after Git/worktree freshness checks.
+
+For a future JSON-to-SQLite migration, keep checkpoint IDs, content hashes, event versions, and operation relationships stable. Build the new store separately, verify readable counts and referenced blob hashes, then switch readers only after successful validation. Retain the old store for explicit user-controlled removal rather than deleting it as part of migration. Do not claim that either action exists until it is implemented and recovery-tested.
+
+Reason: locally stored snapshots can contain sensitive project text, while checkpoints and operation journals are needed for review, provenance, and guarded undo. Automatic cleanup or an in-place migration could erase the only recoverable evidence.

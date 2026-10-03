@@ -135,6 +135,8 @@ Each checkpoint references immutable file versions. Preserve bytes, line endings
 
 Exclude secrets, dependency folders, build output, and oversized files through explicit capture rules. Exclusions reduce restoration coverage and must be shown in the interface. Local-only storage still needs retention controls and a delete-history action. Upload nothing by default.
 
+[D015](DECISIONS.md#d015--retain-local-evidence-until-explicit-dependency-aware-removal) proposes no automatic expiry, dependency-aware per-repository removal, and copy/verify/switch migration from JSON metadata to SQLite. None is implemented. Existing local files and registered output worktrees are preserved until an explicit future workflow can distinguish evidence deletion from worktree/branch cleanup.
+
 ## 6. Diff and selection engine
 
 The engine compares two immutable checkpoints and produces a versioned diff. Every selection references those checkpoint IDs and the relevant file hashes.
