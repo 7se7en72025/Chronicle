@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014 binding, recovery, and saved comparison now read fixture-run journals through the same bounded descriptor helper as cassette/sidecar/witness evidence. Unreadable recovery records stay inspectable. See [REVIEW.md](REVIEW.md).
 - O014 launch-witness recovery now uses the same bounded descriptor read as cassette and sidecar inspection. It still leaves an observed but unreadable witness pending. Focused recovery fixtures passed; see [REVIEW.md](REVIEW.md).
 - O014 cassette and sidecar reads now compare pre/open/post file identity and size while reading through a bounded descriptor. Focused subprocess and inspection fixtures pass; concurrent same-size writes and launch-witness races remain outside this check. See [REVIEW.md](REVIEW.md).
 - New O014 controlled subprocess runs require a consistent child-written sidecar for binding and saved comparison provenance. Missing/changed sidecars hide the summary; older records lacking the marker retain previous checks. Focused fixture passed; see [REVIEW.md](REVIEW.md).

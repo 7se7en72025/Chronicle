@@ -542,7 +542,7 @@ class Chronicle {
       if (fs.readdirSync(folder).some(name => new RegExp('^' + runId + '\\.json\\.[a-f0-9-]{36}\\.tmp$').test(name))) {
         throw new Error('Fixture run has an interrupted journal replacement; inspect it before binding');
       }
-      const run = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const run = JSON.parse(readRegularLimited(file, 1024 * 1024).toString('utf8'));
       if (run.id !== runId || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
           run.outcome?.status !== 'complete' || run.binding || run.candidateOperationId !== operationId || !Array.isArray(run.events) ||
           run.events.length !== run.outcome.consumedCalls ||
@@ -600,7 +600,7 @@ class Chronicle {
       for (const name of entries.filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
         const file = path.join(folder, name);
         let run;
-        try { run = JSON.parse(fs.readFileSync(file, 'utf8')); }
+        try { run = JSON.parse(readRegularLimited(file, 1024 * 1024).toString('utf8')); }
         catch { results.push({ id: name.slice(0, -5), assessment: 'unreadable-record' }); continue; }
         if (replacements.delete(name)) {
           results.push({ id: name.slice(0, -5), assessment: 'replacement-inspect' });
@@ -731,9 +731,7 @@ class Chronicle {
         let run;
         try {
           const file = path.join(folder, name);
-          const stat = fs.lstatSync(file);
-          if (!stat.isFile() || stat.size > 1024 * 1024) continue;
-          run = JSON.parse(fs.readFileSync(file, 'utf8'));
+          run = JSON.parse(readRegularLimited(file, 1024 * 1024).toString('utf8'));
         }
         catch { continue; }
         if (run.binding?.operationId !== operation.id) continue;

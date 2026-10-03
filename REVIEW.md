@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 bounded fixture-run journal reads (2026-10-03)
+
+**P2 — fixture-run journal path checks were inconsistent with the new evidence-file guard (fixed).** Binding, pending recovery, and saved comparison now read fixture-run journals through the same bounded descriptor helper. An unreadable recovery record remains `unreadable-record`; comparison omits it and binding refuses it. This narrows object-replacement and growth races at those three read paths without changing event correlation or recovery outcomes. Same-size concurrent mutation remains outside the guarantee.
+
+**Verification and limit:** `npm.cmd run check`, full `npm.cmd test` (75/75), changed Markdown links, and `git diff --check` pass. Second-pass diff review confirmed the three journal read sites use the existing helper and retain their previous failure/preservation paths. The suite exercises complete, pending, and damaged fixture runs, but does not inject a concurrent file replacement during these reads. No independent reviewer participated.
+
 ## Final local smoke check (2026-10-03)
 
 **No new finding.** The selection demo passed (40 of 80 changed lines kept, zero model requests). The simulated replay demo passed (two injected fixture responses, two scripted worktrees, original source clean, no live tools or model requests). The demos are disposable local fixtures and do not validate Codex/Claude hook delivery, native VS Code review, or a fresh AI-agent replay. The primary checkout still has unrelated untracked `BOLPREP.md`; it was neither staged nor changed.

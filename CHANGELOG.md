@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Use bounded descriptor reads for fixture-run journals during binding, recovery, and saved branch comparison.
 - Reconcile the living handoff and host-access queue with current CLI versions, verified fixture calls, and the STOP-gated runner state.
 - Record D014: keep interrupted child evidence sidecars separate from failed journals until a tested merge contract exists.
 - Read fixture launch witnesses through the bounded descriptor path while leaving changed or unreadable witness evidence pending for inspection.

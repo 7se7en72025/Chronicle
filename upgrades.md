@@ -64,7 +64,7 @@ Per [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-jo
 
 New controlled subprocess runs require a consistent child-written sidecar before fixture evidence can be bound or displayed in branch comparison. Legacy records without a sidecar marker retain their earlier journal/cassette checks. This is local consistency evidence, not independent host-tool observation.
 
-Local cassette, sidecar, and launch-witness reads are bounded through an opened regular-file descriptor and checked against pre/open/post file identity and size. An observed but unreadable witness still leaves recovery pending. This narrows replacement and growth races; it is not a guarantee against every concurrent same-size write or a substitute for host provenance.
+Local fixture-run journal, cassette, sidecar, and launch-witness reads are bounded through an opened regular-file descriptor and checked against pre/open/post file identity and size. An observed but unreadable witness still leaves recovery pending. This narrows replacement and growth races; it is not a guarantee against every concurrent same-size write or a substitute for host provenance.
 
 **Exit:** repeated fixture runs start from the same verified state; a recorded response can be substituted without contacting its original service; unmatched inputs stop or are clearly shown; the original workspace and fixture data remain unchanged; and an actual host/orchestrator run is validated separately before claiming fresh agent retries.
 
