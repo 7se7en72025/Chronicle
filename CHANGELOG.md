@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Apply the global capture-gap overflow warning only to checkpoint intervals that reach its recorded time.
 - Count only recorded capture gaps in new branch manifests and separately flag the gap-history limit in saved branch comparison.
 - Mark Codex tool-boundary coverage unavailable when an intermediate checkpoint has an invalid saved timestamp.
 - Reject invalid saved gap or checkpoint timestamps before interval coverage and checkpoint review.

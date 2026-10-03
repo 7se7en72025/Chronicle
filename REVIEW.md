@@ -1,5 +1,11 @@
 # Latest development review
 
+## Gap limit timing in historical review (2026-10-04)
+
+**P2 — a later global overflow marker warned on earlier intervals (fixed).** `src/engine.js:Chronicle.gaps` included the history-limit record for every checkpoint interval, even if that interval ended before the cap was reached. A branch created later from an earlier pair of checkpoints could therefore claim incomplete capture coverage for a period when recording had not yet overflowed. Interval review now includes the limit marker only when its recorded timestamp is at or before the interval end; unrestricted gap inspection still shows it.
+
+**Verification:** the disposable cap fixture captured a changed file before recording 1000 gaps and hitting the limit, then branched once from that earlier interval and once across the overflow. The earlier new manifest had `gapHistoryLimitReached: false`; the later one had the flag and 1000 actual gaps. A first focused run failed because the test reused a hunk ID from the later checkpoint pair; selecting the earlier pair's own hunk fixed the test, which then passed. `npm.cmd run check` and full `npm.cmd test` passed 91/91. This is a timestamp-based local consistency check, not evidence-store authentication. No independent reviewer participated.
+
 ## Gap overflow in saved branch evidence (2026-10-04)
 
 **P2 — branch manifest counted an overflow marker as a captured gap (fixed for new operations).** `src/engine.js:Chronicle.createBranch` used `intervalGaps.length`, which includes the `capture-gap-limit` sentinel. At the 1000-record cap it reported 1001 capture gaps even though later failed captures were not recorded, and saved comparison showed no limit warning. New manifests count only `capture-gap` records and separately store `gapHistoryLimitReached`. The VS Code saved comparison presents the limit warning when that flag is present. Existing saved manifests remain unchanged.

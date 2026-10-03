@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- The global gap-history marker now appears only when its timestamp is at or before the reviewed interval's end. A disposable fixture branches both before and after the cap and checks distinct warnings; see [REVIEW.md](REVIEW.md).
 - New branch manifests now count only actual capture-gap records and separately flag the history-limit marker; VS Code saved-branch comparison shows that later gaps may be missing. The 1000-gap disposable fixture and editor rendering check pass; see [REVIEW.md](REVIEW.md).
 - Unpaired Codex tool-boundary review now treats an invalid intermediate checkpoint timestamp as unavailable coverage, rather than silently losing a warning. The existing disposable review fixture confirms warning recovery after evidence restoration; see [REVIEW.md](REVIEW.md).
 - Checkpoint listing/lookup and gap review now reject invalid saved timestamps so an interval cannot silently lose coverage. Disposable tampering and restoration regression preserved source/index; see [REVIEW.md](REVIEW.md).

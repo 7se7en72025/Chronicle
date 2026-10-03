@@ -275,7 +275,9 @@ class Chronicle {
         throw new Error('Capture-gap timestamp is invalid');
       }
       return gap;
-    }).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }).filter(item => item.kind === 'capture-gap'
+      ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end
+      : Date.parse(item.createdAt) <= end).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   unpairedToolBoundaries(from, to) {
