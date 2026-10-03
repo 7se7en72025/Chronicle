@@ -4,8 +4,10 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Allow the optional Windows review task to start and continue on battery after the user's explicit choice; leave system power-plan behavior unchanged.
+- Exercise pending fixture-run recovery by terminating a real controller process after PID publication; retain the remaining crash-window limits.
 - Record fixture subprocess controller/child PIDs and conservatively fail pending runs only after both processes are absent; retain partial evidence and pinned cassettes.
-- Own a controlled fixture MCP subprocess, record its bounded evidence and exit, and gate candidate branch binding on successful replay; real controller-interruption recovery remains open.
+- Own a controlled fixture MCP subprocess, record its bounded evidence and exit, and gate candidate branch binding on successful replay; crash-window recovery remains open.
 - Add a fixture-level controller API with bounded sequenced MCP evidence, in-process completion, and checked binding to one fresh branch output; process and host provenance remain unimplemented.
 - Define the O014 controller-owned fixture-run/branch correlation contract, including stale-binding refusal and explicit unavailable live-tool provenance; the initial in-process slice is described above.
 - Emit bounded rejection evidence for the first stopped fixture MCP tool attempt, distinct from successful cassette injection.

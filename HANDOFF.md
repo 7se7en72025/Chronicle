@@ -4,14 +4,15 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout, but is currently `Ready` rather than running. The laptop is discharging and the task is configured to stop on battery; it exited after the O014 recovery worker finished but before supervisor publication. The preserved change was independently checked and published as `80cbc25`. Resume the task only after AC power returns or the user approves changing its battery policy. A separate read-only Codex CLI 0.160.0 run called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated. The chat heartbeat remains paused.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task uses a clean sibling checkout. A battery-policy stop interrupted its supervisor after the O014 recovery worker finished; the preserved change was independently checked and published as `80cbc25`. The user then approved battery operation, and the installer now requests battery starts and continuation. The registered task settings and live process must be checked after restart; the chat heartbeat remains paused. A separate read-only Codex CLI 0.160.0 run called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
 ## Latest work
 
+- O014 now has a real controller-termination regression: it kills a separate controller after the pending run has recorded both PIDs, then verifies live-process refusal, failed recovery after both processes die, preserved cassette/evidence, and idempotence. It does not cover a kill during JSON replacement or before the child PID is saved. See [REVIEW.md](REVIEW.md).
 - O014 pending subprocess recovery now records controller and child PIDs and marks a pending run failed only after both processes are confirmed absent. A simulated interruption regression verifies live-process refusal, preserved evidence/cassette, binding refusal, and idempotence. A real mid-write interruption and durable event log remain open; see [REVIEW.md](REVIEW.md).
-- O014 now owns a controlled local fixture MCP subprocess: it pins the cassette, sends bounded scripted JSON-RPC requests, records sequenced injected/rejected evidence and child exit, and gates candidate branch creation on successful completion. A disposable-repository test covers successful binding and rejection. This is not a coding-agent host run; real interruption recovery remains open. See [REVIEW.md](REVIEW.md).
+- O014 now owns a controlled local fixture MCP subprocess: it pins the cassette, sends bounded scripted JSON-RPC requests, records sequenced injected/rejected evidence and child exit, and gates candidate branch creation on successful completion. A disposable-repository test covers successful binding and rejection. This is not a coding-agent host run; crash-window recovery remains open. See [REVIEW.md](REVIEW.md).
 - O014 now has an in-process fixture-run API: it pins source/cassette state, records ordered injected or rejected fixture events, and checks a completed branch before binding. It does not launch or observe a host process, rewrite branch manifests, or detect live tools. See [REVIEW.md](REVIEW.md) and [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract).
 - O014 fixture MCP now emits one bounded `rejected-fixture` event on its first rejected call, separate from successful `injected-fixture` hashes. These process-local events have no branch-manifest correlation, and the fixture server cannot observe other host tools. See [REVIEW.md](REVIEW.md).
 - Verified one real Codex MCP fixture call sequence: lookup `issueId: "42"`, then search `query: "README headings", limit: 2`, with matching saved responses and no reported tool error. This was a model-mediated run that consumed usage; no persistent MCP config was added. See [REVIEW.md](REVIEW.md).
@@ -58,6 +59,8 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
+For the real controller-termination regression, the focused test passed in repeated runs and the full `npm.cmd test` suite passed 66/66. `npm.cmd run check` and `git diff --check` passed. The test kills only its disposable controller process and lets the fixture child exit; it does not exercise a write interrupted inside atomic replacement. The diff was reviewed again after the checks.
+
 For the O014 pending-run recovery cycle, the focused engine suite passed 34/34 and full `npm test` passed 65/65 inside the worker. After the task stopped, an independent local `npm.cmd test` passed 65/65, `npm.cmd run check` passed, and `git diff --check` passed. Modified Markdown local links and a second-pass diff review checked process-liveness gating, preserved evidence/cassette, binding refusal, and documentation scope. The nine worker-edited tracked files were committed and normally pushed as `80cbc25`; `origin/main` was verified at that commit. The implementation is fixture-level and leaves real mid-write interruption, durable logging, live-tool observation, and comparison UI integration open.
 
 The earlier pre-initialization MCP regression covers calls before `initialize` and before `notifications/initialized`, including a stdio sequence with a later valid call. Its full `npm.cmd test` suite passed 59/59 and `npm.cmd run check` passed; see [REVIEW.md](REVIEW.md). That earlier change was subsequently reviewed and pushed as `9826ddd`.
@@ -68,11 +71,11 @@ The replay and push-destination fixes passed their recorded full suites. The rev
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
-The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes and is paused per the user. The optional local Windows runner is registered in a sibling checkout and currently stopped under its battery policy; do not resume the heartbeat while using it. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O013 is verified at fixture level only; consult Git history for publication status.
+The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes and is paused per the user. The optional local Windows runner uses a sibling checkout; its battery setting must be verified after registration. Do not resume the heartbeat while using the runner. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O013 is verified at fixture level only; consult Git history for publication status.
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** Test a real controller kill during fixture subprocess execution and resolve the remaining crash window before exposing bound evidence in comparison views. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** Close or explicitly classify the crash window before child PID publication and during journal replacement before exposing bound evidence in comparison views. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
@@ -80,4 +83,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Continue O014 with a real controller interruption test and durable evidence recovery, following D011. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+Continue O014 with the remaining crash-window and durable evidence recovery work, following D011. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).

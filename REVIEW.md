@@ -6,6 +6,14 @@
 
 The stopped checkout was reviewed in a second pass. An independent `npm.cmd test` passed 65/65, `npm.cmd run check` and `git diff --check` passed, and branch, parent, index, worktree, and both origin URLs were checked. Only the nine worker-edited files were committed as `80cbc25` and normally pushed; `refs/remotes/origin/main` matched. The primary checkout was fast-forwarded while preserving untracked `BOLPREP.md`. Resume the registered task after AC power returns, or after an explicitly approved battery-policy change; verify clean sibling state and remote freshness first. The chat heartbeat remains paused.
 
+**Battery-policy follow-up:** the user explicitly selected battery operation. `scripts/install-autonomous-task.ps1` now asks Task Scheduler to allow starts and continuation on battery; the local cmdlet returned both battery-stop properties as `False`. This does not alter Windows power plans or prevent critical-battery shutdown. The registered task and actual running process still need post-install verification. See D012 and [ORCHESTRATION.md](ORCHESTRATION.md).
+
+## O014 real controller termination regression (2026-10-03)
+
+**P1 — simulated pending-record recovery lacked a real termination check (test added).** The earlier recovery test rewrote a completed journal into a pending one. A new disposable-repository test now launches a separate controller process, lets `runFixtureSubprocess` persist its controller and child PIDs, blocks the controller before it can record an outcome, and kills that actual controller. Recovery refuses while the controller is live. After the controller and fixture child are absent, it records `MCP_PROCESS_INTERRUPTED`, preserves the cassette and partial events, and is idempotent. The controller source is created only in the test process; it sends no network request and does not touch the project checkout.
+
+This covers a real process death after PID publication, not a kill during the atomic JSON replacement or before the child PID is recorded. PID reuse remains a conservative pending state. The focused test passes repeatedly; full-suite and syntax results for this change are recorded in [HANDOFF.md](HANDOFF.md#verification). No independent reviewer participated.
+
 ## O014 pending fixture subprocess recovery (2026-10-03)
 
 **P1 — a controller interruption could leave a pending subprocess record indefinitely (fixed for recorded, dead processes).** The subprocess record now persists the controller and child PIDs. `recoverFixtureRuns` inspects pending subprocess records and marks one failed with `MCP_PROCESS_INTERRUPTED` only when both recorded PIDs are confirmed absent. A live, unknown, malformed, or reused PID leaves the run pending for inspection. The method retains the event record and pinned cassette, creates no branch, and never upgrades partial evidence to a completed run. `recover-fixture-runs` exposes this local recovery through the CLI.

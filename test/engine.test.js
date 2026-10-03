@@ -145,6 +145,66 @@ test('fixture subprocess recovery fails closed only after both recorded processe
   assert.deepEqual(engine.recoverFixtureRuns(), []);
 });
 
+test('fixture subprocess recovery preserves a real killed controller record', async t => {
+  const { root, engine } = fixture(t);
+  const before = engine.capture('Before');
+  const cassettePath = path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
+  const controllerSource = `
+    const fs = require('node:fs');
+    const { Chronicle } = require(${JSON.stringify(path.join(__dirname, '..', 'src', 'engine.js'))});
+    const [root, storage, checkpoint, cassettePath] = process.argv.slice(1);
+    const cassette = JSON.parse(fs.readFileSync(cassettePath, 'utf8'));
+    new Chronicle(root, { storage }).runFixtureSubprocess(cassette, checkpoint, []);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30000);
+  `;
+  const controller = spawn(process.execPath, ['-e', controllerSource, root, path.dirname(engine.store), before.id, cassettePath],
+    { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+  let controllerError = '';
+  controller.stderr.on('data', chunk => { controllerError += chunk.toString('utf8'); });
+  let childPid;
+  t.after(() => {
+    if (controller.exitCode === null) controller.kill();
+    if (childPid) { try { process.kill(childPid); } catch (error) { if (error.code !== 'ESRCH') throw error; } }
+  });
+  await once(controller, 'spawn');
+  const folder = path.join(engine.store, 'fixture-runs');
+  const deadline = Date.now() + 10000;
+  let saved, file;
+  while (Date.now() < deadline) {
+    const names = fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name));
+    if (names.length === 1) {
+      file = path.join(folder, names[0]);
+      try { saved = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* atomic replacement in progress */ }
+      if (saved?.childPid > 0) break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.ok(saved?.childPid > 0, `controller should persist its child PID before interruption: ${controllerError}`);
+  childPid = saved.childPid;
+  assert.equal(saved.outcome, null);
+  assert.equal(saved.controllerPid, controller.pid);
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: saved.id, assessment: 'pending-inspect' }]);
+  const cassetteBytes = fs.readFileSync(path.join(folder, saved.id + '.cassette.json'));
+  const exited = once(controller, 'exit');
+  assert.equal(controller.kill(), true);
+  await exited;
+  const deadBy = Date.now() + 5000;
+  let childDead = false;
+  while (Date.now() < deadBy) {
+    try { process.kill(childPid, 0); }
+    catch (error) { if (error.code === 'ESRCH') { childDead = true; break; } throw error; }
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.equal(childDead, true, 'the fixture child must exit before recovery');
+  childPid = null;
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: saved.id, assessment: 'interrupted-recorded' }]);
+  const recovered = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.deepEqual(recovered.outcome, { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.deepEqual(recovered.events, saved.events);
+  assert.deepEqual(fs.readFileSync(path.join(folder, saved.id + '.cassette.json')), cassetteBytes);
+  assert.deepEqual(engine.recoverFixtureRuns(), []);
+});
+
 test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => {
   const original = Array.from({ length: 120 }, (_, i) => `line ${i}\n`);
   const { root, engine, file } = fixture(t, original.join(''));

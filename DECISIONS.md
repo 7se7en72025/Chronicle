@@ -68,10 +68,20 @@ Revisit when: the stdio subset is validated with a real supported host, and a co
 
 ## D011 — Correlate replay evidence through a controller-owned run
 
-Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Conservative pending subprocess recovery is fixture-tested; live interruption, durable logging, and host observation remain open.
+Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Conservative pending subprocess recovery is tested after a real controller termination; crash windows, durable logging, and host observation remain open.
 
 Assign a random run ID before fixture tools start. The controllers pin the cassette hash and source state, sequence bounded local evidence, and create one candidate branch before checked binding. The in-process path records session completion; the controlled subprocess path also records process exit. Reused fixture IDs and independent MCP stderr records are insufficient to identify an operation. Reject stale or ambiguous bindings without rewriting the operation journal. Treat live-tool activity as unavailable unless the controller or host separately observes it; a rejected fixture call is not proof of a live fallback.
 
 Reason: direct `createBranch` has no shared identifier with an independently started fixture MCP process. Attaching uncorrelated stderr events would make a branch manifest appear to prove tool provenance it cannot establish. The controllers create their own candidate operation and store the binding in the run record, not the branch manifest. The remaining interruption and host boundary is in [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract).
 
 Revisit for durable subprocess interruption recovery or host event IDs and lifecycle guarantees.
+
+## D012 — Allow the optional laptop runner on battery
+
+Status: accepted for this user-authorized installation.
+
+The Windows task installer permits starts and continuation on battery. It leaves the system power plan and critical-battery behavior unchanged. The task still requires an awake laptop, logged-in user, Codex access, and available charge; battery permission cannot guarantee a six-hour run.
+
+Reason: the user explicitly chose battery operation after the registered task stopped between a verified worker result and supervisor publication. The stopped edit was preserved and manually verified before normal publication.
+
+Revisit if the user wants AC-only operation or a charge threshold, or if unattended battery runtime proves unreliable.
