@@ -38,6 +38,7 @@ function makeFixture(t) {
     "if ($env:CHRONICLE_AUTONOMOUS_PROMPT -notmatch 'review-and-improve') { exit 14 }",
     "if ($env:CHRONICLE_FAKE_STDERR -eq '1') { & cmd.exe /d /c 'echo harmless diagnostics 1>&2'; if ($LASTEXITCODE -ne 0) { exit 16 } }",
     "if ($env:CHRONICLE_FAKE_COMMIT -eq '1') { Push-Location $env:CHRONICLE_FIXTURE_REPO; try { [System.IO.File]::WriteAllText('cycle-result.txt', 'verified fixture'); & git add -- cycle-result.txt; & git commit --quiet -m 'verified fixture cycle'; if ($LASTEXITCODE -ne 0) { exit 15 } } finally { Pop-Location } }",
+    "if ($env:CHRONICLE_FAKE_PUSH_URL) { & git -C $env:CHRONICLE_FIXTURE_REPO config remote.origin.pushurl $env:CHRONICLE_FAKE_PUSH_URL; if ($LASTEXITCODE -ne 0) { exit 17 } }",
     "if ($env:CHRONICLE_FAKE_NO_STOP -eq '1') { if ($env:CHRONICLE_FAKE_COMMIT -eq '1') { Push-Location $env:CHRONICLE_FIXTURE_REPO; try { $summary = 'CHRONICLE_RUNNER_READY ' + (& git rev-parse HEAD).Trim() } finally { Pop-Location } } else { $summary = 'Fixture cycle complete.' } } else { $summary = \"CHRONICLE_RUNNER_STOP`nFixture queue complete.\" }",
     '[System.IO.File]::WriteAllText($args[$outIndex + 1], $summary)',
     "[System.IO.File]::WriteAllText($env:CHRONICLE_FAKE_CODEX_MARKER, ($args -join ' '))",
@@ -62,6 +63,7 @@ function runRunner(fixture) {
       CHRONICLE_FAKE_NO_STOP: fixture.noStop ? '1' : '0',
       CHRONICLE_FAKE_COMMIT: fixture.commit ? '1' : '0',
       CHRONICLE_FAKE_STDERR: fixture.stderr ? '1' : '0',
+      CHRONICLE_FAKE_PUSH_URL: fixture.pushUrl || '',
       CHRONICLE_FIXTURE_REPO: fixture.repo,
     },
     timeout: 30_000,
@@ -135,6 +137,27 @@ test('autonomous runner accepts one clean commit rooted at its starting main com
   assert.equal(git(fixture.repo, 'rev-parse', 'refs/remotes/origin/main'), git(fixture.repo, 'rev-parse', 'HEAD'));
   const stopPath = path.join(fixture.state, 'STOP');
   assert.equal(fs.existsSync(stopPath), false, fs.existsSync(stopPath) ? fs.readFileSync(stopPath, 'utf8') : undefined);
+});
+
+test('autonomous runner preserves a verified commit when the push destination changes during the cycle', (t) => {
+  if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
+  const fixture = makeFixture(t);
+  const alternateRemote = path.join(fixture.tempRoot, 'alternate.git');
+  execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=main', alternateRemote]);
+  fixture.noStop = true;
+  fixture.commit = true;
+  fixture.pushUrl = alternateRemote;
+  const startingCommit = git(fixture.repo, 'rev-parse', 'HEAD');
+
+  runRunner(fixture);
+
+  assert.notEqual(git(fixture.repo, 'rev-parse', 'HEAD'), startingCommit);
+  assert.equal(git(fixture.remote, 'rev-parse', 'refs/heads/main'), startingCommit);
+  assert.equal(fs.existsSync(path.join(alternateRemote, 'refs', 'heads', 'main')), false);
+  assert.equal(git(fixture.repo, 'rev-parse', 'refs/remotes/origin/main'), startingCommit);
+  assert.equal(git(fixture.repo, 'status', '--porcelain'), '');
+  assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Push origin changed/);
+  assert.equal(git(fixture.repo, 'remote', 'get-url', '--push', 'origin'), alternateRemote);
 });
 
 test('autonomous runner pauses on a dirty checkout without invoking Codex', (t) => {

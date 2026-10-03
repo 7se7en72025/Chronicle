@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Recheck the authorized Git push URL after each Codex cycle; stop and preserve its verified local commit if the destination changed during the run.
 - Keep native Codex diagnostics from aborting the Windows runner; record run output as UTF-8 and check the CLI exit code.
 - Stop fixture MCP replay after a malformed tool call, so later calls cannot consume cassette responses.
 - Use the supported Codex CLI config override for unattended approval policy; the removed `--ask-for-approval` flag stopped the first real runner cycle before any model work.

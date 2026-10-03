@@ -206,12 +206,19 @@ try {
                     [System.IO.File]::WriteAllText($stopPath, "origin/main changed during the cycle; inspect commit $($after.Head) before resuming.`n")
                     $continueRunning = $false
                 } else {
-                    $checkOutput = @(& git -C $repoRoot show --check --oneline $after.Head 2>&1)
-                    if ($LASTEXITCODE -ne 0) {
+                    $pushOrigin = (& git -C $repoRoot remote get-url --push origin 2>&1 | Out-String).Trim()
+                    if ($LASTEXITCODE -ne 0 -or $pushOrigin -ne $ExpectedOrigin) {
+                        Write-RunnerLog 'Push origin changed during the run; preserving the local commit without pushing.'
+                        [System.IO.File]::WriteAllText($stopPath, "Push origin changed during the cycle; inspect commit $($after.Head) before resuming.`n")
+                        $continueRunning = $false
+                    } else {
+                        $checkOutput = @(& git -C $repoRoot show --check --oneline $after.Head 2>&1)
+                    }
+                    if ($continueRunning -and $LASTEXITCODE -ne 0) {
                         Write-RunnerLog 'Git commit whitespace validation failed; preserving the local commit.'
                         [System.IO.File]::WriteAllText($stopPath, "Commit $($after.Head) failed git show --check; review before resuming.`n")
                         $continueRunning = $false
-                    } else {
+                    } elseif ($continueRunning) {
                         Write-RunnerLog "Pushing verified commit $($after.Head) normally to the exact authorized origin."
                         $previousErrorAction = $ErrorActionPreference
                         $ErrorActionPreference = 'Continue'
