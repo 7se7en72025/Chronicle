@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Bound checkpoint, gap, operation, and lock metadata reads; reject swapped checkpoint/operation IDs and sanitize invalid stored JSON errors.
 - Screen Codex native stderr in fixture trace inspection and fail closed on diagnostics or missing stderr when comparing server evidence; a policy-blocked shell attempt was absent from host JSONL.
 - Add an explicit controlled fixture finish tool and verify its fsynced completion receipt in a real Codex CLI read-only turn; agent-run binding remains deferred.
 - Add optional fixture-server completion evidence and a read-only Codex host/server consistency check; a real Codex turn showed two matching calls but no graceful server completion marker.

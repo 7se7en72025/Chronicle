@@ -857,6 +857,81 @@ test('oversized or non-regular saved blobs cannot be read or reused', t => {
   assert.equal(engine.bytes(entry).toString(), 'one\ntwo\nthree\n');
 });
 
+test('oversized local metadata refuses review and mutations without changing workspaces', t => {
+  const { root, engine, file } = fixture(t);
+  const before = engine.capture('Before');
+  const gap = engine.recordGap({ boundary: 'PostToolUse', tool: 'Bash' }, new Error('busy'));
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After');
+  const selected = [engine.compare(before.id, after.id).changes[0].hunks[0].id];
+  const operation = engine.createBranch(before.id, after.id, selected, 'chronicle/bounded-metadata');
+  const originalIndex = git(root, ['ls-files', '--stage', '-z']);
+  const originalSource = fs.readFileSync(file);
+  const originalOutput = fs.readFileSync(path.join(operation.target, 'README.md'));
+  const oversized = (target, length, inspect) => {
+    const original = fs.readFileSync(target);
+    const fd = fs.openSync(target, 'w');
+    try { fs.ftruncateSync(fd, length); } finally { fs.closeSync(fd); }
+    try {
+      inspect();
+      assert.equal(fs.statSync(target).size, length);
+    } finally { fs.writeFileSync(target, original); }
+  };
+  oversized(path.join(engine.store, 'checkpoints', before.id + '.json'), 64 * 1024 * 1024 + 1, () => {
+    assert.throws(() => engine.checkpoint(before.id), /Invalid evidence file/);
+    assert.throws(() => engine.list(), /Invalid evidence file/);
+  });
+  const checkpointFile = path.join(engine.store, 'checkpoints', before.id + '.json');
+  const originalCheckpoint = fs.readFileSync(checkpointFile);
+  fs.writeFileSync(checkpointFile, fs.readFileSync(path.join(engine.store, 'checkpoints', after.id + '.json')));
+  try {
+    assert.throws(() => engine.checkpoint(before.id), /Checkpoint does not belong/);
+    assert.throws(() => engine.list(), /Checkpoint record identity is invalid/);
+    assert.throws(() => engine.compare(before.id, after.id), /Checkpoint does not belong/);
+  } finally { fs.writeFileSync(checkpointFile, originalCheckpoint); }
+  fs.writeFileSync(checkpointFile, 'null');
+  try { assert.throws(() => engine.checkpoint(before.id), /Stored JSON evidence is invalid/); }
+  finally { fs.writeFileSync(checkpointFile, originalCheckpoint); }
+  const gapFile = path.join(engine.store, 'gaps', gap.id + '.json');
+  oversized(gapFile, 1024 * 1024 + 1, () => {
+    assert.throws(() => engine.gaps(), /Invalid evidence file/);
+  });
+  const originalGap = fs.readFileSync(gapFile);
+  fs.writeFileSync(gapFile, '{SECRET_LOCAL_EVIDENCE');
+  try {
+    assert.throws(() => engine.gaps(), /Stored JSON evidence is invalid/);
+    const cli = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'cli.js'), 'gaps'], {
+      cwd: root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) }, windowsHide: true
+    });
+    assert.equal(cli.status, 1);
+    assert.equal(cli.stderr.includes('SECRET_LOCAL_EVIDENCE'), false);
+  } finally { fs.writeFileSync(gapFile, originalGap); }
+  const operationFile = path.join(engine.store, 'operations', operation.id + '.json');
+  oversized(operationFile, 64 * 1024 * 1024 + 1, () => {
+    assert.throws(() => engine.operations(), /Invalid evidence file/);
+    assert.throws(() => engine.recordCheck(operation.id, 'blocked', 0), /Invalid evidence file/);
+    assert.throws(() => engine.undoOperation(operation.id), /Invalid evidence file/);
+  });
+  const originalOperation = fs.readFileSync(operationFile);
+  fs.writeFileSync(operationFile, JSON.stringify({ ...operation, id: crypto.randomUUID() }));
+  try {
+    assert.throws(() => engine.operations(), /Operation record identity is invalid/);
+    assert.throws(() => engine.reconcileOperations(), /Operation record identity is invalid/);
+    assert.throws(() => engine.recordCheck(operation.id, 'blocked', 0), /Check evidence can only be recorded/);
+  } finally { fs.writeFileSync(operationFile, originalOperation); }
+  const lock = path.join(engine.store, 'operation.lock');
+  fs.writeFileSync(lock, Buffer.alloc(513, 49));
+  assert.throws(() => engine.recoverStorage(true), /Invalid evidence file/);
+  assert.equal(fs.statSync(lock).size, 513);
+  fs.unlinkSync(lock);
+  assert.equal(engine.list().length, 2);
+  assert.equal(engine.gaps().length, 1);
+  assert.equal(engine.operations()[0].id, operation.id);
+  assert.equal(fs.readFileSync(file).equals(originalSource), true);
+  assert.equal(fs.readFileSync(path.join(operation.target, 'README.md')).equals(originalOutput), true);
+  assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);
+});
+
 test('capture refuses a source file enlarged between inspection and read', t => {
   const { engine, file } = fixture(t);
   const originalOpen = fs.openSync;

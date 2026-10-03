@@ -104,6 +104,16 @@ function readRegularLimited(file, maximumBytes) {
   } finally { fs.closeSync(fd); }
 }
 
+function readJsonLimited(file, maximumBytes) {
+  const bytes = readRegularLimited(file, maximumBytes);
+  try {
+    const record = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    if (!record || typeof record !== 'object' || Array.isArray(record)) throw new Error('Invalid record');
+    return record;
+  }
+  catch { throw new Error('Stored JSON evidence is invalid'); }
+}
+
 class Chronicle {
   constructor(root, options = {}) {
     this.root = fs.realpathSync(git(root, ['rev-parse', '--show-toplevel']).trim());
@@ -204,14 +214,18 @@ class Chronicle {
   }
 
   list() {
-    return fs.readdirSync(path.join(this.store, 'checkpoints')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'checkpoints', n), 'utf8'))).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return fs.readdirSync(path.join(this.store, 'checkpoints')).filter(n => n.endsWith('.json')).map(n => {
+      const cp = readJsonLimited(path.join(this.store, 'checkpoints', n), MAX_TOTAL * 2);
+      if (!cp || cp.id + '.json' !== n || cp.root !== this.root || cp.schema !== 1) throw new Error('Checkpoint record identity is invalid');
+      return cp;
+    }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   gaps(from, to) {
     const checkpoints = from && to ? [this.checkpoint(from), this.checkpoint(to)] : [];
     const start = checkpoints.length ? Math.min(...checkpoints.map(cp => Date.parse(cp.createdAt))) : -Infinity;
     const end = checkpoints.length ? Math.max(...checkpoints.map(cp => Date.parse(cp.createdAt))) : Infinity;
-    return fs.readdirSync(path.join(this.store, 'gaps')).filter(name => name.endsWith('.json')).map(name => JSON.parse(fs.readFileSync(path.join(this.store, 'gaps', name), 'utf8'))).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return fs.readdirSync(path.join(this.store, 'gaps')).filter(name => name.endsWith('.json')).map(name => readJsonLimited(path.join(this.store, 'gaps', name), MAX_FILE)).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   unpairedToolBoundaries(from, to) {
@@ -274,8 +288,8 @@ class Chronicle {
 
   checkpoint(id) {
     if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid checkpoint ID');
-    const cp = JSON.parse(fs.readFileSync(path.join(this.store, 'checkpoints', id + '.json'), 'utf8'));
-    if (cp.root !== this.root || cp.schema !== 1) throw new Error('Checkpoint does not belong to this workspace');
+    const cp = readJsonLimited(path.join(this.store, 'checkpoints', id + '.json'), MAX_TOTAL * 2);
+    if (cp.id !== id || cp.root !== this.root || cp.schema !== 1) throw new Error('Checkpoint does not belong to this workspace');
     return cp;
   }
 
@@ -437,7 +451,11 @@ class Chronicle {
   }
 
   operations() {
-    return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
+    return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => {
+      const operation = readJsonLimited(path.join(this.store, 'operations', n), MAX_TOTAL * 2);
+      if (!operation || operation.id + '.json' !== n) throw new Error('Operation record identity is invalid');
+      return operation;
+    });
   }
 
   beginFixtureRun(cassette, sourceCheckpointId) {
@@ -609,7 +627,7 @@ class Chronicle {
         const other = JSON.parse(readRegularLimited(path.join(folder, name), 1024 * 1024).toString('utf8'));
         if (other.binding?.operationId === operationId) throw new Error('Operation already has fixture evidence');
       }
-      const op = JSON.parse(fs.readFileSync(path.join(this.store, 'operations', operationId + '.json'), 'utf8'));
+      const op = readJsonLimited(path.join(this.store, 'operations', operationId + '.json'), MAX_TOTAL * 2);
       if (op.id !== operationId || op.state !== 'completed' || op.from !== run.source.checkpoint ||
           op.head !== run.source.commit || op.manifest?.baselineCommit !== run.source.commit ||
           op.manifest?.checkpoints?.from !== run.source.checkpoint ||
@@ -745,7 +763,7 @@ class Chronicle {
       if (typeof label !== 'string' || !label.trim() || label.length > 120 || /[\r\n\0]/.test(label)) throw new Error('Check label must be 1–120 characters on one line');
       if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new Error('Exit code must be an integer from 0 to 255');
       const journal = path.join(this.store, 'operations', operationId + '.json');
-      const operation = JSON.parse(fs.readFileSync(journal, 'utf8'));
+      const operation = readJsonLimited(journal, MAX_TOTAL * 2);
       if (operation.id !== operationId || operation.state !== 'completed' || operation.manifest?.schema !== 1 || !Array.isArray(operation.manifest.checks)) throw new Error('Check evidence can only be recorded for a completed manifest-backed operation');
       if (operation.manifest.checks.length >= 100) throw new Error('Check evidence limit reached for this operation');
       if (this.reconcileOperations().find(item => item.id === operationId)?.assessment !== 'completed') throw new Error('Output workspace changed; check evidence cannot be attached to the saved output');
@@ -760,7 +778,7 @@ class Chronicle {
     if (firstId === secondId) throw new Error('Choose two different operations to compare');
     const read = id => {
       if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid operation ID');
-      const operation = JSON.parse(fs.readFileSync(path.join(this.store, 'operations', id + '.json'), 'utf8'));
+      const operation = readJsonLimited(path.join(this.store, 'operations', id + '.json'), MAX_TOTAL * 2);
       if (operation.id !== id || operation.state !== 'completed' || !operation.manifest || operation.manifest.schema !== 1) throw new Error('Operation has no completed comparison manifest');
       return operation;
     };
@@ -823,7 +841,7 @@ class Chronicle {
     return this.exclusive(() => {
       if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid operation ID');
       const journal = path.join(this.store, 'operations', id + '.json');
-      const op = JSON.parse(fs.readFileSync(journal, 'utf8'));
+      const op = readJsonLimited(journal, MAX_TOTAL * 2);
       const target = path.resolve(this.store, 'worktrees', id);
       if (op.id !== id || path.resolve(op.target || '') !== target) throw new Error('Operation target is invalid');
       if (!['completed', 'undoing'].includes(op.state)) throw new Error('Only a completed Chronicle operation can be undone');
@@ -962,7 +980,7 @@ class Chronicle {
     const lock = path.join(this.store, 'operation.lock');
     let staleLock;
     try {
-      const raw = fs.readFileSync(lock, 'utf8');
+      const raw = new TextDecoder('utf-8', { fatal: true }).decode(readRegularLimited(lock, 512));
       const match = raw.match(/^\s*(\d+)\s*$/);
       const pid = match ? Number(match[1]) : 0;
       if (!pid) throw new Error('operation.lock has no readable process ID. Inspect it manually; Chronicle made no changes.');
