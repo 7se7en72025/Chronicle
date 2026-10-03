@@ -29,7 +29,7 @@ const bytes = events => Buffer.from(events.map(event => JSON.stringify(event)).j
 test('Codex trace inspector checks ordered fixture calls and refuses ambiguous host outcomes', t => {
   const accepted = inspectCodexTrace(bytes(complete()), cassette);
   assert.deepEqual(accepted, { status: 'host-reported-match', matchedCalls: 2, expectedCalls: 2,
-    failedCalls: 0, otherToolItems: 0, hostErrorItems: 0, pendingCalls: 0,
+    finishCalls: 0, failedCalls: 0, otherToolItems: 0, hostErrorItems: 0, pendingCalls: 0,
     traceStructureValid: true, traceCallsMatchCassette: true });
   assert.equal(JSON.stringify(accepted).includes('README headings'), false);
 
@@ -90,14 +90,37 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   const completion = { schema: 1, kind: 'chronicle.fixture-server-completion', runId,
     cassetteHash, consumedCalls: 2, evidenceHash: hash(lines) };
   const serverEvidence = { sidecarBytes: Buffer.from(lines), completionBytes: Buffer.from(JSON.stringify(completion) + '\n'), cassetteBytes };
-  const accepted = inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', serverEvidence);
-  assert.equal(accepted.status, 'host-server-evidence-consistent');
+  const withFinish = complete();
+  withFinish.splice(-1, 0,
+    { type: 'item.started', item: { id: 'item_finish', type: 'mcp_tool_call', server: 'chronicle_replay', tool: 'fixture.replay.finish', arguments: {}, status: 'in_progress' } },
+    { type: 'item.completed', item: { id: 'item_finish', type: 'mcp_tool_call', server: 'chronicle_replay', tool: 'fixture.replay.finish', arguments: {}, status: 'completed', result: { content: [{ type: 'text', text: JSON.stringify(completion) }] } } });
+  const accepted = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence);
+  assert.equal(accepted.status, 'review-required');
   assert.equal(accepted.serverEvidenceMatches, true);
+  assert.equal(accepted.finishCalls, 1);
+  const benignDiagnostics = Buffer.from('Reading additional input from stdin...\r\n');
+  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence, benignDiagnostics).status,
+    'host-server-evidence-consistent');
+  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence,
+    Buffer.concat([benignDiagnostics, benignDiagnostics])).status, 'review-required');
+  const hiddenToolError = Buffer.from('Reading additional input from stdin...\nERROR codex_core::tools::router: PRIVATE_COMMAND rejected by policy\n');
+  const withError = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence, hiddenToolError);
+  assert.equal(withError.status, 'review-required');
+  assert.equal(withError.hostDiagnosticLines, 1);
+  assert.equal(JSON.stringify(withError).includes('PRIVATE_COMMAND'), false);
+  assert.equal(inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
+  assert.equal(inspectCodexTrace(bytes(withFinish), cassette).status, 'review-required');
+  const wrongReceipt = structuredClone(withFinish);
+  wrongReceipt[7].item.result.content[0].text = JSON.stringify({ ...completion, runId: crypto.randomUUID() });
+  assert.equal(inspectCodexTrace(bytes(wrongReceipt), cassette, 'chronicle_replay', serverEvidence).serverEvidenceMatches, false);
+  const extraFinish = structuredClone(withFinish);
+  extraFinish.splice(-1, 0, structuredClone(extraFinish[6]), structuredClone(extraFinish[7]));
+  assert.equal(inspectCodexTrace(bytes(extraFinish), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
   const drifted = { ...serverEvidence, sidecarBytes: Buffer.from(lines.replace('injected-fixture', 'rejected-fixture')) };
-  assert.equal(inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', drifted).status, 'review-required');
+  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', drifted).status, 'review-required');
   const wrongRun = { ...serverEvidence, completionBytes: Buffer.from(JSON.stringify({ ...completion, runId: crypto.randomUUID() }) + '\n') };
-  assert.equal(inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', wrongRun).serverEvidenceMatches, false);
-  const hostFailed = complete();
+  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', wrongRun).serverEvidenceMatches, false);
+  const hostFailed = structuredClone(withFinish);
   hostFailed[3].item.status = 'failed';
   assert.equal(inspectCodexTrace(bytes(hostFailed), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
 
@@ -105,16 +128,22 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   const base = fs.realpathSync(fs.mkdtempSync(path.join(tempRoot, 'chronicle-codex-correlation-')));
   assert.ok(base.startsWith(tempRoot + path.sep));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
-  const paths = ['trace.jsonl', 'cassette.json', 'server.jsonl', 'completion.json'].map(name => path.join(base, name));
-  for (const [index, data] of [bytes(complete()), cassetteBytes, serverEvidence.sidecarBytes, serverEvidence.completionBytes].entries()) {
+  const paths = ['trace.jsonl', 'cassette.json', 'server.jsonl', 'completion.json', 'stderr.txt'].map(name => path.join(base, name));
+  for (const [index, data] of [bytes(withFinish), cassetteBytes, serverEvidence.sidecarBytes, serverEvidence.completionBytes].entries()) {
     fs.writeFileSync(paths[index], data);
   }
   const script = path.join(__dirname, '..', 'scripts', 'inspect-codex-trace.js');
+  fs.writeFileSync(paths[4], benignDiagnostics);
   const good = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
   assert.equal(good.status, 0, good.stderr);
   assert.equal(JSON.parse(good.stdout).status, 'host-server-evidence-consistent');
+  fs.writeFileSync(paths[4], hiddenToolError);
+  const warned = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
+  assert.equal(warned.status, 2, warned.stderr);
+  assert.equal(JSON.parse(warned.stdout).hostDiagnosticLines, 1);
+  assert.equal(warned.stdout.includes('PRIVATE_COMMAND'), false);
   fs.writeFileSync(paths[3], wrongRun.completionBytes);
-  const refused = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
+  const refused = spawnSync(process.execPath, [script, ...paths.slice(0, 4)], { encoding: 'utf8' });
   assert.equal(refused.status, 2, refused.stderr);
   assert.equal(JSON.parse(refused.stdout).serverEvidenceMatches, false);
   const missing = spawnSync(process.execPath, [script, ...paths.slice(0, 3), path.join(base, 'PRIVATE_MISSING_MARKER.json')], { encoding: 'utf8' });

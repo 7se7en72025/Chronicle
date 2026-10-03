@@ -30,6 +30,12 @@ const TOOL_DEFINITIONS = Object.freeze({
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
   }
 });
+const FINISH_TOOL = Object.freeze({
+  name: 'fixture.replay.finish',
+  description: 'Finish this controlled fixture run after all recorded calls. Returns a local evidence receipt; no live service is called.',
+  inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }
+});
 
 function rpcError(id, code, message) {
   return { jsonrpc: '2.0', id, error: { code, message } };
@@ -39,13 +45,15 @@ function isRecord(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
+function createSimulatedReplayMcp(cassette, { onEvidence = () => {}, onFinish = null } = {}) {
   const replay = createSimulatedReplay(cassette);
   const availableTools = cassette.allowedTools.map(name => TOOL_DEFINITIONS[name]);
+  if (onFinish !== null) availableTools.push(FINISH_TOOL);
   const availableNames = new Set(cassette.allowedTools);
   let phase = 'new';
   let stopped = false;
   let stopCode = null;
+  let finished = false;
 
   function stop(code) {
     if (stopped) return;
@@ -131,6 +139,25 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
       if (!isRecord(params) || typeof params.name !== 'string' || !isRecord(params.arguments)) {
         stop('SIMULATED_REPLAY_INVALID_CALL');
         return rpcError(id, -32602, 'tools/call requires a tool name and object arguments.');
+      }
+      if (params.name === FINISH_TOOL.name && onFinish !== null) {
+        if (finished || Object.keys(params.arguments).length !== 0) {
+          stop('SIMULATED_REPLAY_INVALID_FINISH');
+          return toolError(id, stopCode, 'Fixture finish was duplicate or had arguments.');
+        }
+        try {
+          const completion = replay.assertComplete();
+          const receipt = onFinish(completion);
+          finished = true;
+          return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(receipt) }], isError: false } };
+        } catch (error) {
+          stop(typeof error.code === 'string' ? error.code : 'SIMULATED_REPLAY_FINISH_FAILED');
+          return toolError(id, stopCode, `Fixture finish failed (${stopCode}).`);
+        }
+      }
+      if (finished) {
+        stop('SIMULATED_REPLAY_AFTER_FINISH');
+        return toolError(id, stopCode, 'Fixture run already finished.');
       }
       if (!availableNames.has(params.name)) {
         stop('SIMULATED_REPLAY_TOOL_NOT_ALLOWED');

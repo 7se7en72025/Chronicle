@@ -35,8 +35,9 @@ function writeMessage(output, message) {
   return message === null || output.write(JSON.stringify(message) + '\n');
 }
 
-function runStdioReplay({ input, output, errorOutput, cassette, onEvidence = () => {} }) {
+function runStdioReplay({ input, output, errorOutput, cassette, onEvidence = () => {}, onFinish = null }) {
   const server = createSimulatedReplayMcp(cassette, {
+    onFinish,
     onEvidence: evidence => {
       onEvidence(evidence);
       errorOutput.write(`Chronicle replay evidence ${JSON.stringify(evidence)}\n`);
@@ -163,25 +164,31 @@ async function main() {
     const cassetteHash = crypto.createHash('sha256').update(cassetteBytes).digest('hex');
     const evidenceDigest = crypto.createHash('sha256');
     let sequence = 0;
+    let completionWritten = false;
+    const writeCompletion = completion => {
+      if (!completionPath || completionWritten || completion.consumedCalls !== sequence) throw new Error('INVALID_COMPLETION');
+      const marker = {
+        schema: 1, kind: 'chronicle.fixture-server-completion', runId: launchRunId,
+        cassetteHash, consumedCalls: sequence, evidenceHash: evidenceDigest.copy().digest('hex')
+      };
+      const completionFd = fs.openSync(completionPath, 'wx', 0o600);
+      try { fs.writeFileSync(completionFd, JSON.stringify(marker) + '\n'); fs.fsyncSync(completionFd); }
+      finally { fs.closeSync(completionFd); }
+      completionWritten = true;
+      return marker;
+    };
     const exitCode = await runStdioReplay({ input: process.stdin, output: process.stdout, errorOutput: process.stderr, cassette,
+      onFinish: completionPath ? writeCompletion : null,
       onEvidence: evidence => {
         if (evidenceFd === undefined) return;
         if (++sequence > 257) throw new Error('MCP_EVIDENCE_LIMIT');
         const line = JSON.stringify({ ...evidence, runId: launchRunId, cassetteHash, sequence }) + '\n';
         fs.writeFileSync(evidenceFd, line);
         fs.fsyncSync(evidenceFd);
-        evidenceDigest.update(line);
+        if (!completionWritten) evidenceDigest.update(line);
       }
     });
-    if (exitCode === 0 && completionPath) {
-      const marker = {
-        schema: 1, kind: 'chronicle.fixture-server-completion', runId: launchRunId,
-        cassetteHash, consumedCalls: sequence, evidenceHash: evidenceDigest.digest('hex')
-      };
-      const completionFd = fs.openSync(completionPath, 'wx', 0o600);
-      try { fs.writeFileSync(completionFd, JSON.stringify(marker) + '\n'); fs.fsyncSync(completionFd); }
-      finally { fs.closeSync(completionFd); }
-    }
+    if (exitCode === 0 && completionPath && !completionWritten) writeCompletion({ consumedCalls: sequence });
     process.exitCode = exitCode;
   } finally {
     if (evidenceFd !== undefined) fs.closeSync(evidenceFd);

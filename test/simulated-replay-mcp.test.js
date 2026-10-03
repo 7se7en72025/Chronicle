@@ -106,6 +106,33 @@ test('fixture server writes a fsynced completion marker only after consuming the
     cassetteHash, consumedCalls: 2, evidenceHash: crypto.createHash('sha256').update(lines).digest('hex') });
   assert.equal(JSON.parse(fs.readFileSync(successful.launch, 'utf8')).runId, successful.runId);
 
+  const explicit = invoke([...setup,
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } }),
+    request(3, 'tools/call', { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } }),
+    request(4, 'tools/call', { name: 'fixture.replay.finish', arguments: {} })
+  ], 'explicit');
+  assert.equal(explicit.result.status, 0, explicit.result.stderr);
+  const replies = explicit.result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  assert.deepEqual(JSON.parse(replies[3].result.content[0].text), JSON.parse(fs.readFileSync(explicit.completion, 'utf8')));
+  assert.equal(JSON.parse(fs.readFileSync(explicit.completion, 'utf8')).runId, explicit.runId);
+
+  const early = invoke([...setup,
+    request(2, 'tools/call', { name: 'fixture.replay.finish', arguments: {} })
+  ], 'early');
+  assert.equal(early.result.status, 1);
+  assert.equal(fs.existsSync(early.completion), false);
+
+  const extra = invoke([...setup,
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } }),
+    request(3, 'tools/call', { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } }),
+    request(4, 'tools/call', { name: 'fixture.replay.finish', arguments: {} }),
+    request(5, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ], 'extra');
+  assert.equal(extra.result.status, 1);
+  assert.equal(fs.existsSync(extra.completion), true);
+  assert.notEqual(JSON.parse(fs.readFileSync(extra.completion, 'utf8')).evidenceHash,
+    crypto.createHash('sha256').update(fs.readFileSync(extra.evidence)).digest('hex'));
+
   const incomplete = invoke([...setup,
     request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
   ], 'incomplete');

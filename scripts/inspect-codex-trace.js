@@ -3,7 +3,7 @@
 
 const fs = require('node:fs');
 const { TextDecoder } = require('node:util');
-const { inspectCodexTrace, MAX_TRACE_BYTES, MAX_SERVER_EVIDENCE_BYTES, MAX_COMPLETION_BYTES } = require('../src/codex-trace');
+const { inspectCodexTrace, MAX_TRACE_BYTES, MAX_SERVER_EVIDENCE_BYTES, MAX_COMPLETION_BYTES, MAX_DIAGNOSTICS_BYTES } = require('../src/codex-trace');
 const { MAX_CASSETTE_BYTES } = require('../src/simulated-replay');
 
 function readLimited(file, limit) {
@@ -27,8 +27,8 @@ function readLimited(file, limit) {
 }
 
 function main(args) {
-  if (args.length !== 2 && args.length !== 4) {
-    throw new Error('Usage: inspect-codex-trace <codex-jsonl> <fixture-cassette-json> [<server-evidence-jsonl> <server-completion-json>]');
+  if (![2, 3, 4, 5].includes(args.length)) {
+    throw new Error('Usage: inspect-codex-trace <codex-jsonl> <fixture-cassette-json> [<server-evidence-jsonl> <server-completion-json>] [<codex-stderr>]');
   }
   const trace = readLimited(args[0], MAX_TRACE_BYTES);
   let cassette, cassetteBytes;
@@ -37,11 +37,13 @@ function main(args) {
     cassette = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(cassetteBytes));
   }
   catch { throw new Error('Invalid fixture cassette JSON or evidence file'); }
-  const serverEvidence = args.length === 4 ? {
+  const serverEvidence = args.length >= 4 ? {
     sidecarBytes: readLimited(args[2], MAX_SERVER_EVIDENCE_BYTES),
     completionBytes: readLimited(args[3], MAX_COMPLETION_BYTES), cassetteBytes
   } : null;
-  const result = inspectCodexTrace(trace, cassette, 'chronicle_replay', serverEvidence);
+  const diagnosticsBytes = args.length === 3 || args.length === 5 ?
+    readLimited(args.at(-1), MAX_DIAGNOSTICS_BYTES) : null;
+  const result = inspectCodexTrace(trace, cassette, 'chronicle_replay', serverEvidence, diagnosticsBytes);
   console.log(JSON.stringify(result, null, 2));
   if (result.status === 'review-required') process.exitCode = 2;
 }

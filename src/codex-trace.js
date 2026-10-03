@@ -7,8 +7,23 @@ const MAX_TRACE_BYTES = 4 * 1024 * 1024;
 const MAX_TRACE_LINES = 10000;
 const MAX_SERVER_EVIDENCE_BYTES = 256 * 1024;
 const MAX_COMPLETION_BYTES = 1024;
+const MAX_DIAGNOSTICS_BYTES = 1024 * 1024;
 
-function matchesServerEvidence(serverEvidence, expected) {
+function countHostDiagnostics(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length > MAX_DIAGNOSTICS_BYTES) throw new Error('Codex diagnostics exceed the 1 MiB limit');
+  const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  let ignoredBenignLine = false;
+  return source.split(/\r?\n/).filter(line => {
+    if (!line) return false;
+    if (!ignoredBenignLine && line === 'Reading additional input from stdin...') {
+      ignoredBenignLine = true;
+      return false;
+    }
+    return true;
+  }).length;
+}
+
+function matchesServerEvidence(serverEvidence, expected, receiptText) {
   const { sidecarBytes, completionBytes, cassetteBytes } = serverEvidence;
   if (![sidecarBytes, completionBytes, cassetteBytes].every(Buffer.isBuffer) ||
       sidecarBytes.length > MAX_SERVER_EVIDENCE_BYTES || completionBytes.length > MAX_COMPLETION_BYTES ||
@@ -20,7 +35,8 @@ function matchesServerEvidence(serverEvidence, expected) {
       new TextDecoder('utf-8', { fatal: true }).decode(sidecarBytes).slice(0, -1).split('\n').map(line => JSON.parse(line));
   } catch { return false; }
   const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
-  if (!marker || marker.schema !== 1 || marker.kind !== 'chronicle.fixture-server-completion' ||
+  if (!marker || receiptText !== JSON.stringify(marker) || marker.schema !== 1 ||
+      marker.kind !== 'chronicle.fixture-server-completion' ||
       typeof marker.runId !== 'string' || !/^[a-f0-9-]{36}$/.test(marker.runId) ||
       marker.cassetteHash !== hash(cassetteBytes) || marker.evidenceHash !== hash(sidecarBytes) ||
       marker.consumedCalls !== expected.length || lines.length !== expected.length) return false;
@@ -34,7 +50,7 @@ function matchesServerEvidence(serverEvidence, expected) {
   });
 }
 
-function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverEvidence = null) {
+function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverEvidence = null, diagnosticsBytes = null) {
   if (!Buffer.isBuffer(bytes) || bytes.length > MAX_TRACE_BYTES) throw new Error('Codex trace exceeds the 4 MiB limit');
   const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   if (!source.endsWith('\n')) throw new Error('Codex trace has an incomplete final line');
@@ -44,7 +60,8 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverE
   const expectedEvidence = [];
   const pending = new Map();
   let threadStarted = 0, turnStarted = 0, turnCompleted = 0, turnActive = false;
-  let matchedCalls = 0, failedCalls = 0, otherToolItems = 0, hostErrorItems = 0;
+  let matchedCalls = 0, failedCalls = 0, otherToolItems = 0, hostErrorItems = 0, finishCalls = 0;
+  let receiptText = null;
   let invalid = false;
   for (const line of lines) {
     let event;
@@ -83,6 +100,20 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverE
         }
         pending.delete(item.id);
         if (item.status !== 'completed') { failedCalls++; continue; }
+        if (item.tool === 'fixture.replay.finish') {
+          finishCalls++;
+          if (finishCalls !== 1 || matchedCalls !== cassette.calls.length ||
+              !item.arguments || typeof item.arguments !== 'object' || Array.isArray(item.arguments) ||
+              Object.keys(item.arguments).length !== 0 ||
+              !item.result || item.result.isError === true ||
+              (item.result.structured_content !== undefined && item.result.structured_content !== null) ||
+              !Array.isArray(item.result.content) || item.result.content.length !== 1 ||
+              !item.result.content[0] || item.result.content[0].type !== 'text' ||
+              typeof item.result.content[0].text !== 'string') invalid = true;
+          else receiptText = item.result.content[0].text;
+          continue;
+        }
+        if (finishCalls) { invalid = true; continue; }
         try {
           const expected = cassette.calls[matchedCalls];
           if (!expected || item.tool !== expected.tool ||
@@ -102,16 +133,20 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverE
   }
   let traceCallsMatchCassette = false;
   try { replay.assertComplete(); traceCallsMatchCassette = true; } catch { /* Incomplete or rejected tool sequence. */ }
-  const serverEvidenceMatches = serverEvidence === null ? null : matchesServerEvidence(serverEvidence, expectedEvidence);
+  const serverEvidenceMatches = serverEvidence === null ? null : matchesServerEvidence(serverEvidence, expectedEvidence, receiptText);
+  const hostDiagnosticLines = diagnosticsBytes === null ? null : countHostDiagnostics(diagnosticsBytes);
   const hostReportedMatch = !invalid && threadStarted === 1 && turnStarted === 1 && turnCompleted === 1 &&
-    pending.size === 0 && failedCalls === 0 && otherToolItems === 0 && hostErrorItems === 0 && traceCallsMatchCassette;
+    pending.size === 0 && failedCalls === 0 && otherToolItems === 0 && hostErrorItems === 0 && traceCallsMatchCassette &&
+    (serverEvidence === null ? finishCalls === 0 : finishCalls === 1) &&
+    (serverEvidence === null ? hostDiagnosticLines === null || hostDiagnosticLines === 0 : hostDiagnosticLines === 0);
   return {
     status: hostReportedMatch && serverEvidenceMatches === true ? 'host-server-evidence-consistent' :
       hostReportedMatch && serverEvidenceMatches === null ? 'host-reported-match' : 'review-required',
-    matchedCalls, expectedCalls: cassette.calls.length, failedCalls, otherToolItems,
+    matchedCalls, expectedCalls: cassette.calls.length, finishCalls, failedCalls, otherToolItems,
     hostErrorItems, pendingCalls: pending.size, traceStructureValid: !invalid, traceCallsMatchCassette,
-    ...(serverEvidence !== null ? { serverEvidenceMatches } : {})
+    ...(serverEvidence !== null ? { serverEvidenceMatches } : {}),
+    ...(diagnosticsBytes !== null ? { hostDiagnosticLines } : {})
   };
 }
 
-module.exports = { inspectCodexTrace, MAX_TRACE_BYTES, MAX_SERVER_EVIDENCE_BYTES, MAX_COMPLETION_BYTES };
+module.exports = { inspectCodexTrace, MAX_TRACE_BYTES, MAX_SERVER_EVIDENCE_BYTES, MAX_COMPLETION_BYTES, MAX_DIAGNOSTICS_BYTES };
