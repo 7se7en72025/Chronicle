@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Define the proposed O014 controller-owned fixture-run/branch correlation contract, including stale-binding refusal and explicit unavailable live-tool provenance; no correlation implementation is shipped.
 - Emit bounded rejection evidence for the first stopped fixture MCP tool attempt, distinct from successful cassette injection.
 - Validate one ordered, read-only fixture MCP tool-call sequence in Codex CLI 0.160.0 using temporary host configuration; full fresh-agent replay remains unverified.
 - Record observed Codex CLI fixture MCP tool discovery and the remaining tool-call/privacy boundary; the overnight supervisor completed four guarded automatic publications before stopping on its queue-blocked marker.

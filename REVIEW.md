@@ -2,6 +2,14 @@
 
 Status: first-release local audit completed; roadmap execution is active. One Codex MCP fixture call sequence is verified; full fresh-agent and editor validation remain open. This is a single-agent review log, not evidence of independent approval.
 
+## O014 fixture-run correlation design (2026-10-03)
+
+**P2 — Branch provenance cannot be attributed to a fixture process (design recorded).** `src/engine.js:createBranch` creates an operation UUID and manifest from checkpoints and output files, but accepts no run identity or replay events. `src/simulated-replay-mcp.js:createSimulatedReplayMcp` emits injected/rejected evidence containing a reusable fixture ID, while `scripts/simulated-replay-mcp.js` writes it only to process stderr. Neither path proves which branch, if any, used that process. Joining on fixture ID or timestamps could silently attribute a different run's calls to a branch.
+
+**Accepted O014 design:** [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract) and D011 define a controller-owned run ID, pinned cassette/source state, sequenced local events, observed process outcome, and checked one-to-one binding to a completed operation. Missing host-tool observations remain unavailable; a rejected fixture call does not establish a live fallback. This cycle changes the contract only. Controller, durable log, manifest binding, live-call observation, and fresh-agent retry remain proposed. No host documentation claim was added; the finding follows from current source and the recorded single Codex fixture call sequence.
+
+**Second pass:** reviewed the design against `createBranch`, MCP event emission, and `recordCheck`; checked ambiguity from reused fixture IDs, failed/incomplete runs, stale operation state, and recovery. The document changes do not assert that provenance is stored or displayed. Verification results for this cycle are in [HANDOFF.md](HANDOFF.md#verification). No independent reviewer participated.
+
 ## O014 replay provenance boundary (2026-10-03)
 
 **P2 — Rejected fixture calls had no structured evidence.** `src/simulated-replay-mcp.js:createSimulatedReplayMcp` emitted `injected-fixture` evidence only after successful cassette dispatch. On a mismatch or invalid attempted call it stopped replay but left stderr with only a completion error; a consumer could not distinguish rejection from a session that simply ended incomplete using the event stream. The adapter now emits one `rejected-fixture` event with fixture ID, fixed failure code, and current cassette position when it first stops. It omits raw tool names, arguments, and responses. A later call after stop produces no duplicate event. Direct and stdio mismatch tests check the evidence and unchanged position.

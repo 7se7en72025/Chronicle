@@ -65,3 +65,13 @@ The replay fixture accepts bounded schema-versioned JSON cassettes, matches call
 Reason: an explicitly owned fixture tool can return a saved response before any external operation occurs, while keeping the initial experiment deterministic and consistent with D007's dependency-free prototype. Official Claude/Codex hooks can affect model-visible post-tool output after the real tool already ran, so they do not alone provide side-effect-free replay.
 
 Revisit when: the stdio subset is validated with a real supported host, and a controlled orchestrator can start fresh runs in isolated worktrees while clearly separating injected, live, and unmatched events. Revisit the SDK choice before expanding protocol support.
+
+## D011 — Correlate replay evidence through a controller-owned run
+
+Status: accepted design; not implemented.
+
+Assign a random run ID before launching fixture tools. A controller pins the cassette hash and source state, sequences bounded local evidence, observes process completion, and binds the run to one completed branch operation only after validating that operation's source and output. Reused fixture IDs and independent MCP stderr records are insufficient to identify an operation. Reject stale or ambiguous bindings without rewriting prior evidence. Treat live-tool activity as unavailable unless the controller or host separately observes it; a rejected fixture call is not proof of a live fallback.
+
+Reason: `createBranch` currently has no shared identifier with the fixture MCP process. Attaching its uncorrelated events would make a branch manifest appear to prove tool provenance it cannot establish. The detailed proposed checks and recovery boundary are in [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract).
+
+Revisit after a controller and binding tests exist, especially if host event IDs or run lifecycle guarantees change.
