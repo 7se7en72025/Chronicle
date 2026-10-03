@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 sidecar recovery decision (2026-10-03)
+
+**P2 — the handoff implied automatic sidecar-to-journal merging was the next local task (resolved by D014).** The child sidecar can be ahead of a controller journal after interruption, but it does not prove the controller finished or that an interrupted journal replacement is safe to overwrite. [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-journals) keeps those bytes separate and inspectable, preserves failed-only recovery after process-death checks, and requires a durable completion contract plus real interruption evidence before considering a merge. This is a design boundary, not a new recovery implementation or independent review.
+
+**Verification:** changed Markdown targets and `git diff --check` pass. A second-pass documentation review aligns D011, the O014 queue row, the roadmap, and the handoff with implemented fixture coverage and remaining host blockers. Application tests are not applicable to this documentation-only decision; the latest code-bearing commit passed 75/75 tests and syntax checks.
+
 ## O014 bounded launch-witness read (2026-10-03)
 
 **P2 — launch-witness stat and read could refer to different objects (partially closed).** `recoverFixtureRuns` now uses the bounded descriptor read for an observed witness. If it disappears, changes identity, is oversized, redirected, or cannot be parsed, recovery keeps the run pending for inspection. Only a genuinely absent witness can support the existing pre-spawn failure rule. This narrows path-swap and growth races but cannot establish whether a child died before its first durable write or detect every same-size concurrent mutation.

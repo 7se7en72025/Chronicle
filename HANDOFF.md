@@ -104,7 +104,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** The sibling checkout is synced, but the scheduled runner remains STOP-gated: automatic approval review rejected clearing its exact STOP marker. Decide whether validated sidecar-ahead events should ever be copied into a failed journal; today the sidecar remains separate and the run stays failed after proven process death. Pre-witness child death remains ambiguous. Bounded reads narrow local path-swap risk, but concurrent same-size writes remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** The sibling checkout is synced, but the scheduled runner remains STOP-gated: automatic approval review rejected clearing its exact STOP marker. D014 keeps sidecar-ahead events separate from a failed journal until a tested merge contract exists. Pre-witness child death remains ambiguous. Bounded reads narrow local path-swap risk, but concurrent same-size writes remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
@@ -112,4 +112,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Continue O014 by evaluating whether validated sidecar-ahead events should be copied into a failed journal, following D011; do not infer completion. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+O014's next acceptance step is a controlled host/orchestrator run that observes injected versus live/unmatched tool activity; the current fixture cannot supply that evidence. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. Keep D014's separate sidecar rule until a tested merge contract exists. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).

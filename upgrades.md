@@ -60,6 +60,8 @@ Use these terms consistently:
 
 **Local durability step:** the controlled child now fsyncs a bounded metadata-only evidence sidecar before forwarding each event to the controller. `inspect-fixture-evidence` reports whether the sidecar and journal are consistent, the sidecar is ahead, or evidence is invalid/unavailable. Recovery refuses to change a pending journal when the sidecar is invalid or conflicting; consistent or sidecar-ahead records can only become failed after existing process-death checks. This does not establish tool provenance or prove host tool activity. Reconciliation of additional sidecar events remains unimplemented.
 
+Per [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-journals), sidecar-ahead events remain separate during recovery. A merge would need a versioned append-only log, durable completion marker, and real interruption evidence; it is not an automatic next step for the current fixture.
+
 New controlled subprocess runs require a consistent child-written sidecar before fixture evidence can be bound or displayed in branch comparison. Legacy records without a sidecar marker retain their earlier journal/cassette checks. This is local consistency evidence, not independent host-tool observation.
 
 Local cassette, sidecar, and launch-witness reads are bounded through an opened regular-file descriptor and checked against pre/open/post file identity and size. An observed but unreadable witness still leaves recovery pending. This narrows replacement and growth races; it is not a guarantee against every concurrent same-size write or a substitute for host provenance.

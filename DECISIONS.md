@@ -68,7 +68,7 @@ Revisit when: the stdio subset is validated with a real supported host, and a co
 
 ## D011 — Correlate replay evidence through a controller-owned run
 
-Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Conservative pending subprocess recovery is tested after a real controller termination. A persisted pre-spawn phase can be recovered when its controller is dead, and a child-owned launch witness can resolve a stale `spawning` record after its PID is confirmed absent. Death before the witness write, durable event logging, and host observation remain open.
+Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Conservative pending subprocess recovery is tested after a real controller termination. A persisted pre-spawn phase can be recovered when its controller is dead, and a child-owned launch witness can resolve a stale `spawning` record after its PID is confirmed absent. The child now fsyncs bounded event metadata to a sidecar; automatic reconciliation, death before the witness write, and host observation remain open.
 
 Assign a random run ID before fixture tools start. The controllers pin the cassette hash and source state, sequence bounded local evidence, and create one candidate branch before checked binding. The in-process path records session completion; the controlled subprocess path also records process exit. Reused fixture IDs and independent MCP stderr records are insufficient to identify an operation. Reject stale or ambiguous bindings without rewriting the operation journal. Treat live-tool activity as unavailable unless the controller or host separately observes it; a rejected fixture call is not proof of a live fallback.
 
@@ -97,3 +97,13 @@ Keep native CLI stderr in a separate diagnostic file; only stdout JSONL is parse
 Reason: accepting successful checks anywhere in a cycle could publish edits made after the checks. The runner cannot safely execute model-edited project code outside its sandbox.
 
 Revisit if a trusted sandboxed worktree digest can be bound to the checks without allowing model-edited verifier code to run in the supervisor.
+
+## D014 — Keep interrupted fixture sidecars separate from journals
+
+Status: accepted for the local fixture prototype.
+
+Inspect a child-written event sidecar against its controller journal, but do not automatically copy sidecar-ahead events into that journal. After both processes are proven absent, a consistent or sidecar-ahead pending run may only become failed; invalid or conflicting evidence remains pending for inspection. Preserve the sidecar and any interrupted journal-replacement candidate. Binding and comparison require a consistent sidecar for new completed subprocess runs.
+
+Reason: the sidecar records emitted fixture event metadata, not the controller's completed outcome. Copying it into a journal during recovery would blur which process persisted each event and could overwrite ambiguous replacement evidence. Separate evidence lets a reviewer inspect the gap without presenting an interrupted run as replay success.
+
+Revisit when a versioned append-only event log, durable completion marker, and real controller-death test demonstrate a safe, auditable merge rule. Do not infer host-tool activity from the fixture sidecar.
