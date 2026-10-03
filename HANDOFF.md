@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014 fixture recovery now checks an existing launch witness against the journal's recorded child PID. Conflicting or unreadable evidence stays pending for inspection. The focused regression, independent syntax check, and 72/72 full tests passed. The pre-witness death and durable-log gaps remain; see [REVIEW.md](REVIEW.md).
 - The runner's final-check evidence gate now recognizes exact quoted `cmd.exe /c` npm commands seen in the real cycle. Focused disposable fixtures accept those checks and reject a compound command inside the wrapper; full verification passed on rerun. Task restart remains pending; see [REVIEW.md](REVIEW.md).
 - O014's controlled fixture child now writes a fsynced launch witness with its PID before reading the cassette. If the controller died after saving `spawning` but before publishing `childPid`, recovery can use a valid witness and confirmed dead child PID to record interruption; a missing or unreadable witness stays pending. The focused subprocess and recovery fixtures passed 2/2. This does not recover a child killed before the witness write or resolve PID reuse; see [REVIEW.md](REVIEW.md).
 - The trusted Windows runner now requires exact final `npm run check` then `npm test` events, with no later tool activity, before publication. A disposable fake-Codex cycle confirms late file or command edits remain uncommitted. This is event-order evidence, not a content hash; see [REVIEW.md](REVIEW.md).
@@ -63,6 +64,8 @@ The current direction is a local companion for Codex or Claude Code: record supp
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
 ## Verification
+
+The O014 launch-witness cycle's focused fixture regression passed 1/1. A second-pass diff review covered the conflicting, malformed, matching, and absent-witness branches. Sandboxed `npm run check` and `npm test` passed 72/72, but raw Codex stderr diagnostics contaminated the strict JSONL stream and the trusted wrapper stopped without publishing. The six preserved files were then independently checked with `npm.cmd run check` and `npm.cmd test` (72/72); publication is recorded separately.
 
 For the runner's `cmd.exe` final-check fix, two focused disposable fixtures pass: exact wrapped commands publish and an appended command stops. `npm.cmd run check` passes; the full `npm.cmd test` rerun passes 72/72. An earlier full run passed 71/72 because the existing real-controller recovery test missed its 10-second PID-publication deadline; it then passed focused in both checkouts and on the full rerun. PowerShell parsing is covered by the runner suite. Changed local Markdown links and `git diff --check` are checked before publication. The registered task is stopped; after publication, sync its clean sibling checkout and restart it with the chat heartbeat still paused.
 

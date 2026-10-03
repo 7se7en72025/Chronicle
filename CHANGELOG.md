@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse fixture-run recovery when an existing child launch witness is unreadable or disagrees with the recorded child PID; retain the pending evidence for inspection.
 - Recognize Codex's exact quoted `cmd.exe /c` form for final sandboxed checks while refusing compound commands; preserve and independently publish the valid cycle rejected by the earlier gate.
 - Record a child-owned fixture launch witness so recovery can resolve a dead controller's `spawning` run after an observed child PID has exited; leave missing or malformed witnesses pending.
 - Refuse autonomous publication when recorded tool activity follows the final sandboxed syntax and test checks.

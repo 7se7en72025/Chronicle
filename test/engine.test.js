@@ -143,6 +143,14 @@ test('fixture subprocess recovery fails closed only after both recorded processe
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).outcome, null);
   saved.controllerPid = saved.childPid;
   fs.writeFileSync(file, JSON.stringify(saved));
+  const launchFile = path.join(engine.store, 'fixture-runs', run.id + '.launch.json');
+  const launchBytes = fs.readFileSync(launchFile);
+  fs.writeFileSync(launchFile, JSON.stringify({ runId: run.id, pid: process.pid }));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).outcome, null);
+  fs.writeFileSync(launchFile, '{');
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  fs.writeFileSync(launchFile, launchBytes);
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
   const recovered = JSON.parse(fs.readFileSync(file, 'utf8'));
   assert.deepEqual(recovered.outcome, { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });

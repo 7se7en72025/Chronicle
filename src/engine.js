@@ -576,16 +576,22 @@ class Chronicle {
         if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
             run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
         let childPid = run.childPid;
+        const launchFile = path.join(folder, run.id + '.launch.json');
         let launchWitness = false;
-        if ((run.launchPhase === 'spawning' || run.launchPhase === 'prepared') && childPid === null) {
-          const launchFile = path.join(folder, run.id + '.launch.json');
-          try { fs.lstatSync(launchFile); launchWitness = true; }
-          catch (error) { if (error.code !== 'ENOENT') launchWitness = true; }
+        let witnessPid = null;
+        try { fs.lstatSync(launchFile); launchWitness = true; }
+        catch (error) { if (error.code !== 'ENOENT') launchWitness = true; }
+        if (launchWitness) {
           try {
             const witness = JSON.parse(fs.readFileSync(launchFile, 'utf8'));
-            if (witness.runId === run.id && Number.isSafeInteger(witness.pid) && witness.pid > 0) childPid = witness.pid;
-          } catch { /* A missing or unreadable launch witness leaves the run uncertain. */ }
+            if (witness.runId === run.id && Number.isSafeInteger(witness.pid) && witness.pid > 0) witnessPid = witness.pid;
+          } catch { /* An unreadable launch witness requires inspection. */ }
         }
+        if (launchWitness && (witnessPid === null || (childPid !== null && witnessPid !== childPid))) {
+          results.push({ id: run.id, assessment: 'pending-inspect' });
+          continue;
+        }
+        if (childPid === null) childPid = witnessPid;
         const childAbsent = (run.launchPhase === 'prepared' && run.childPid === null && !launchWitness) || isDead(childPid);
         if (run.candidateOperationId || run.binding || !isDead(run.controllerPid) || !childAbsent) {
           results.push({ id: run.id, assessment: 'pending-inspect' });
