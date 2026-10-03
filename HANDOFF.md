@@ -4,7 +4,7 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout. Its supervisor automatically verified, committed, and pushed four focused MCP replay fixes through `cd55c5e`, then stopped on a host-validation blocker. A separate read-only Codex CLI 0.160.0 run now called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated. The chat heartbeat remains paused.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout, but is currently `Ready` rather than running. The laptop is discharging and the task is configured to stop on battery; it exited after the O014 recovery worker finished but before supervisor publication. The preserved change was independently checked and published as `80cbc25`. Resume the task only after AC power returns or the user approves changing its battery policy. A separate read-only Codex CLI 0.160.0 run called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated. The chat heartbeat remains paused.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
@@ -58,7 +58,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-For the current O014 pending-run recovery cycle, the focused engine suite passes 34/34 and full `npm test` passes 65/65. `npm run check`, modified Markdown local links, and `git diff --check` pass. A second-pass diff review checked process-liveness gating, preserved evidence/cassette, binding refusal, and documentation scope. The implementation is fixture-level and leaves real mid-write interruption, durable logging, live-tool observation, and comparison UI integration open. This cycle's tracked-file edits are local and unstaged; no commit or push occurred inside the sandbox.
+For the O014 pending-run recovery cycle, the focused engine suite passed 34/34 and full `npm test` passed 65/65 inside the worker. After the task stopped, an independent local `npm.cmd test` passed 65/65, `npm.cmd run check` passed, and `git diff --check` passed. Modified Markdown local links and a second-pass diff review checked process-liveness gating, preserved evidence/cassette, binding refusal, and documentation scope. The nine worker-edited tracked files were committed and normally pushed as `80cbc25`; `origin/main` was verified at that commit. The implementation is fixture-level and leaves real mid-write interruption, durable logging, live-tool observation, and comparison UI integration open.
 
 The earlier pre-initialization MCP regression covers calls before `initialize` and before `notifications/initialized`, including a stdio sequence with a later valid call. Its full `npm.cmd test` suite passed 59/59 and `npm.cmd run check` passed; see [REVIEW.md](REVIEW.md). That earlier change was subsequently reviewed and pushed as `9826ddd`.
 
@@ -68,7 +68,7 @@ The replay and push-destination fixes passed their recorded full suites. The rev
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
-The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes and is paused per the user. The optional local Windows runner is registered in a sibling checkout; do not resume the heartbeat while it runs. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O013 is verified at fixture level only; consult Git history for publication status.
+The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes and is paused per the user. The optional local Windows runner is registered in a sibling checkout and currently stopped under its battery policy; do not resume the heartbeat while using it. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O013 is verified at fixture level only; consult Git history for publication status.
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 

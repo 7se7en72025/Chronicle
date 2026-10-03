@@ -77,4 +77,4 @@ Marketplace publication, purchases, account changes, external messages, destruct
 
 When every queued task is verified, report completion and require user direction for new scope. If no task can progress, record concrete blockers and avoid repetitive edits. Respect a human stop or pause request immediately.
 
-The intended loop is a scheduled activation every 30 minutes with up to about 25 minutes of focused work per activation. It is not a continuously running process. Codex controls actual run duration and availability; the local desktop must be available. An always-on server would require separate deployment.
+The intended loop is a scheduled activation every 30 minutes with up to about 25 minutes of focused work per activation. It is not a continuously running process. Codex controls actual run duration and availability; the local desktop must be available. The registered Windows task currently refuses battery starts and stops when AC power is lost; verify AC power before relying on an overnight run. An always-on server would require separate deployment.

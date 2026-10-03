@@ -1,5 +1,11 @@
 # Latest development review
 
+## Scheduled runner stopped before publication (2026-10-03)
+
+**P1 — battery-policy stop interrupted the six-hour run.** The 12:02 UTC worker completed the O014 pending-run recovery edit and reported 65/65 tests plus syntax passing, but the trusted supervisor exited before commit or push. Task Scheduler then reported `Ready`, result `0x8007042B`, with no Chronicle `STOP` marker; the nine tracked edits remained unstaged. `Win32_Battery` reported discharging at 97%, while the task settings had `DisallowStartIfOnBatteries=True` and `StopIfGoingOnBatteries=True`. This strongly suggests a battery-policy termination; no Task Scheduler event record was available to prove the precise transition. Do not restart against this policy while the laptop remains on battery.
+
+The stopped checkout was reviewed in a second pass. An independent `npm.cmd test` passed 65/65, `npm.cmd run check` and `git diff --check` passed, and branch, parent, index, worktree, and both origin URLs were checked. Only the nine worker-edited files were committed as `80cbc25` and normally pushed; `refs/remotes/origin/main` matched. The primary checkout was fast-forwarded while preserving untracked `BOLPREP.md`. Resume the registered task after AC power returns, or after an explicitly approved battery-policy change; verify clean sibling state and remote freshness first. The chat heartbeat remains paused.
+
 ## O014 pending fixture subprocess recovery (2026-10-03)
 
 **P1 — a controller interruption could leave a pending subprocess record indefinitely (fixed for recorded, dead processes).** The subprocess record now persists the controller and child PIDs. `recoverFixtureRuns` inspects pending subprocess records and marks one failed with `MCP_PROCESS_INTERRUPTED` only when both recorded PIDs are confirmed absent. A live, unknown, malformed, or reused PID leaves the run pending for inspection. The method retains the event record and pinned cassette, creates no branch, and never upgrades partial evidence to a completed run. `recover-fixture-runs` exposes this local recovery through the CLI.
