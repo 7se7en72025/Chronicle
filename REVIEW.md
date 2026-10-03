@@ -1,5 +1,11 @@
 # Latest development review
 
+## Operator documentation drift (2026-10-04)
+
+**P2 — runner and MCP instructions contradicted current evidence (docs fixed).** `ORCHESTRATION.md` still called the sibling checkout synced to `709a855` and attributed the STOP gate to low battery, though both checkouts were synced to `5e8d0f6` at inspection and the marker was retained after automatic approval review rejected its removal. Task Scheduler reported `Ready`, not an active cycle. `GETTING_STARTED.md` said the fixture MCP server had never been host-validated, contradicting the documented Codex CLI 0.160.0 two-tool read-only sequence. The instructions now distinguish that narrow observed call sequence from unverified persistent registration, Claude discovery, and fresh-agent replay.
+
+**Verification and limit:** Git status and `HEAD` in both checkouts, the STOP marker, and Task Scheduler state were read directly. The updated claims were checked against [HANDOFF.md](HANDOFF.md) and [RELEASE_AUDIT.md](RELEASE_AUDIT.md). Changed Markdown relative links and `git diff --check` passed; the second-pass diff review confirmed the edit changes only operator claims and does not start the runner or alter its gate. No code changed, so application tests are not applicable. The task's `Ready` state does not override its STOP gate; the live tool provenance and hook/editor validation gaps remain.
+
 ## Codex host trust prerequisite (2026-10-04)
 
 **P2 — real-hook validation remains blocked by a separate project-trust gate (documented).** In a disposable Git project, Codex CLI 0.160.0 opened its no-prompt TUI with Chronicle's project-local hook file, but prompted for persistent project trust before a session could start. `--dangerously-bypass-hook-trust` and a transient project-trust config override did not remove that prompt in this probe; the session was quit without accepting trust or running a model turn. An earlier read-only model turn had its shell call rejected by automatic policy before hook delivery. Neither attempt establishes that Chronicle's hook receives live events.
