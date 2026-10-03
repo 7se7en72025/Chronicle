@@ -1,10 +1,14 @@
 # Latest development review
 
+## O014 fixture evidence after reported checks (2026-10-03)
+
+**P2 — adding a reported check hid an otherwise valid fixture binding (fixed).** `recordCheck` appends to a completed operation's manifest. The new comparison matched the binding's hash against only the current full manifest, so a legitimate check report changed the hash and made fixture evidence appear unavailable. Comparison now accepts a binding hash for the current manifest or any prefix of its bounded append-only check list. The focused disposable-repository regression binds with an existing check, appends another, and retains the same fixture summary; changing a non-check environment field still hides it. This preserves the original binding hash without inferring that a reported check is tool-call evidence. Focused test passed 1/1; `npm.cmd run check` and the full 73/73 suite passed. Live runner resume is pending. No independent reviewer participated.
+
 ## O014 bound fixture evidence in comparison (2026-10-03)
 
 **P2 — Saved branch comparison omitted checked fixture provenance (fixed at the controlled fixture boundary).** `bindFixtureRun` saved a run-to-operation binding, but `compareOperations` returned only the operation manifests and file differences. A reviewer could not tell whether an output had a bound cassette run. Comparison now reports the unique bound run ID, injected call count, and zero rejected calls only when the completed run, ordered events, binding manifest hash, and absence of an interrupted replacement agree. Otherwise fixture evidence is unavailable. Live-tool activity remains unavailable in both cases because the fixture controller cannot observe other host tools.
 
-**Verification and limits:** the focused engine suite passed 37/37, including bound, unbound, and replacement-candidate comparison assertions. The mocked-editor check passed 1/1 and covers both displayed states. The cycle's final syntax and full-suite check outcomes are recorded in runner evidence. This is read-only reporting of local fixture records; it does not validate real host provenance or resolve child death before the launch witness. A later manifest edit invalidates the saved binding hash and makes comparison evidence unavailable until a separate freshness contract exists. No independent reviewer participated.
+**Verification and limits:** the focused engine suite passed 37/37, including bound, unbound, and replacement-candidate comparison assertions. The mocked-editor check passed 1/1 and covers both displayed states. The cycle's final syntax and full-suite check outcomes are recorded in runner evidence. This is read-only reporting of local fixture records; it does not validate real host provenance or resolve child death before the launch witness. Changes outside the append-only reported-check list still invalidate the saved binding hash. No independent reviewer participated.
 
 ## Runner overlapping final checks (2026-10-03)
 

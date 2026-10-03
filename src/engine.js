@@ -649,7 +649,13 @@ class Chronicle {
     const first = read(firstId), second = read(secondId);
     const fixtureEvidence = operation => {
       const folder = path.join(this.store, 'fixture-runs');
-      const expectedHash = hash(Buffer.from(JSON.stringify(operation.manifest), 'utf8'));
+      const checks = operation.manifest.checks;
+      if (!Array.isArray(checks) || checks.length > 100) return null;
+      const manifestHashes = new Set();
+      for (let count = 0; count <= checks.length; count++) {
+        const manifest = { ...operation.manifest, checks: checks.slice(0, count) };
+        manifestHashes.add(hash(Buffer.from(JSON.stringify(manifest), 'utf8')));
+      }
       const entries = fs.readdirSync(folder);
       const matches = [];
       for (const name of entries.filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
@@ -664,7 +670,7 @@ class Chronicle {
         if (run.binding?.operationId !== operation.id) continue;
         if (entries.some(entry => entry.startsWith(name + '.') && /^[a-f0-9-]{36}\.tmp$/.test(entry.slice(name.length + 1))) ||
             run.id !== name.slice(0, -5) || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
-            run.binding.manifestHash !== expectedHash || run.candidateOperationId !== operation.id ||
+            !manifestHashes.has(run.binding.manifestHash) || run.candidateOperationId !== operation.id ||
             run.outcome?.status !== 'complete' || !Array.isArray(run.events) ||
             run.events.length !== run.outcome.consumedCalls ||
             run.events.some((event, index) => event.kind !== 'injected-fixture' || event.sequence !== index + 1 ||

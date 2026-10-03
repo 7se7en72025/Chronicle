@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Preserve bound fixture provenance in branch comparisons after append-only reported checks without accepting unrelated manifest edits.
 - Show uniquely bound fixture injection counts in saved branch comparisons, keeping unbound or ambiguous evidence and live-tool activity unavailable.
 - Tell the autonomous worker to finish running command sessions before beginning another final check pair; retain the strict gate that rejected overlapping checks.
 - Refuse fixture subprocess evidence binding when its saved cassette is missing, redirected, oversized, or differs from the hash pinned before launch.

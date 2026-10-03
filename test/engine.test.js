@@ -48,6 +48,7 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   assert.throws(() => engine.bindFixtureRun(run.id, op.id), /interrupted journal replacement/);
   assert.equal(fs.existsSync(replacement), true);
   fs.unlinkSync(replacement);
+  engine.recordCheck(op.id, 'before binding', 0);
   assert.equal(engine.bindFixtureRun(run.id, op.id).operationId, op.id);
   assert.throws(() => engine.bindFixtureRun(run.id, op.id), /already bound/);
 
@@ -68,6 +69,15 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
     runId: run.id, injectedFixtureCalls: 2, rejectedFixtureCalls: 0, liveToolCalls: null
   });
   assert.equal(comparison.second.fixtureEvidence, null);
+  engine.recordCheck(op.id, 'after binding', 0);
+  assert.deepEqual(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, comparison.first.fixtureEvidence);
+  const operationFile = path.join(engine.store, 'operations', op.id + '.json');
+  const operationBytes = fs.readFileSync(operationFile);
+  const alteredOperation = JSON.parse(operationBytes);
+  alteredOperation.manifest.environment.node = 'changed';
+  fs.writeFileSync(operationFile, JSON.stringify(alteredOperation));
+  assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
+  fs.writeFileSync(operationFile, operationBytes);
   fs.writeFileSync(replacement, '{}');
   assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
   fs.unlinkSync(replacement);
