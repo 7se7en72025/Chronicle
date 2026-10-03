@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Add a bounded read-only Codex JSONL fixture trace auditor that rejects visible failed, extra, incomplete, or mismatched tool calls without binding branch provenance.
 - Show unpaired Codex pre-tool checkpoints as outcome-unknown coverage warnings in review and new branch evidence; keep actual capture gaps separate.
 - Keep damaged pending fixture-run journals inspectable while recovery continues assessing other runs.
 - Hide ambiguous fixture provenance in branch comparison when a UUID-named run journal is unreadable.

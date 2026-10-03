@@ -45,6 +45,14 @@ claude mcp list
 
 Open Claude Code in this checkout and inspect `/mcp`; remove the local test entry afterward with `claude mcp remove chronicle-replay --scope local`. Codex CLI 0.160.0 was checked separately with temporary command-line MCP configuration. It exposed the tools to the model as `fixture_issue_lookup` and `fixture_issue_search`; a later read-only model turn called the dotted MCP tools in cassette order and received both saved responses. Those responses were sent to the Codex service and the turn consumed model usage. Neither check persisted an MCP entry or opened Codex's `/mcp` view. Claude Code discovery remains untested. See the official [Codex MCP guide](https://developers.openai.com/codex/mcp) and [Claude Code local stdio setup](https://code.claude.com/docs/en/mcp#option-3-add-a-local-stdio-server) for current host syntax and trust behavior.
 
+To inspect an existing local Codex `--json` trace against the bundled fixture cassette without a model call, run:
+
+```sh
+node /path/to/Chronicle/scripts/inspect-codex-trace.js /path/to/events.jsonl /path/to/Chronicle/fixtures/simulated-tools/issue-tracker.json
+```
+
+The read-only inspector prints counts and a `host-reported-match` or `review-required` status, without printing prompts, tool arguments, or responses. Exit 0 means the visible JSONL contains one completed turn and exactly the cassette's ordered fixture calls with expected responses and no other visible tool/error items. Exit 2 requires review; exit 1 means input could not be inspected. This does not prove the MCP server closed cleanly or that every possible host tool path appears in JSONL, and it does not bind an agent run to a branch. Keep raw traces local and out of Git.
+
 ## Review beside your agent in VS Code
 
 1. Open the Chronicle repository in VS Code.

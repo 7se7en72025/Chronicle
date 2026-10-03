@@ -67,6 +67,8 @@ Reviewer, implementer, and verifier are sequential stages in this thread. Do not
 
 Task priority may change to address a concrete bug or unmet prerequisite within PLAN.md. Record the reason. Do not expand to hosted collaboration, browser/database replay, billing, or production deployment without user direction.
 
+O014 now includes a read-only Codex JSONL fixture trace auditor. A clean two-call host trace matched; unmatched and exhausted-call traces require review. This is a host-reported inspection aid, not independently durable MCP completion, complete tool-path observation, or permission to bind a fresh agent run. See [REVIEW.md](REVIEW.md).
+
 ## Boundaries and stopping
 
 Autonomous implementation, focused tests, living-document updates, commits, and normal pushes are authorized. Current destination: `origin` at `https://github.com/7se7en72025/Chronicle.git`, branch `main`. Recheck the branch and remote before each push; do not silently redirect publication.
