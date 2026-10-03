@@ -449,7 +449,8 @@ class Chronicle {
       schema: 1, kind: 'chronicle.fixture-run', id, transport: 'stdio-subprocess',
       fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
       source: { checkpoint: sourceCheckpointId, commit: source.head },
-      events: [], outcome: null, candidateOperationId: null, binding: null
+      events: [], outcome: null, candidateOperationId: null, binding: null,
+      controllerPid: process.pid, childPid: null
     };
     this.exclusive(() => {
       fs.writeFileSync(cassetteFile, serialized, { flag: 'wx' });
@@ -457,6 +458,10 @@ class Chronicle {
     });
     const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    if (Number.isSafeInteger(child.pid) && child.pid > 0) this.exclusive(() => {
+      run.childPid = child.pid;
+      writeJson(file, run);
+    });
     let stderr = '', stdout = '', failure = null, timedOut = false;
     const timer = setTimeout(() => { timedOut = true; child.kill(); }, 10000);
     child.stdout.on('data', chunk => {
@@ -535,6 +540,34 @@ class Chronicle {
       run.binding = { operationId, manifestHash: hash(Buffer.from(JSON.stringify(op.manifest), 'utf8')) };
       writeJson(file, run);
       return run.binding;
+    });
+  }
+
+  recoverFixtureRuns() {
+    return this.exclusive(() => {
+      const folder = path.join(this.store, 'fixture-runs');
+      const results = [];
+      const isDead = pid => {
+        if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+        try { process.kill(pid, 0); return false; }
+        catch (error) { return error.code === 'ESRCH'; }
+      };
+      for (const name of fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
+        const file = path.join(folder, name);
+        let run;
+        try { run = JSON.parse(fs.readFileSync(file, 'utf8')); }
+        catch { results.push({ id: name.slice(0, -5), assessment: 'unreadable-record' }); continue; }
+        if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
+            run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
+        if (run.candidateOperationId || run.binding || !isDead(run.controllerPid) || !isDead(run.childPid)) {
+          results.push({ id: run.id, assessment: 'pending-inspect' });
+          continue;
+        }
+        run.outcome = { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' };
+        writeJson(file, run);
+        results.push({ id: run.id, assessment: 'interrupted-recorded' });
+      }
+      return results;
     });
   }
 

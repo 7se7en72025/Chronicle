@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 pending fixture subprocess recovery (2026-10-03)
+
+**P1 — a controller interruption could leave a pending subprocess record indefinitely (fixed for recorded, dead processes).** The subprocess record now persists the controller and child PIDs. `recoverFixtureRuns` inspects pending subprocess records and marks one failed with `MCP_PROCESS_INTERRUPTED` only when both recorded PIDs are confirmed absent. A live, unknown, malformed, or reused PID leaves the run pending for inspection. The method retains the event record and pinned cassette, creates no branch, and never upgrades partial evidence to a completed run. `recover-fixture-runs` exposes this local recovery through the CLI.
+
+**Evidence and limit:** a disposable-repository regression changes a finished child record into a simulated pending record, verifies that a live controller prevents recovery, then verifies failure recording after both PIDs are absent, byte-preserved cassette/evidence, binding refusal, and idempotence. It does not kill a live controller mid-write or provide append-only event-log recovery. A crash before the child PID is saved remains pending for manual inspection. PID reuse also causes conservative non-recovery. Full checks and final diff review are recorded in [HANDOFF.md](HANDOFF.md#verification). No independent reviewer participated.
+
 ## O014 fixture subprocess ownership (2026-10-03)
 
 **P1 — standalone MCP evidence could not be tied to an observed process outcome (fixed for a controlled local fixture).** `scripts/simulated-replay-mcp.js` previously loaded only the bundled cassette, and `Chronicle.beginFixtureRun` observed only calls made through its own in-process server. `Chronicle.runFixtureSubprocess` now pins a validated cassette under the local store, launches that script with a private cassette path, sends bounded JSON-RPC requests, records bounded sequenced stderr evidence and the child exit, and allows a candidate branch only after a zero exit and complete injected evidence. Existing `bindFixtureRun` then checks output freshness and one-to-one binding. A rejected fixture call exits unsuccessfully and cannot create a candidate branch.

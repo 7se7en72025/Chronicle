@@ -118,6 +118,33 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.throws(() => engine.bindFixtureRun(rejected.id, operation.id), /incomplete/);
 });
 
+test('fixture subprocess recovery fails closed only after both recorded processes are gone', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const cassetteFile = path.join(engine.store, 'fixture-runs', run.id + '.cassette.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(saved.outcome.status, 'failed');
+  assert.ok(saved.childPid > 0);
+  const cassetteBytes = fs.readFileSync(cassetteFile);
+  saved.outcome = null;
+  saved.controllerPid = process.pid;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).outcome, null);
+  saved.controllerPid = saved.childPid;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
+  const recovered = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.deepEqual(recovered.outcome, { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.deepEqual(recovered.events, saved.events);
+  assert.deepEqual(fs.readFileSync(cassetteFile), cassetteBytes);
+  assert.throws(() => engine.bindFixtureRun(run.id, crypto.randomUUID()), /incomplete/);
+  assert.deepEqual(engine.recoverFixtureRuns(), []);
+});
+
 test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => {
   const original = Array.from({ length: 120 }, (_, i) => `line ${i}\n`);
   const { root, engine, file } = fixture(t, original.join(''));
