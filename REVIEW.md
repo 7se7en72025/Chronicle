@@ -1,5 +1,11 @@
 # Latest development review
 
+## Output read bounds and replacement detection (2026-10-04)
+
+**P2 — output verification and undo read mutable files by path without a bound (fixed).** `src/engine.js:createBranch`, `reconcileOperations`, and `undoOperation` used unbounded reads for output and undo verification. A later edit could make a saved output path arbitrarily large; a same-content replacement between `lstat` and the read could also pass reconciliation. These paths now use the existing bounded regular-file descriptor reader. The output bound is 2 MiB because selecting additions while retaining baseline text can produce a file larger than either 1 MiB source checkpoint. Reconciliation treats an unreadable or changed file as modified; undo refuses before changing a selected path, or keeps its recovery journal if a file changes during undo.
+
+**Verification and limit:** a disposable worktree fixture replaces an output with a new same-content file between the descriptor's pre-open inspection and open. Reconciliation reports `completed-worktree-modified`, preserving both source and output bytes. Another fixture creates a selected output over 1 MiB from two smaller checkpoints, then verifies and undoes it. Both focused tests, `npm run check`, and the full `npm test` suite (82/82) passed. Changed Markdown relative links and `git diff --check` passed. Second-pass review confirmed that capture still has its 1 MiB bound while output reads allow a valid two-version selection up to 2 MiB. A later stable read of an otherwise identical replacement can still match the saved byte manifest; Chronicle does not authenticate filesystem object identity across separate commands. No independent reviewer participated.
+
 ## Source file growth during capture (2026-10-04)
 
 **P2 — a source file could exceed the capture limit after its size check (fixed).** `src/engine.js:inventory` inspected a regular file and its 1 MiB limit, then used an unbounded path read. If it grew or was replaced before that read, a checkpoint could include bytes beyond the per-file limit. Inventory now reads through the existing bounded regular-file descriptor helper. The two-pass capture still rejects a changed inventory before publishing a checkpoint.

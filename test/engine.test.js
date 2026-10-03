@@ -946,6 +946,51 @@ test('operation reconciliation identifies interrupted worktrees and preserves la
   assert.equal(JSON.parse(fs.readFileSync(journal, 'utf8')).state, 'failed');
 });
 
+test('reconciliation notices same-content output replacement during verification', t => {
+  const { engine, file } = fixture(t);
+  const before = engine.capture('Before');
+  fs.writeFileSync(file, 'selected edit\n');
+  const after = engine.capture('After');
+  const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const operation = engine.createBranch(before.id, after.id, ids, 'chronicle/output-swap');
+  const output = path.join(operation.target, 'README.md');
+  const replacement = path.join(engine.store, 'replacement');
+  fs.writeFileSync(replacement, fs.readFileSync(output));
+  const originalOpen = fs.openSync;
+  let replaced = false;
+  fs.openSync = (target, ...args) => {
+    if (target === output && !replaced) {
+      replaced = true;
+      fs.renameSync(replacement, output);
+    }
+    return originalOpen(target, ...args);
+  };
+  let assessment;
+  try { assessment = engine.reconcileOperations().find(item => item.id === operation.id).assessment; }
+  finally { fs.openSync = originalOpen; }
+  assert.equal(replaced, true);
+  assert.equal(assessment, 'completed-worktree-modified');
+  assert.equal(fs.readFileSync(output, 'utf8'), 'selected edit\n');
+  assert.equal(fs.readFileSync(file, 'utf8'), 'selected edit\n');
+});
+
+test('a selected output larger than either captured file remains verifiable and undoable', t => {
+  const { engine, file } = fixture(t);
+  const common = 'start\n' + 'keep\n'.repeat(10);
+  fs.writeFileSync(file, common + 'r'.repeat(600000) + '\nend\n');
+  const before = engine.capture('Before');
+  fs.writeFileSync(file, 'start\n' + 'a'.repeat(600000) + '\n' + 'keep\n'.repeat(10) + 'end\n');
+  const after = engine.capture('After');
+  const change = engine.compare(before.id, after.id).changes[0];
+  assert.equal(change.hunks.length, 2);
+  const operation = engine.createBranch(before.id, after.id, [change.hunks[0].id], 'chronicle/large-selection');
+  const output = path.join(operation.target, 'README.md');
+  assert.ok(fs.statSync(output).size > 1024 * 1024);
+  assert.equal(engine.reconcileOperations().find(item => item.id === operation.id).assessment, 'completed');
+  assert.equal(engine.undoOperation(operation.id).state, 'undone');
+  assert.equal(fs.readFileSync(output, 'utf8'), common + 'r'.repeat(600000) + '\nend\n');
+});
+
 test('failed Claude tool boundaries capture partial edits without storing tool secrets', t => {
   const { root, engine, file } = fixture(t);
   const options = { storage: path.dirname(engine.store) };

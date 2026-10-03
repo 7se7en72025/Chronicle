@@ -10,6 +10,7 @@ const { createSimulatedReplayMcp } = require('./simulated-replay-mcp');
 
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const MAX_FILE = 1024 * 1024;
+const MAX_SELECTED_FILE = MAX_FILE * 2;
 const MAX_TOTAL = 32 * 1024 * 1024;
 const forbidden = /(^|\/)(\.git|\.env(?:\..*)?|node_modules|dist|build|\.chronicle-dev|\.ssh)(\/|$)|\.(pem|key|p12|pfx)$/i;
 const lines = text => text.match(/[^\n]*\n|[^\n]+$/g) || [];
@@ -367,7 +368,7 @@ class Chronicle {
           const full = safePath(target, name); fs.mkdirSync(path.dirname(full), { recursive: true });
           fs.writeFileSync(full, file.bytes);
           if (process.platform !== 'win32') fs.chmodSync(full, file.mode === '100755' ? 0o755 : 0o644);
-          if (hash(fs.readFileSync(full)) !== hash(file.bytes)) throw new Error('Output verification failed: ' + name);
+          if (hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== hash(file.bytes)) throw new Error('Output verification failed: ' + name);
         }
         op.state = 'completed';
         op.files = [...expected].map(([name, file]) => ({ path: name, hash: hash(file.bytes) }));
@@ -807,7 +808,7 @@ class Chronicle {
         try {
           const stat = fs.lstatSync(full);
           if (!stat.isFile()) throw new Error('Selected output path is no longer a regular file; undo refused: ' + file.path);
-          current = { bytes: fs.readFileSync(full), mode: process.platform === 'win32' ? (original?.mode || file.mode) : stat.mode & 0o111 ? '100755' : '100644' };
+          current = { bytes: readRegularLimited(full, MAX_SELECTED_FILE), mode: process.platform === 'win32' ? (original?.mode || file.mode) : stat.mode & 0o111 ? '100755' : '100644' };
         } catch (error) { if (error.code !== 'ENOENT') throw error; }
         const expected = file.content === null ? null : { bytes: Buffer.from(file.content, 'utf8'), mode: file.mode };
         const prior = original ? { bytes: this.bytes(original), mode: original.mode } : null;
@@ -825,7 +826,7 @@ class Chronicle {
         try {
           const stat = fs.lstatSync(item.full);
           if (!stat.isFile()) throw new Error('Selected output path is no longer a regular file; recovery journal retained: ' + item.file.path);
-          current = { bytes: fs.readFileSync(item.full), mode: process.platform === 'win32' ? (item.prior?.mode || item.file.mode) : stat.mode & 0o111 ? '100755' : '100644' };
+          current = { bytes: readRegularLimited(item.full, MAX_SELECTED_FILE), mode: process.platform === 'win32' ? (item.prior?.mode || item.file.mode) : stat.mode & 0o111 ? '100755' : '100644' };
         } catch (error) { if (error.code !== 'ENOENT') throw error; }
         if (item.matches(current, item.prior)) continue;
         if (!item.matches(current, item.expected)) throw new Error('Selected output changed during undo; recovery journal retained: ' + item.file.path);
@@ -839,11 +840,11 @@ class Chronicle {
             if (process.platform !== 'win32') fs.fchmodSync(fd, item.prior.mode === '100755' ? 0o755 : 0o644);
             fs.fsyncSync(fd);
           } finally { fs.closeSync(fd); }
-          if (hash(fs.readFileSync(temp)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed before replacement: ' + item.file.path);
+          if (hash(readRegularLimited(temp, MAX_SELECTED_FILE)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed before replacement: ' + item.file.path);
           // A crash before rename leaves the original selected file intact. A rename
           // publishes the fully written baseline atomically on the same filesystem.
           fs.renameSync(temp, item.full);
-          if (hash(fs.readFileSync(item.full)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed: ' + item.file.path);
+          if (hash(readRegularLimited(item.full, MAX_SELECTED_FILE)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed: ' + item.file.path);
         }
       }
       op.state = 'undone'; op.undoneAt = new Date().toISOString(); writeJson(journal, op);
@@ -883,7 +884,7 @@ class Chronicle {
             for (const [name, digest] of expected) {
               try {
                 const full = safePath(expectedTarget, name);
-                if (!fs.lstatSync(full).isFile() || hash(fs.readFileSync(full)) !== digest) modifiedSinceCompletion = true;
+                if (!fs.lstatSync(full).isFile() || hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== digest) modifiedSinceCompletion = true;
               } catch { modifiedSinceCompletion = true; }
             }
             for (const name of absent) {
