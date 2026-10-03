@@ -206,6 +206,32 @@ test('fixture MCP adapter stops after a tool call with no or invalid request id'
   assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
 });
 
+test('fixture MCP adapter stops when an unsupported batch could hide a tool call', () => {
+  const server = createSimulatedReplayMcp(cassette());
+  initialize(server);
+  const batch = [request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })];
+  assert.equal(server.handle(batch).error.code, -32600);
+  assert.equal(server.stopped, true);
+  assert.equal(server.position, 0);
+  assert.equal(server.handle(batch).error.code, -32600);
+  assert.equal(server.handle(request(3, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })).result.isError, true);
+  assert.throws(() => server.finish(), { code: 'SIMULATED_REPLAY_INVALID_CALL' });
+
+  const messages = [
+    request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    batch,
+    request(3, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ].map(message => JSON.stringify(message)).join('\n') + '\n';
+  const result = runWire(messages);
+  assert.equal(result.status, 1);
+  const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  assert.equal(replies[1].error.code, -32600);
+  assert.equal(replies[2].result.isError, true);
+  assert.doesNotMatch(result.stderr, /Chronicle replay evidence/);
+  assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
+});
+
 test('stdio server stops after a malformed frame before a later valid tool call', () => {
   const prefix = [
     request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),

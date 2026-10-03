@@ -2,6 +2,12 @@
 
 Status: first-release local audit completed; roadmap execution is active. Real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
 
+## MCP unsupported-batch review (2026-10-03)
+
+**P1 — A rejected batch left fixture replay usable (fixed locally).** `src/simulated-replay-mcp.js:handle` rejected a JSON-RPC array as an invalid request without stopping the cassette. The array could contain a `tools/call`; after rejection, a later single call could consume the response intended for that batched call. The handler now stops replay on any unsupported batch. A direct regression checks that position stays at zero and `finish()` fails; a subprocess regression sends a batched call followed by a valid call and checks that no injection evidence is emitted. This remains a narrow legacy MCP fixture subset, with no supported-host validation.
+
+**Verification:** focused MCP suite passes 12/12; `npm test` passes 60/60 and `npm run check` passes. The second-pass diff review checked the rejection response, stopped state, unchanged cassette position, and the following call's refusal. No independent reviewer participated.
+
 ## MCP pre-initialization call review (2026-10-03)
 
 **P1 — A rejected early tool call left replay usable (fixed locally).** In `src/simulated-replay-mcp.js:handle`, a `tools/call` before the server reached `ready` returned `-32002` without stopping the cassette. After initialization, a later call could consume the response that the early call may have intended. The handler now marks replay stopped for that sequence violation. Direct tests cover both calls before `initialize` and calls before `notifications/initialized`; a subprocess test confirms the later call receives an error and emits no injection evidence.

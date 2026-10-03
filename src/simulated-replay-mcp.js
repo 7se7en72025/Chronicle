@@ -58,6 +58,13 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
   }
 
   function handle(message) {
+    // This subset does not support batches. Their contents may include a call
+    // whose intended cassette position cannot be established after rejection.
+    if (Array.isArray(message)) {
+      stopped = true;
+      stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+      return rpcError(null, -32600, 'JSON-RPC batches are not supported; replay stopped.');
+    }
     const attemptedToolCall = isRecord(message) && message.method === 'tools/call';
     if (!isRecord(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string' ||
         (Object.hasOwn(message, 'id') && !(typeof message.id === 'string' || (typeof message.id === 'number' && Number.isFinite(message.id))))) {
