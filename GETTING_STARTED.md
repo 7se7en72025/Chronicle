@@ -43,7 +43,7 @@ claude mcp add --transport stdio --scope local chronicle-replay -- node $server
 claude mcp list
 ```
 
-Open Claude Code in this checkout and inspect `/mcp`; remove the local test entry afterward with `claude mcp remove chronicle-replay --scope local`. Host commands and discovery have not been exercised in this environment. See the official [Codex MCP guide](https://developers.openai.com/codex/mcp) and [Claude Code local stdio setup](https://code.claude.com/docs/en/mcp#option-3-add-a-local-stdio-server) for current host syntax and trust behavior.
+Open Claude Code in this checkout and inspect `/mcp`; remove the local test entry afterward with `claude mcp remove chronicle-replay --scope local`. Codex CLI 0.160.0 was checked separately with a temporary command-line MCP configuration: a read-only model turn reported both tools as `fixture_issue_lookup` and `fixture_issue_search`, using underscores in place of the server's dotted names. That check did not persist an MCP entry, open the Codex `/mcp` view, or invoke a tool. Claude Code discovery remains untested. See the official [Codex MCP guide](https://developers.openai.com/codex/mcp) and [Claude Code local stdio setup](https://code.claude.com/docs/en/mcp#option-3-add-a-local-stdio-server) for current host syntax and trust behavior.
 
 ## Review beside your agent in VS Code
 

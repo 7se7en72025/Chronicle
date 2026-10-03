@@ -1,6 +1,16 @@
 # Latest development review
 
-Status: first-release local audit completed; roadmap execution is active. Real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
+Status: first-release local audit completed; roadmap execution is active. Limited Codex MCP tool-name discovery was observed; full host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
+
+## Runner publication and bounded Codex host discovery (2026-10-03)
+
+**P2 — Published handoff understated verified runner and host coverage (documentation corrected).** The registered `Chronicle Autonomous Review` task, using the clean sibling checkout, recorded four consecutive normal guarded pushes after the Git-warning fix: `02f9d01`, `86a92e1`, `ee5e086`, and `cd55c5e`, with `origin/main` verified after each. Its next run reported a clean tree, `npm test` 61/61 and `npm run check` passing, then emitted `CHRONICLE_RUNNER_STOP` because the remaining O014 host work was unavailable in its sandbox. The task is `Ready` and its reviewed `STOP` marker says queue complete or blocked. The primary checkout was fast-forwarded to `cd55c5e`; unrelated untracked `BOLPREP.md` was preserved.
+
+Codex CLI 0.160.0 is available in the approved host context outside the worker sandbox. A temporary command-line MCP configuration was accepted for a read-only `codex exec` turn. The model reported `fixture_issue_lookup` and `fixture_issue_search`, corresponding to the server's dotted MCP names. Exit status was zero with no startup error. This is limited model-visible tool-name evidence, not a no-prompt `/mcp` UI inspection, independent startup trace, or a successful tool call. No persistent MCP configuration was added. The [official Codex MCP guide](https://developers.openai.com/codex/mcp) documents local stdio configuration and the distinction between `codex mcp list` and the active `/mcp` view.
+
+An exact, ordered two-call fixture test was attempted but **rejected by automatic approval review before process creation**: its repository-derived issue title and paths would be sent to the Codex service without specific disclosure authorization. No tool response was sent by that attempted call. Do not bypass the rejection by indirect execution. The existing local direct/stdio tests remain valid, but O014's Codex tool-call compatibility and fresh-agent orchestration remain unverified. A new runner cycle would hit the same queue blocker, so the task remains stopped. This review is by the same agent, not an independent-agent approval.
+
+**Documentation verification:** root Markdown relative links resolve (zero broken), `git diff --check` exits zero, and the final diff was reviewed for claims beyond the observed CLI output. No product code changed in this handoff update.
 
 ## MCP abrupt-input-close review (2026-10-03)
 
