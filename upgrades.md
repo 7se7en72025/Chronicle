@@ -40,7 +40,7 @@ Use these terms consistently:
 
 **Implemented:** Claude and Codex fixtures now map to versioned `chronicle.adapter-event` schema 1 with host, bounded session/event identifiers, boundary, status certainty, Chronicle-recorded timestamp, snapshot/gap reference, and metadata-only privacy classification. “Observed,” “reported success,” and “reported failure” remain distinct. Unknown source/boundary pairs fail closed; recovery tests preserve existing schema-1 checkpoint and gap bytes. See [architecture.md](architecture.md) and O013 in [ORCHESTRATION.md](ORCHESTRATION.md).
 
-**Still needed:** verify event delivery and fields in real hosts under O004; define user-facing retention/deletion controls and migration policy before moving beyond local JSON records or to SQLite.
+**Still needed:** real Codex CLI 0.160.0 delivered `SessionStart` and `SessionEnd` checkpoints through temporary inline hooks, but the shipped plugin path and tool-boundary fields still need host validation under O004. Claude delivery also remains untested. Define user-facing retention/deletion controls and migration policy before moving beyond local JSON records or to SQLite.
 
 **Exit:** Claude and Codex fixtures map to one versioned contract; unknown fields are ignored and unsupported source/boundary pairs fail closed without workspace mutation; sensitive raw payloads are absent; recovery fixtures preserve prior checkpoint and gap records.
 

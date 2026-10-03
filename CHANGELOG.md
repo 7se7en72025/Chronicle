@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Verify real Codex CLI `SessionStart` and `SessionEnd` checkpoint delivery with temporary inline hooks and an external recording store; keep shipped plugin and tool-boundary validation open.
 - Restrict duplicate fixture-binding scans to bounded run journals while refusing damaged journal evidence.
 - Record real Codex fixture rejection evidence and require per-tool completion checks for future agent-run binding.
 - Correct stale runner and MCP setup instructions to match the current STOP gate and observed Codex fixture call coverage.
