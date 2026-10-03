@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 launch-witness file bounds (2026-10-03)
+
+**P2 — recovery read an untrusted witness path without a file-type or size check (fixed at fixture level).** `src/engine.js:recoverFixtureRuns` previously read any existing `.launch.json` path. A symlink could redirect that read outside the fixture store, and an oversized file could make recovery read unbounded input. Recovery now parses only a regular witness of at most 512 bytes; other existing entries remain `pending-inspect` without changing the run journal. The child still writes its small witness exclusively and fsyncs it.
+
+**Evidence and limits:** the focused disposable-repository test passed 1/1. It checks malformed and oversized witnesses, a directory witness, an outside-target symlink when Windows permits creating it, then restores the valid witness and confirms interrupted recovery. This check is not an atomic defense against a concurrent path swap between inspection and read. It does not resolve a child that dies before witness creation, PID reuse, or durable event-log recovery. Final syntax and full-suite outcomes are recorded by the cycle runner; no host process or editor integration was exercised.
+
 ## Runner JSONL stderr separation (2026-10-03)
 
 **P1 — native stderr contaminated evidence JSONL (fixed in worker capture).** Cycle `20261003-141012-983` ended with passing final `npm run check` and `npm test` events (72/72), but three failed `apply_patch` attempts emitted eight non-JSON stderr lines into the combined stream. The strict evidence parser correctly stopped and preserved six unstaged O014 files. After independent syntax, 72/72 tests, link and diff review, they were published as `dd20a53`. The worker now writes Codex stdout JSONL and native stderr diagnostics to distinct per-cycle files. Disposable ready-edit and queue-stop fixtures with native stderr pass 2/2, confirming clean JSONL and publication; an existing malformed-stdout fixture still refuses publication. Full `npm.cmd test` passes 73/73 and syntax passes. Windows PowerShell writes the stderr redirection file as UTF-16LE, which the fixture reads accordingly. A live post-fix cycle remains to be observed. This same-agent review is not an independent review.

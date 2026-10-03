@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Keep oversized or non-regular fixture launch witnesses pending for inspection instead of reading redirected or unbounded evidence during recovery.
 - Capture native Codex stderr separately from strict JSONL evidence so harmless diagnostics do not block a passing autonomous cycle.
 - Refuse fixture-run recovery when an existing child launch witness is unreadable or disagrees with the recorded child PID; retain the pending evidence for inspection.
 - Recognize Codex's exact quoted `cmd.exe /c` form for final sandboxed checks while refusing compound commands; preserve and independently publish the valid cycle rejected by the earlier gate.

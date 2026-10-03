@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014 recovery now reads only regular launch-witness files up to 512 bytes. Oversized entries and redirected paths stay pending for inspection. A focused disposable-repository test passed; final check outcomes are in the cycle's runner evidence. This does not resolve pre-witness child death or a concurrent path swap; see [REVIEW.md](REVIEW.md).
 - The runner now captures native Codex stderr separately from its JSONL stdout. A disposable ready-edit fixture publishes despite stderr diagnostics while keeping the JSONL parseable; malformed JSONL still stops. Syntax and the full suite pass 73/73; task restart remains pending. See [REVIEW.md](REVIEW.md).
 - O014 fixture recovery now checks an existing launch witness against the journal's recorded child PID. Conflicting or unreadable evidence stays pending for inspection. The focused regression, independent syntax check, and 72/72 full tests passed. The pre-witness death and durable-log gaps remain; see [REVIEW.md](REVIEW.md).
 - The runner's final-check evidence gate recognizes exact quoted `cmd.exe /c` npm commands seen in the real cycle. Focused disposable fixtures accept those checks and reject a compound command inside the wrapper; full verification passed on rerun. See [REVIEW.md](REVIEW.md).

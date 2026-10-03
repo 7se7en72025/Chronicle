@@ -579,9 +579,11 @@ class Chronicle {
         const launchFile = path.join(folder, run.id + '.launch.json');
         let launchWitness = false;
         let witnessPid = null;
-        try { fs.lstatSync(launchFile); launchWitness = true; }
+        let witnessStat;
+        try { witnessStat = fs.lstatSync(launchFile); launchWitness = true; }
         catch (error) { if (error.code !== 'ENOENT') launchWitness = true; }
-        if (launchWitness) {
+        // A redirected or oversized witness is ambiguous evidence; do not read it.
+        if (launchWitness && witnessStat?.isFile() && witnessStat.size <= 512) {
           try {
             const witness = JSON.parse(fs.readFileSync(launchFile, 'utf8'));
             if (witness.runId === run.id && Number.isSafeInteger(witness.pid) && witness.pid > 0) witnessPid = witness.pid;

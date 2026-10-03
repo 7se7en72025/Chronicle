@@ -150,6 +150,22 @@ test('fixture subprocess recovery fails closed only after both recorded processe
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).outcome, null);
   fs.writeFileSync(launchFile, '{');
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  fs.writeFileSync(launchFile, ' '.repeat(513));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  fs.unlinkSync(launchFile);
+  const outside = path.join(path.dirname(engine.store), 'outside-witness.json');
+  fs.writeFileSync(outside, launchBytes);
+  try {
+    fs.symlinkSync(outside, launchFile, 'file');
+    assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+    fs.unlinkSync(launchFile);
+  } catch (error) {
+    if (error.code !== 'EPERM' && error.code !== 'EACCES' && error.code !== 'ENOTSUP') throw error;
+  }
+  assert.deepEqual(fs.readFileSync(outside), launchBytes);
+  fs.mkdirSync(launchFile);
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  fs.rmdirSync(launchFile);
   fs.writeFileSync(launchFile, launchBytes);
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
   const recovered = JSON.parse(fs.readFileSync(file, 'utf8'));

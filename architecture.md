@@ -208,7 +208,7 @@ The implemented binding rejects duplicate run/operation bindings, missing or reo
 
 In-process and controlled subprocess correlation are implemented and fixture-tested; conservative pending-record recovery has simulated phase-state coverage, a child launch-witness fixture, and a real controller-termination regression after PID publication. A detectable journal-replacement candidate is preserved and flagged in fixture tests. Actual crash timing in the pre-publication window, death before witness creation, durable event-log recovery, host observation, and provenance display remain open. Host or model usage must be reported separately from Chronicle's direct no-model branch action.
 
-For a pending run with a recorded child PID, recovery also checks any existing launch witness. An unreadable witness or a PID that conflicts with the journal leaves the run pending for inspection. If the child died before creating a witness, the recorded child PID still governs recovery; this does not resolve PID reuse.
+For a pending run with a recorded child PID, recovery also checks any existing launch witness. It reads only regular witness files up to 512 bytes; a non-regular or oversized entry, unreadable witness, or PID that conflicts with the journal leaves the run pending for inspection. This path check does not make inspection and read atomic against a concurrent replacement. If the child died before creating a witness, the recorded child PID still governs recovery; this does not resolve PID reuse.
 
 ### Host hook interception boundary
 
