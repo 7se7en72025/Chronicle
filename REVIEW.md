@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 pre-spawn recovery boundary (2026-10-03)
+
+**P2 — A dead controller's pending run could remain unresolved even when no child launch was possible (fixed for the persisted pre-spawn phase).** `runFixtureSubprocess` now saves `prepared` with the cassette before saving `spawning` immediately before the spawn call. Recovery can mark a `prepared` run failed when the controller is confirmed absent and no child PID exists. A `spawning` run without a child PID remains pending because spawn may have happened before interruption; legacy records without a phase also remain conservative. No completed outcome or branch binding is inferred from the phase. The fixture test checks both assessments, cassette preservation, binding refusal, and repeat recovery. This is a simulated phase-state test, not a real kill during that narrow window.
+
+**Remaining concern:** atomic replacement can still be interrupted, and a child can launch before its PID is saved. Those records need manual inspection or a durable launch protocol. PID reuse also remains conservative. Full project checks and second-pass diff review are recorded in [HANDOFF.md](HANDOFF.md#verification).
+
 ## Scheduled runner stopped before publication (2026-10-03)
 
 **P1 — battery-policy stop interrupted the six-hour run.** The 12:02 UTC worker completed the O014 pending-run recovery edit and reported 65/65 tests plus syntax passing, but the trusted supervisor exited before commit or push. Task Scheduler then reported `Ready`, result `0x8007042B`, with no Chronicle `STOP` marker; the nine tracked edits remained unstaged. `Win32_Battery` reported discharging at 97%, while the task settings had `DisallowStartIfOnBatteries=True` and `StopIfGoingOnBatteries=True`. This strongly suggests a battery-policy termination; no Task Scheduler event record was available to prove the precise transition. Do not restart against this policy while the laptop remains on battery.

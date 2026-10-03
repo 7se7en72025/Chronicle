@@ -450,16 +450,21 @@ class Chronicle {
       fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
       source: { checkpoint: sourceCheckpointId, commit: source.head },
       events: [], outcome: null, candidateOperationId: null, binding: null,
-      controllerPid: process.pid, childPid: null
+      controllerPid: process.pid, childPid: null, launchPhase: 'prepared'
     };
     this.exclusive(() => {
       fs.writeFileSync(cassetteFile, serialized, { flag: 'wx' });
+      writeJson(file, run);
+    });
+    this.exclusive(() => {
+      run.launchPhase = 'spawning';
       writeJson(file, run);
     });
     const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     if (Number.isSafeInteger(child.pid) && child.pid > 0) this.exclusive(() => {
       run.childPid = child.pid;
+      run.launchPhase = 'child-recorded';
       writeJson(file, run);
     });
     let stderr = '', stdout = '', failure = null, timedOut = false;
@@ -559,7 +564,8 @@ class Chronicle {
         catch { results.push({ id: name.slice(0, -5), assessment: 'unreadable-record' }); continue; }
         if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
             run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
-        if (run.candidateOperationId || run.binding || !isDead(run.controllerPid) || !isDead(run.childPid)) {
+        const childAbsent = (run.launchPhase === 'prepared' && run.childPid === null) || isDead(run.childPid);
+        if (run.candidateOperationId || run.binding || !isDead(run.controllerPid) || !childAbsent) {
           results.push({ id: run.id, assessment: 'pending-inspect' });
           continue;
         }

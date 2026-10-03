@@ -145,6 +145,32 @@ test('fixture subprocess recovery fails closed only after both recorded processe
   assert.deepEqual(engine.recoverFixtureRuns(), []);
 });
 
+test('fixture recovery distinguishes pre-spawn from uncertain child launch', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const cassetteFile = path.join(engine.store, 'fixture-runs', run.id + '.cassette.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const cassetteBytes = fs.readFileSync(cassetteFile);
+  assert.equal(saved.launchPhase, 'child-recorded');
+  saved.outcome = null;
+  saved.controllerPid = saved.childPid;
+  saved.childPid = null;
+  saved.launchPhase = 'spawning';
+  fs.writeFileSync(file, JSON.stringify(saved));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  saved.launchPhase = 'prepared';
+  fs.writeFileSync(file, JSON.stringify(saved));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).outcome,
+    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.deepEqual(fs.readFileSync(cassetteFile), cassetteBytes);
+  assert.throws(() => engine.bindFixtureRun(run.id, crypto.randomUUID()), /incomplete/);
+  assert.deepEqual(engine.recoverFixtureRuns(), []);
+});
+
 test('fixture subprocess recovery preserves a real killed controller record', async t => {
   const { root, engine } = fixture(t);
   const before = engine.capture('Before');
