@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Let the sandboxed Codex worker leave tracked-file edits and test evidence for the trusted runner to validate, commit, and publish without executing model-edited code outside the sandbox; preserve unsupported or failing results behind `STOP`.
 - Recheck the authorized Git push URL after each Codex cycle; stop and preserve its verified local commit if the destination changed during the run.
 - Keep native Codex diagnostics from aborting the Windows runner; record run output as UTF-8 and check the CLI exit code.
 - Stop fixture MCP replay after a malformed tool call, so later calls cannot consume cassette responses.

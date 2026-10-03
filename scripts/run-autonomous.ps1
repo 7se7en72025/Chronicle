@@ -52,6 +52,8 @@ $stateRoot = if ($env:CHRONICLE_RUNNER_STATE) {
     Join-Path $env:LOCALAPPDATA 'Chronicle\runner'
 }
 [System.IO.Directory]::CreateDirectory($stateRoot) | Out-Null
+$noHooksPath = Join-Path $stateRoot 'no-hooks'
+[System.IO.Directory]::CreateDirectory($noHooksPath) | Out-Null
 $stopPath = Join-Path $stateRoot 'STOP'
 $runnerLogPath = Join-Path $stateRoot 'runner.log'
 $mutexHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($repoRoot))).Replace('-', '').Substring(0, 24)
@@ -60,6 +62,20 @@ $mutex = New-Object System.Threading.Mutex($false, "Local\ChronicleRunner-$mutex
 function Write-RunnerLog([string]$Message) {
     $line = '{0} {1}{2}' -f [DateTime]::UtcNow.ToString('s'), $Message, [Environment]::NewLine
     [System.IO.File]::AppendAllText($runnerLogPath, $line, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+function Test-RunEvidence([string]$RunLogPath) {
+    $testPassed = $false
+    $syntaxPassed = $false
+    foreach ($line in [System.IO.File]::ReadLines($RunLogPath)) {
+        try { $event = $line | ConvertFrom-Json -ErrorAction Stop } catch { continue }
+        if ($event.type -ne 'item.completed' -or $event.item.type -ne 'command_execution') { continue }
+        $command = [string]$event.item.command
+        $passed = $event.item.status -eq 'completed' -and $event.item.exit_code -eq 0
+        if ($command -match '(?i)\bnpm(?:\.cmd)?\s+test(?:\s|["'']|$)') { $testPassed = $passed }
+        if ($command -match '(?i)\bnpm(?:\.cmd)?\s+run\s+check(?:\s|["'']|$)') { $syntaxPassed = $passed }
+    }
+    return $testPassed -and $syntaxPassed
 }
 
 function Get-RepositoryState {
@@ -96,7 +112,7 @@ function Invoke-CodexCycle {
     $runLogPath = Join-Path $stateRoot "$runId.jsonl"
     $summaryPath = Join-Path $stateRoot "$runId.summary.txt"
     $prompt = @'
-Run one focused Chronicle review-and-improve cycle in this repository. First read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md; inspect Git status and preserve existing work. Follow the highest-impact viable accepted queue item and current human instructions. Record evidence-based review findings, implement at most one meaningful queue task, run its relevant tests and checks, inspect the final diff in a second pass, and update the living documents accurately. Distinguish implemented, proposed, and verified claims. Do not access the network, force-push, deploy, publish, or perform destructive cleanup. The Codex process has network disabled. If and only if all authorized queue work is complete or concretely blocked, make no speculative edits and make the final response's first line exactly CHRONICLE_RUNNER_STOP. Otherwise, commit only the meaningful verified task on the existing main branch. The final response must contain a standalone line `CHRONICLE_RUNNER_READY <full-commit-hash>` only after tests, final diff review, documentation updates, and that single commit all succeed. Include a concise handoff and verification evidence.
+Run one focused Chronicle review-and-improve cycle in this repository. First read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md; inspect Git status and preserve existing work. Follow the highest-impact viable accepted queue item and current human instructions. Record evidence-based review findings, implement at most one meaningful queue task, run npm test and npm run check inside this sandbox after your final edits, inspect the final diff in a second pass, and update the living documents accurately. Distinguish implemented, proposed, and verified claims. Do not access the network, stage, commit, push, force-push, deploy, publish, or perform destructive cleanup. The Codex process has network disabled and Git metadata is read-only. Change tracked files only; leave no new, deleted, or staged files and do not edit runner scripts, AGENTS.md, ORCHESTRATION.md, or .gitattributes. If and only if all authorized queue work is complete or concretely blocked, make no speculative edits and make the final response's first line exactly CHRONICLE_RUNNER_STOP. Otherwise, after both project checks pass, final diff review, and documentation updates, leave your verified tracked-file edits unstaged and include a standalone line `CHRONICLE_RUNNER_READY <short commit subject>` in the final response. The trusted wrapper verifies the sandboxed check events and repository state, then stages tracked edits, commits once, and publishes only after its safety checks pass. Include a concise handoff and verification evidence.
 '@
     [System.IO.File]::WriteAllText($promptPath, $prompt, (New-Object System.Text.UTF8Encoding($false)))
 
@@ -142,13 +158,13 @@ Run one focused Chronicle review-and-improve cycle in this repository. First rea
         Write-RunnerLog "Run $runId marked the authorized queue complete or blocked; stopping."
         return $false
     }
-    $readyMatch = [System.Text.RegularExpressions.Regex]::Match($summary, '(?m)^CHRONICLE_RUNNER_READY ([0-9a-f]{40})\s*$')
+    $readyMatch = [System.Text.RegularExpressions.Regex]::Match($summary, '(?m)^CHRONICLE_RUNNER_READY ([A-Za-z0-9][A-Za-z0-9 .:_-]{0,71})\r?$')
     if (-not $readyMatch.Success) {
-        Write-RunnerLog "Run $runId did not report a verified commit; stopping for review."
-        [System.IO.File]::WriteAllText($stopPath, "No verified commit marker at $([DateTime]::UtcNow.ToString('s'))Z; inspect $summaryPath`n")
+        Write-RunnerLog "Run $runId did not report a ready tracked-file result; stopping for review."
+        [System.IO.File]::WriteAllText($stopPath, "No ready result marker at $([DateTime]::UtcNow.ToString('s'))Z; inspect $summaryPath`n")
         return $null
     }
-    return [pscustomobject]@{ Continue = $true; Commit = $readyMatch.Groups[1].Value }
+    return [pscustomobject]@{ Continue = $true; Subject = $readyMatch.Groups[1].Value.Trim(); LogPath = $runLogPath }
 }
 
 $mutexOwned = $false
@@ -193,37 +209,86 @@ try {
             $continueRunning = $null -ne $cycleResult -and $cycleResult.Continue
             if ($continueRunning) {
                 $after = Get-RepositoryState
-                if ($after.Branch -ne 'main' -or $after.Origin -ne $state.Origin -or $after.Status.Count -gt 0) {
-                    Write-RunnerLog 'Run left the repository dirty or changed its branch/remote; stopping to preserve the result.'
+                if ($after.Branch -ne 'main' -or $after.Origin -ne $state.Origin -or $after.Head -ne $state.Head -or $after.OriginMain -ne $state.Head) {
+                    Write-RunnerLog 'Run changed the branch, commit, fetch remote, or cached origin/main; stopping to preserve the result.'
                     [System.IO.File]::WriteAllText($stopPath, "Review the run result and repository state before resuming.`n")
                     $continueRunning = $false
-                } elseif ($after.Head -ne $cycleResult.Commit -or $after.Head -eq $state.Head -or $after.Parent -ne $state.Head) {
-                    Write-RunnerLog 'Run did not create exactly one new commit on the starting main commit; stopping for review.'
-                    [System.IO.File]::WriteAllText($stopPath, "Expected one verified commit with parent $($state.Head). Review before resuming.`n")
+                } elseif ($after.Status.Count -eq 0 -or [string]::IsNullOrWhiteSpace([string]$after.Status[0])) {
+                    Write-RunnerLog 'Run reported a ready result without tracked file edits; stopping for review.'
+                    [System.IO.File]::WriteAllText($stopPath, "No tracked edits to publish; review the run summary before resuming.`n")
                     $continueRunning = $false
-                } elseif ($after.OriginMain -ne $state.Head) {
-                    Write-RunnerLog 'Cached origin/main changed during the run; preserving the local commit without pushing.'
-                    [System.IO.File]::WriteAllText($stopPath, "origin/main changed during the cycle; inspect commit $($after.Head) before resuming.`n")
+                } elseif (@($after.Status | Where-Object { $_ -notmatch '^ M ' }).Count -gt 0) {
+                    Write-RunnerLog 'Run left staged, untracked, deleted, or otherwise unsupported changes; stopping to preserve them.'
+                    [System.IO.File]::WriteAllText($stopPath, "Unsupported worktree state; review the run result before resuming.`n")
+                    $continueRunning = $false
+                } elseif (@($after.Status | Where-Object { $_ -match '^ M (scripts/(run-autonomous|install-autonomous-task|uninstall-autonomous-task)\.ps1|\.gitattributes|AGENTS\.md|ORCHESTRATION\.md)$' }).Count -gt 0) {
+                    Write-RunnerLog 'Run modified runner controls, agent instructions, or Git attributes; stopping for manual review.'
+                    [System.IO.File]::WriteAllText($stopPath, "Trusted runner files changed; review before resuming.`n")
                     $continueRunning = $false
                 } else {
                     $pushOrigin = (& git -C $repoRoot remote get-url --push origin 2>&1 | Out-String).Trim()
                     if ($LASTEXITCODE -ne 0 -or $pushOrigin -ne $ExpectedOrigin) {
-                        Write-RunnerLog 'Push origin changed during the run; preserving the local commit without pushing.'
-                        [System.IO.File]::WriteAllText($stopPath, "Push origin changed during the cycle; inspect commit $($after.Head) before resuming.`n")
+                        Write-RunnerLog 'Push origin changed during the run; preserving the edits without committing or pushing.'
+                        [System.IO.File]::WriteAllText($stopPath, "Push origin changed during the cycle; review edits before resuming.`n")
                         $continueRunning = $false
-                    } else {
-                        $checkOutput = @(& git -C $repoRoot show --check --oneline $after.Head 2>&1)
                     }
-                    if ($continueRunning -and $LASTEXITCODE -ne 0) {
-                        Write-RunnerLog 'Git commit whitespace validation failed; preserving the local commit.'
-                        [System.IO.File]::WriteAllText($stopPath, "Commit $($after.Head) failed git show --check; review before resuming.`n")
-                        $continueRunning = $false
-                    } elseif ($continueRunning) {
+                    if ($continueRunning) {
+                        $diffCheck = @(& git -C $repoRoot diff --check 2>&1)
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-RunnerLog 'Git diff whitespace validation failed; preserving the edits.'
+                            [System.IO.File]::WriteAllText($stopPath, "Uncommitted diff failed git diff --check; review before resuming.`n")
+                            $continueRunning = $false
+                        }
+                    }
+                    if ($continueRunning) {
+                        if (-not (Test-RunEvidence $cycleResult.LogPath)) {
+                            Write-RunnerLog "Sandboxed npm test/check evidence is missing or failed; preserving edits. Inspect $($cycleResult.LogPath)"
+                            [System.IO.File]::WriteAllText($stopPath, "Project check evidence missing or failed; inspect $($cycleResult.LogPath) before resuming.`n")
+                            $continueRunning = $false
+                        }
+                    }
+                    if ($continueRunning) {
+                        $checked = Get-RepositoryState
+                        if ($checked.Branch -ne 'main' -or $checked.Origin -ne $state.Origin -or $checked.Head -ne $state.Head -or $checked.OriginMain -ne $state.Head -or (($checked.Status -join "`n") -ne ($after.Status -join "`n"))) {
+                            Write-RunnerLog 'Repository changed during independent checks; stopping to preserve edits.'
+                            [System.IO.File]::WriteAllText($stopPath, "Repository changed during checks; review before resuming.`n")
+                            $continueRunning = $false
+                        }
+                    }
+                    if ($continueRunning) {
+                        & git -C $repoRoot add -u
+                        if ($LASTEXITCODE -ne 0) { throw 'Could not stage verified tracked edits.' }
+                        $stagedCheck = @(& git -C $repoRoot diff --cached --check 2>&1)
+                        if ($LASTEXITCODE -ne 0) { throw 'Staged diff failed whitespace validation.' }
+                        & git -c "core.hooksPath=$noHooksPath" -C $repoRoot commit -m $cycleResult.Subject
+                        if ($LASTEXITCODE -ne 0) { throw 'Could not commit verified tracked edits.' }
+                        $after = Get-RepositoryState
+                        if ($after.Branch -ne 'main' -or $after.Origin -ne $state.Origin -or $after.OriginMain -ne $state.Head -or $after.Parent -ne $state.Head -or $after.Status.Count -gt 0) {
+                            throw 'Committed result did not leave one clean child of the starting commit.'
+                        }
+                    }
+                    if ($continueRunning) {
+                        $pushOrigin = (& git -C $repoRoot remote get-url --push origin 2>&1 | Out-String).Trim()
+                        if ($LASTEXITCODE -ne 0 -or $pushOrigin -ne $ExpectedOrigin) {
+                            Write-RunnerLog 'Push origin changed before publication; preserving the local commit.'
+                            [System.IO.File]::WriteAllText($stopPath, "Push origin changed; inspect commit $($after.Head) before resuming.`n")
+                            $continueRunning = $false
+                        }
+                    }
+                    if ($continueRunning) {
+                        $checkOutput = @(& git -C $repoRoot show --check --oneline $after.Head 2>&1)
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-RunnerLog 'Committed result failed whitespace validation; preserving the local commit.'
+                            [System.IO.File]::WriteAllText($stopPath, "Commit $($after.Head) failed git show --check; review before resuming.`n")
+                            $continueRunning = $false
+                        }
+                    }
+                    if ($continueRunning) {
                         Write-RunnerLog "Pushing verified commit $($after.Head) normally to the exact authorized origin."
                         $previousErrorAction = $ErrorActionPreference
                         $ErrorActionPreference = 'Continue'
                         try {
-                            $pushOutput = @(& git -C $repoRoot push origin main 2>&1)
+                            $pushOutput = @(& git -c "core.hooksPath=$noHooksPath" -C $repoRoot push origin main 2>&1)
                             $pushExitCode = $LASTEXITCODE
                         }
                         finally {

@@ -4,6 +4,8 @@ Status: implementation reference plus proposed target architecture. The local en
 
 ## Implemented slice
 
+The optional overnight development runner is separate from Chronicle's product runtime. Codex edits tracked files and runs project tests in a network-disabled `workspace-write` sandbox, where Git metadata is read-only. The trusted Windows supervisor checks the resulting worktree and sandboxed test events without executing model-edited project code, commits one validated tracked-file change set, and normally pushes to the authorized origin. New, deleted, staged, protected-control-file, or failed results stop for manual recovery; this automation does not make Chronicle's recorder an always-on service. See [ORCHESTRATION.md](ORCHESTRATION.md).
+
 - `src/engine.js`: byte-hashed UTF-8 snapshots, checkpoint diffs, whole-hunk and within-hunk change-group selection, result previews, separate Git worktree output, and operation journals.
 - `src/cli.js`: direct local commands with no model requests.
 - `src/extension.js`: VS Code commands and webviews for selection/preview/branch output and read-only side-by-side comparison of two completed operation manifests. Comparison rendering escapes stored values and disables scripts; it does not run checks or agents.
