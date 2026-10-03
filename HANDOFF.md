@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014 recovery now leaves a pending run unchanged when its child-written sidecar is invalid or conflicts with the journal. A sidecar-ahead run can only be marked failed after controller/child death checks; it is never promoted to success. Focused recovery fixture passed; see [REVIEW.md](REVIEW.md).
 - O014 now exposes `inspect-fixture-evidence <run-id>` for read-only, bounded comparison of child-written event metadata with the controller journal. A focused interrupted-journal fixture passed; it does not auto-repair or declare replay complete. See [REVIEW.md](REVIEW.md).
 - O014's controlled fixture child now fsyncs metadata-only event lines to a per-run sidecar before forwarding them to the controller journal. The subprocess fixture checks complete and rejected event bytes. Recovery does not yet reconcile or trust a sidecar after interruption; see [REVIEW.md](REVIEW.md).
 - O014 saved branch comparison now rechecks a bound subprocess cassette's file type, size, and pinned hash before showing injected-call evidence. A focused disposable-repository regression passed 1/1; final sandbox check outcomes follow this cycle. Concurrent path swaps, durable event recovery, and live host-tool observation remain open. See [REVIEW.md](REVIEW.md).
@@ -100,7 +101,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** The sibling checkout is synced, but the scheduled runner remains STOP-gated: automatic approval review rejected clearing its exact STOP marker. Define a conservative recovery policy for a sidecar-ahead interrupted run without auto-promoting success; pre-witness child death remains ambiguous. Binding and comparison check saved cassette bytes, but concurrent path swaps remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** The sibling checkout is synced, but the scheduled runner remains STOP-gated: automatic approval review rejected clearing its exact STOP marker. Decide whether validated sidecar-ahead events should ever be copied into a failed journal; today the sidecar remains separate and the run stays failed after proven process death. Pre-witness child death remains ambiguous. Binding and comparison check saved cassette bytes, but concurrent path swaps remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
@@ -108,4 +109,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Continue O014 with a conservative policy for sidecar-ahead interrupted runs, following D011. Sidecar inspection is read-only and does not establish a completed run. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+Continue O014 by evaluating whether validated sidecar-ahead events should be copied into a failed journal, following D011; do not infer completion. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).

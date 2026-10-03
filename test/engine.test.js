@@ -222,6 +222,40 @@ test('fixture evidence inspection reports durable events without repairing an in
   assert.throws(() => engine.inspectFixtureEvidence('../outside'), /Invalid fixture run ID/);
 });
 
+test('fixture recovery preserves conflicting sidecar evidence and never promotes extra events to success', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, [
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' } } },
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } },
+    { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } } }
+  ]);
+  const journal = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const sidecar = path.join(engine.store, 'fixture-runs', run.id + '.evidence.jsonl');
+  const saved = JSON.parse(fs.readFileSync(journal, 'utf8'));
+  const sidecarBytes = fs.readFileSync(sidecar);
+  saved.outcome = null;
+  saved.controllerPid = saved.childPid;
+  saved.events.pop();
+  fs.writeFileSync(journal, JSON.stringify(saved));
+  const pendingBytes = fs.readFileSync(journal);
+  fs.writeFileSync(sidecar, Buffer.concat([sidecarBytes, Buffer.from('{')]));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  assert.deepEqual(fs.readFileSync(journal), pendingBytes);
+  fs.writeFileSync(sidecar, sidecarBytes);
+  saved.events[0].responseHash = '0'.repeat(64);
+  fs.writeFileSync(journal, JSON.stringify(saved));
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  fs.writeFileSync(journal, pendingBytes);
+  assert.deepEqual(engine.inspectFixtureEvidence(run.id).status, 'sidecar-ahead');
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(journal, 'utf8')).outcome,
+    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+});
+
 test('fixture subprocess recovery fails closed only after both recorded processes are gone', async t => {
   const { engine } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));

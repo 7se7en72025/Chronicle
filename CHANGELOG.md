@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Keep pending fixture runs unchanged for inspection when a child-written evidence sidecar is invalid or conflicts with the journal.
 - Add read-only, bounded fixture evidence inspection that reports when the child-written event sidecar is ahead of or conflicts with the controller journal.
 - Preserve controlled fixture subprocess events in a child-written, fsynced sidecar before forwarding them to the controller; pending runs still require inspection.
 - Clarify that the autonomous worker's restricted PATH cannot establish host unavailability; require it to assess remaining local O014 recovery work before stopping the queue.

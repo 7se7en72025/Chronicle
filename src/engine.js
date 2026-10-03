@@ -614,6 +614,11 @@ class Chronicle {
           results.push({ id: run.id, assessment: 'pending-inspect' });
           continue;
         }
+        const evidence = this.inspectFixtureEvidence(run.id);
+        if (evidence.status === 'invalid' || evidence.status === 'conflict') {
+          results.push({ id: run.id, assessment: 'pending-inspect' });
+          continue;
+        }
         run.outcome = { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' };
         writeJson(file, run);
         results.push({ id: run.id, assessment: 'interrupted-recorded' });

@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 sidecar conflict recovery gate (2026-10-03)
+
+**P1 — recovery could overwrite a pending journal despite contradictory child evidence (fixed).** `recoverFixtureRuns` now checks the read-only sidecar assessment after the existing controller/child death gates. An invalid or conflicting sidecar leaves the journal and sidecar untouched for inspection. A consistent or sidecar-ahead record can still only be recorded as failed with `MCP_PROCESS_INTERRUPTED`; extra child events never establish completion or binding. An unavailable sidecar retains the prior conservative PID/witness rules for legacy and pre-write runs.
+
+**Evidence and limit:** a focused disposable-repository regression passed 1/1 for invalid, conflicting, and sidecar-ahead evidence; it checks byte preservation and failed-only recovery. `npm.cmd run check`, full `npm.cmd test` (75/75), changed Markdown links, and `git diff --check` pass. Second-pass review confirmed the new guard runs after dead-process checks and before journal replacement, with no change to binding or branch creation. The regression simulates an interrupted journal after a completed child; it does not kill the controller in the new write-before-stderr window. A concurrent external path swap remains unaddressed. No independent reviewer participated.
+
 ## O014 read-only sidecar inspection (2026-10-03)
 
 **P2 — preserved child events had no bounded comparison against the controller journal (fixed for inspection).** `Chronicle.inspectFixtureEvidence` and the CLI's `inspect-fixture-evidence` command now read only a regular sidecar of at most 256 KiB, reject incomplete lines and malformed or foreign events, and compare its ordered events with the journal prefix. The result reports `consistent`, `sidecar-ahead`, `conflict`, `invalid`, or `unavailable` with counts, without returning payloads or changing files. This is metadata consistency, not host-tool provenance or proof that replay finished. A sidecar-ahead pending run stays pending; recovery/binding behavior is unchanged.
