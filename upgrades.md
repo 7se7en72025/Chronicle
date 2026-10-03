@@ -22,6 +22,8 @@ Use these terms consistently:
 
 **Build and verify:** use a disposable repository with staged and unstaged human edits; install and trust one local adapter; record a successful tool and a tool that partially writes then fails; inspect gaps and attribution; make a selection in the real review surface; verify output and untouched original/index; run guarded undo and refusal cases. Save host/version and observed event coverage, with no private transcript or recording in Git.
 
+**Current local prerequisite (2026-10-04):** read-only CLI inspection found Codex CLI 0.160.0 and no installed Chronicle plugin. `codex doctor --summary` failed its disk check for both `CODEX_HOME` and the worktree, with about 146 MiB free on C:. Stop new real-host/model probes until disk space is restored; do not bypass Codex's hook-trust or tool policy checks. No plugin or trust setting was changed by this inspection. See [REVIEW.md](REVIEW.md).
+
 **Exit:** documented matrix of events actually observed in that host, successful review and branch flow, and demonstrated preservation of source/index. Until this passes, label host support experimental.
 
 ### 1. Make evidence comparable — partially implemented

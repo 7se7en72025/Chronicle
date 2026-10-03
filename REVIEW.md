@@ -1,5 +1,11 @@
 # Latest development review
 
+## Codex host prerequisite audit (2026-10-04)
+
+**P1 — disk capacity blocks safe real-host validation (external prerequisite).** Read-only `codex --version` reported 0.160.0. `codex plugin list --json` showed no installed Chronicle plugin. `codex doctor --summary --no-color` exited 1 because both `CODEX_HOME` and the worktree had insufficient disk space; `Get-PSDrive C` reported 152,592,384 bytes free (about 146 MiB) at inspection. This prevents a responsible new model/host probe, plugin installation, or heavy test run until space is restored. No global Codex configuration, plugin list, hook trust, scheduler state, or user files were changed.
+
+**Host contract:** current [OpenAI plugin packaging guidance](https://developers.openai.com/plugins/build/plugins) supports root `plugin.json` with `extensions.com.openai.hooks`, matching Chronicle's packaging. [Codex hook guidance](https://learn.chatgpt.com/docs/hooks) says non-managed plugin hooks require review and trust of the exact definition before they run; installing/enabling a plugin alone does not establish hook delivery. The shipped path and Bash/file-edit boundaries remain unverified. After disk capacity is restored, validate one local installation and trust flow in a disposable repository without bypassing tool policy, then run the O004 event/preservation matrix. No independent reviewer participated.
+
 ## Retention and migration contract (2026-10-04)
 
 **P2 — local history had no concrete removal or migration policy (design recorded).** The roadmap called for retention/deletion controls before SQLite, while `GETTING_STARTED.md` only said they were planned. [D015](DECISIONS.md#d015--retain-local-evidence-until-explicit-dependency-aware-removal) now proposes explicit, dependency-aware per-repository removal with no automatic expiry or worktree deletion, plus copy/verify/switch migration that retains the old JSON store. This is a design decision, not implemented behavior. It keeps checkpoint and operation evidence needed for review and guarded undo from being silently discarded.

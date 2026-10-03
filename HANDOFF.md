@@ -6,6 +6,8 @@ Updated: 2026-10-04.
 
 The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task uses a clean sibling checkout and may run on battery. Its 17:18 UTC cycle stopped without edits after its restricted PATH hid `codex` and `claude`; the supervisor had launched Codex. Local O014 recovery and evidence work was then verified and normally pushed, with both checkouts synced. Task Scheduler now reports `Ready`, but the task remains STOP-gated because automatic approval review rejected clearing its marker. The chat heartbeat remains paused. Real Codex CLI 0.160.0 runs called read-only fixture MCP tools and delivered session and fixture MCP pre/post-tool checkpoints through temporary inline hooks with external storage; see [REVIEW.md](REVIEW.md). Full agent replay, the shipped plugin trust/loading path, Bash/file-edit boundaries, and the review UI remain unvalidated.
 
+A read-only 2026-10-04 host audit found `codex-cli 0.160.0`, no installed Chronicle plugin in `codex plugin list --json`, and a `codex doctor --summary` disk failure. C: had 152,592,384 bytes free at inspection, below the doctor's threshold for both `CODEX_HOME` and the worktree. No plugin, hook-trust, scheduler, or global setting was changed. Defer new model/host probes and heavy tests until adequate space is available; see [REVIEW.md](REVIEW.md).
+
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
 ## Latest work
