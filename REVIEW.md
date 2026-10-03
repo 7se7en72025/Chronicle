@@ -1,5 +1,9 @@
 # Latest development review
 
+## Final local smoke check (2026-10-03)
+
+**No new finding.** The selection demo passed (40 of 80 changed lines kept, zero model requests). The simulated replay demo passed (two injected fixture responses, two scripted worktrees, original source clean, no live tools or model requests). The demos are disposable local fixtures and do not validate Codex/Claude hook delivery, native VS Code review, or a fresh AI-agent replay. The primary checkout still has unrelated untracked `BOLPREP.md`; it was neither staged nor changed.
+
 ## Final handoff claim audit (2026-10-03)
 
 **P2 — living status mixed historical and current host/runner claims (docs fixed).** `ORCHESTRATION.md:O004` still named Codex CLI 0.159.2 despite the installed 0.160.0 and a verified read-only MCP fixture call sequence. `HANDOFF.md` still said that fixture tool calls and a live stderr-capture cycle were pending after they had been observed, and implied that the earlier runner restart was still next. Current state now distinguishes those historical checks from the STOP-gated task and the remaining unverified hook/editor/agent-run paths. This is documentation reconciliation, not new host validation.

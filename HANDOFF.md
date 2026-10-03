@@ -80,6 +80,8 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 Latest code-bearing O014 work passed `npm.cmd run check`, full `npm.cmd test` (75/75), changed Markdown links, and `git diff --check`; the focused launch-witness recovery checks passed 3/3. The latest D014 decision was documentation-only and passed link, consistency, and whitespace review. The supervisor previously published live cycles through `eba2be1`; the current STOP-gated state is recorded above.
 
+Final smoke check: `npm.cmd run demo` kept 40 of 80 changed lines with zero model requests; `npm.cmd run demo:replay` returned two injected fixture responses in two scripted worktrees with no live tools or model requests. Both demos passed and retained their disposable workspaces for inspection. This does not validate a real agent retry.
+
 For separate stderr capture, focused ready-edit and queue-stop fixtures passed 2/2. `npm.cmd run check` and full `npm.cmd test` passed 73/73 at that change, including malformed-JSONL refusal. Windows PowerShell syntax parsing is covered by the suite. A later live cycle published with separate stderr capture.
 
 The O014 launch-witness cycle's focused fixture regression passed 1/1. A second-pass diff review covered the conflicting, malformed, matching, and absent-witness branches. Sandboxed `npm run check` and `npm test` passed 72/72, but raw Codex stderr diagnostics contaminated the strict JSONL stream and the trusted wrapper stopped without publishing. The six preserved files were then independently checked with `npm.cmd run check` and `npm.cmd test` (72/72); publication is recorded separately.
