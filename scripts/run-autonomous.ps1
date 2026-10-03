@@ -6,6 +6,7 @@ param(
     [string]$CodexPath,
     [string]$PromptPath,
     [string]$RunLogPath,
+    [string]$StderrLogPath,
     [string]$SummaryPath,
     [int]$IntervalMinutes = 30,
     [int]$MaxRunMinutes = 25
@@ -23,7 +24,7 @@ if ($Worker) {
             $ErrorActionPreference = 'Continue'
             $logWriter = New-Object System.IO.StreamWriter($RunLogPath, $false, (New-Object System.Text.UTF8Encoding($false)))
             try {
-                & $CodexPath exec --sandbox workspace-write --config approval_policy=never --config sandbox_workspace_write.network_access=false --ephemeral --json --output-last-message $SummaryPath $env:CHRONICLE_AUTONOMOUS_PROMPT 2>&1 | ForEach-Object { $logWriter.WriteLine([string]$_) }
+                & $CodexPath exec --sandbox workspace-write --config approval_policy=never --config sandbox_workspace_write.network_access=false --ephemeral --json --output-last-message $SummaryPath $env:CHRONICLE_AUTONOMOUS_PROMPT 2> $StderrLogPath | ForEach-Object { $logWriter.WriteLine([string]$_) }
                 $codexExitCode = $LASTEXITCODE
             }
             finally {
@@ -37,7 +38,7 @@ if ($Worker) {
         exit $codexExitCode
     }
     catch {
-        [System.IO.File]::AppendAllText($RunLogPath, "`nWorker error: $($_.Exception.Message)`n")
+        [System.IO.File]::AppendAllText($StderrLogPath, "`nWorker error: $($_.Exception.Message)`n")
         exit 1
     }
 }
@@ -146,6 +147,7 @@ function Invoke-CodexCycle {
     $runId = [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')
     $promptPath = Join-Path $stateRoot "$runId.prompt.txt"
     $runLogPath = Join-Path $stateRoot "$runId.jsonl"
+    $stderrLogPath = Join-Path $stateRoot "$runId.stderr.log"
     $summaryPath = Join-Path $stateRoot "$runId.summary.txt"
     $prompt = @'
 Run one focused Chronicle review-and-improve cycle in this repository. First read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md; inspect Git status and preserve existing work. Follow the highest-impact viable accepted queue item and current human instructions. Record evidence-based review findings, implement at most one meaningful queue task, inspect the final diff in a second pass, and update the living documents accurately. Distinguish implemented, proposed, and verified claims. Do not access the network, stage, commit, push, force-push, deploy, publish, or perform destructive cleanup. The Codex process has network disabled and Git metadata is read-only. Change tracked files only; leave no new, deleted, or staged files and do not edit runner scripts, AGENTS.md, ORCHESTRATION.md, or .gitattributes. If and only if all authorized queue work is complete or concretely blocked, make no speculative edits and make the final response's first line exactly CHRONICLE_RUNNER_STOP. Otherwise, finish all edits, documentation, and diff review before the final checks. As your last two tool actions, run `npm run check` and then `npm test` inside this sandbox, separately and in that order. After those checks, make no further tool calls or edits; respond with a standalone line `CHRONICLE_RUNNER_READY <short commit subject>` only if both pass. The trusted wrapper requires those final sandboxed check events with no later tool activity, verifies repository state, then stages tracked edits, commits once, and publishes only after its safety checks pass. Include a concise handoff and verification evidence.
@@ -155,7 +157,7 @@ Run one focused Chronicle review-and-improve cycle in this repository. First rea
     $powerShellExe = Join-Path $PSHOME 'powershell.exe'
     $workerArgs = @(
         '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'run-autonomous.ps1'),
-        '-Worker', '-CodexPath', $codexExecutable, '-PromptPath', $promptPath, '-RunLogPath', $runLogPath, '-SummaryPath', $summaryPath
+        '-Worker', '-CodexPath', $codexExecutable, '-PromptPath', $promptPath, '-RunLogPath', $runLogPath, '-StderrLogPath', $stderrLogPath, '-SummaryPath', $summaryPath
     )
     foreach ($workerArg in $workerArgs) {
         if ($workerArg.Contains('"')) { throw 'Runner paths and arguments cannot contain double quotes.' }

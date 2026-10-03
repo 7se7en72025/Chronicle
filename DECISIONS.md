@@ -92,6 +92,8 @@ Status: accepted for the Windows runner.
 
 The worker finishes edits, documentation, and diff review before running `npm run check` then `npm test` as its last two tool actions. The trusted supervisor refuses publication if those exact commands are missing, fail, occur out of order, or are followed by any other recorded tool event. It preserves the uncommitted result for inspection. This is an event-order guard, not a cryptographic attestation of worktree bytes or an independent review.
 
+Keep native CLI stderr in a separate diagnostic file; only stdout JSONL is parsed as ordered tool evidence. Malformed stdout still refuses publication. This preserves the strict gate when the CLI emits recoverable diagnostics during an otherwise valid cycle.
+
 Reason: accepting successful checks anywhere in a cycle could publish edits made after the checks. The runner cannot safely execute model-edited project code outside its sandbox.
 
 Revisit if a trusted sandboxed worktree digest can be bound to the checks without allowing model-edited verifier code to run in the supervisor.

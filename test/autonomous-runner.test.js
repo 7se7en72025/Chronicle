@@ -120,7 +120,10 @@ test('autonomous runner tolerates native stderr when the Codex cycle succeeds', 
   assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Queue complete/);
   const logs = fs.readdirSync(fixture.state).filter((name) => name.endsWith('.jsonl'));
   assert.equal(logs.length, 1);
-  assert.match(fs.readFileSync(path.join(fixture.state, logs[0]), 'utf8'), /harmless diagnostics/);
+  assert.doesNotMatch(fs.readFileSync(path.join(fixture.state, logs[0]), 'utf8'), /harmless diagnostics/);
+  const stderrLogs = fs.readdirSync(fixture.state).filter((name) => name.endsWith('.stderr.log'));
+  assert.equal(stderrLogs.length, 1);
+  assert.match(fs.readFileSync(path.join(fixture.state, stderrLogs[0]), 'utf16le'), /harmless diagnostics/);
 });
 
 test('autonomous runner pauses when a ready cycle makes no tracked edits', (t) => {
@@ -156,6 +159,25 @@ test('autonomous runner verifies tracked edits, commits once, and publishes to o
   assert.equal(git(fixture.repo, 'rev-parse', 'refs/remotes/origin/main'), git(fixture.repo, 'rev-parse', 'HEAD'));
   const stopPath = path.join(fixture.state, 'STOP');
   assert.equal(fs.existsSync(stopPath), false, fs.existsSync(stopPath) ? fs.readFileSync(stopPath, 'utf8') : undefined);
+});
+
+test('autonomous runner publishes passing checks despite native stderr diagnostics', (t) => {
+  if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
+  const fixture = makeFixture(t);
+  fixture.noStop = true;
+  fixture.edit = true;
+  fixture.stderr = true;
+
+  runRunner(fixture);
+
+  assert.equal(fs.existsSync(path.join(fixture.state, 'STOP')), false);
+  assert.equal(git(fixture.remote, 'rev-parse', 'refs/heads/main'), git(fixture.repo, 'rev-parse', 'HEAD'));
+  const logs = fs.readdirSync(fixture.state).filter((name) => name.endsWith('.jsonl'));
+  assert.equal(logs.length, 1);
+  assert.doesNotMatch(fs.readFileSync(path.join(fixture.state, logs[0]), 'utf8'), /harmless diagnostics/);
+  const stderrLogs = fs.readdirSync(fixture.state).filter((name) => name.endsWith('.stderr.log'));
+  assert.equal(stderrLogs.length, 1);
+  assert.match(fs.readFileSync(path.join(fixture.state, stderrLogs[0]), 'utf16le'), /harmless diagnostics/);
 });
 
 test('autonomous runner preserves edits when the push destination changes during the cycle', (t) => {

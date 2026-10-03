@@ -1,5 +1,9 @@
 # Latest development review
 
+## Runner JSONL stderr separation (2026-10-03)
+
+**P1 — native stderr contaminated evidence JSONL (fixed in worker capture).** Cycle `20261003-141012-983` ended with passing final `npm run check` and `npm test` events (72/72), but three failed `apply_patch` attempts emitted eight non-JSON stderr lines into the combined stream. The strict evidence parser correctly stopped and preserved six unstaged O014 files. After independent syntax, 72/72 tests, link and diff review, they were published as `dd20a53`. The worker now writes Codex stdout JSONL and native stderr diagnostics to distinct per-cycle files. Disposable ready-edit and queue-stop fixtures with native stderr pass 2/2, confirming clean JSONL and publication; an existing malformed-stdout fixture still refuses publication. Full `npm.cmd test` passes 73/73 and syntax passes. Windows PowerShell writes the stderr redirection file as UTF-16LE, which the fixture reads accordingly. A live post-fix cycle remains to be observed. This same-agent review is not an independent review.
+
 ## O014 launch-witness consistency (2026-10-03)
 
 **P1 — a conflicting witness could be ignored during recovery (fixed at fixture level).** `recoverFixtureRuns` previously read the launch witness only when the pending journal lacked `childPid`. A journal with a recorded dead PID and an existing witness naming another PID could therefore be marked interrupted without resolving the conflict. Recovery now inspects any existing witness for a pending subprocess run and leaves malformed, unreadable, or conflicting witness evidence at `pending-inspect`. A matching witness retains the prior dead-process recovery path; a missing witness is still permitted when the journal already has a child PID.
