@@ -1,5 +1,13 @@
 # Latest development review
 
+## Output index freshness during evidence attachment (2026-10-04)
+
+**P1 — staged output drift passed reconciliation (fixed).** `src/engine.js:reconcileOperations` compared the saved output's working-tree bytes and HEAD but ignored the Git index. Staging a different `README.md` version and restoring the working file to its saved bytes still produced `assessment: completed`, allowing `bindFixtureRun` to attach fixture evidence to a changed output state. Reconciliation now treats any staged output diff as modification. `recordCheck` also refuses to attach a reported check when reconciliation no longer verifies the saved output; this does not validate whether the named check ran.
+
+**Host probe limit:** a temporary, read-only Codex CLI 0.160.0 turn used inline command-hook settings in a disposable Git repo. Codex's shell read was rejected by automatic policy before execution, and no Chronicle hook record was observed. This does not establish whether the plugin configuration or hooks deliver events in a real trusted host. No persistent host config or main-checkout file was changed. The probe consumed model usage.
+
+**Verification and limit:** the focused disposable-repository regression passed 1/1, including a staged variant with restored working bytes, binding/check refusal, and successful attachment after unstaging. `npm run check` and the full `npm test` suite passed 76/76; changed Markdown relative links and `git diff --check` passed. The second-pass diff review confirmed that the index check only changes the completed-output assessment and that check recording mutates nothing when freshness fails. This is an attachment-time check, not a lock against a concurrent external index edit after assessment. No independent reviewer participated.
+
 ## O014 bounded fixture-run journal reads (2026-10-03)
 
 **P2 — fixture-run journal path checks were inconsistent with the new evidence-file guard (fixed).** Binding, pending recovery, and saved comparison now read fixture-run journals through the same bounded descriptor helper. An unreadable recovery record remains `unreadable-record`; comparison omits it and binding refuses it. This narrows object-replacement and growth races at those three read paths without changing event correlation or recovery outcomes. Same-size concurrent mutation remains outside the guarantee.

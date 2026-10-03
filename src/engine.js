@@ -700,6 +700,7 @@ class Chronicle {
       const operation = JSON.parse(fs.readFileSync(journal, 'utf8'));
       if (operation.id !== operationId || operation.state !== 'completed' || operation.manifest?.schema !== 1 || !Array.isArray(operation.manifest.checks)) throw new Error('Check evidence can only be recorded for a completed manifest-backed operation');
       if (operation.manifest.checks.length >= 100) throw new Error('Check evidence limit reached for this operation');
+      if (this.reconcileOperations().find(item => item.id === operationId)?.assessment !== 'completed') throw new Error('Output workspace changed; check evidence cannot be attached to the saved output');
       const check = { id: crypto.randomUUID(), label: label.trim(), exitCode, outcome: exitCode === 0 ? 'reported-pass' : 'reported-fail', source: 'user-reported', recordedAt: new Date().toISOString() };
       operation.manifest.checks.push(check);
       writeJson(journal, operation);
@@ -874,6 +875,9 @@ class Chronicle {
             const expected = new Map(operation.files.map(file => [file.path, file.hash]));
             const absent = new Set(operation.deletedPaths);
             modifiedSinceCompletion = git(expectedTarget, ['rev-parse', 'HEAD']).trim() !== operation.head;
+            // The intended output is unstaged. A staged variant can differ even when
+            // working-tree bytes have been restored to the saved output.
+            if (git(expectedTarget, ['diff', '--cached', '--name-only', '-z']).length > 0) modifiedSinceCompletion = true;
             for (const [name, digest] of expected) {
               try {
                 const full = safePath(expectedTarget, name);

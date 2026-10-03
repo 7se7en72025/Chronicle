@@ -204,6 +204,36 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.throws(() => engine.bindFixtureRun(rejected.id, operation.id), /incomplete/);
 });
 
+test('staged output drift cannot pass reconciliation, binding, or check recording', t => {
+  const { engine, file } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After');
+  const selected = [engine.compare(before.id, after.id).changes[0].hunks[0].id];
+  const run = engine.beginFixtureRun(cassette, before.id);
+  run.server.handle({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+    protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' }
+  } });
+  run.server.handle({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  run.server.handle({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } });
+  run.server.handle({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } } });
+  run.finish();
+  const op = run.createBranch(after.id, selected, 'chronicle/staged-drift');
+  const output = path.join(op.target, 'README.md');
+  const saved = fs.readFileSync(output);
+  fs.writeFileSync(output, 'staged variant\n');
+  git(op.target, ['add', 'README.md']);
+  fs.writeFileSync(output, saved);
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'completed-worktree-modified');
+  assert.throws(() => engine.bindFixtureRun(run.id, op.id), /stale/);
+  assert.throws(() => engine.recordCheck(op.id, 'npm test', 0), /Output workspace changed/);
+  git(op.target, ['restore', '--staged', 'README.md']);
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'completed');
+  assert.equal(engine.bindFixtureRun(run.id, op.id).operationId, op.id);
+  assert.equal(engine.recordCheck(op.id, 'npm test', 0).outcome, 'reported-pass');
+});
+
 test('fixture evidence inspection reports durable events without repairing an incomplete journal', async t => {
   const { engine } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));

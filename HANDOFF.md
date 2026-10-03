@@ -1,6 +1,6 @@
 # Current handoff
 
-Updated: 2026-10-03.
+Updated: 2026-10-04.
 
 ## State
 
@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Reconciliation now treats staged output index changes as later edits even when the working file has been restored to saved bytes. Fixture binding and reported-check attachment refuse that drift. A disposable-repo regression passed; final suite/check evidence is in [REVIEW.md](REVIEW.md). A temporary read-only Codex hook probe did not produce host validation because automatic policy rejected its shell call.
 - O014 binding, recovery, and saved comparison now read fixture-run journals through the same bounded descriptor helper as cassette/sidecar/witness evidence. Unreadable recovery records stay inspectable. See [REVIEW.md](REVIEW.md).
 - O014 launch-witness recovery now uses the same bounded descriptor read as cassette and sidecar inspection. It still leaves an observed but unreadable witness pending. Focused recovery fixtures passed; see [REVIEW.md](REVIEW.md).
 - O014 cassette and sidecar reads now compare pre/open/post file identity and size while reading through a bounded descriptor. Focused subprocess and inspection fixtures pass; concurrent same-size writes and launch-witness races remain outside this check. See [REVIEW.md](REVIEW.md).
@@ -117,4 +118,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-O014's next acceptance step is a controlled host/orchestrator run that observes injected versus live/unmatched tool activity; the current fixture cannot supply that evidence. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. Keep D014's separate sidecar rule until a tested merge contract exists. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+O014's next acceptance step is a controlled host/orchestrator run that observes injected versus live/unmatched tool activity; the current fixture cannot supply that evidence. O004 still needs a trusted real editor/agent host delivery and UI check; the 2026-10-04 temporary Codex shell probe was policy-rejected before execution and showed no hook record. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. Keep D014's separate sidecar rule until a tested merge contract exists; see [REVIEW.md](REVIEW.md).

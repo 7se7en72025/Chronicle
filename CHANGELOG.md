@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Treat staged output-index changes as modified during reconciliation; refuse fixture binding and reported-check attachment until the saved output is restored.
 - Use bounded descriptor reads for fixture-run journals during binding, recovery, and saved branch comparison.
 - Reconcile the living handoff and host-access queue with current CLI versions, verified fixture calls, and the STOP-gated runner state.
 - Record D014: keep interrupted child evidence sidecars separate from failed journals until a tested merge contract exists.
