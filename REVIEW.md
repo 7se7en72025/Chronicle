@@ -1,5 +1,11 @@
 # Latest development review
 
+## Codex host trust prerequisite (2026-10-04)
+
+**P2 — real-hook validation remains blocked by a separate project-trust gate (documented).** In a disposable Git project, Codex CLI 0.160.0 opened its no-prompt TUI with Chronicle's project-local hook file, but prompted for persistent project trust before a session could start. `--dangerously-bypass-hook-trust` and a transient project-trust config override did not remove that prompt in this probe; the session was quit without accepting trust or running a model turn. An earlier read-only model turn had its shell call rejected by automatic policy before hook delivery. Neither attempt establishes that Chronicle's hook receives live events.
+
+**Source and next check:** the current official [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) says project `.codex/` hooks load only when the project layer is trusted, while bypassing hook-definition review is a separate one-off option. The next O004 validation needs a disposable project whose trust and hook definition have been explicitly reviewed in the host, then an actually executed supported tool boundary and the local checkpoint/gap evidence. No global configuration or private host recording was changed by this probe. This is a prerequisite finding, not an independent-agent review.
+
 ## Fixture MCP cassette startup read (2026-10-04)
 
 **P2 — cassette files were loaded without a disk-read bound (fixed).** `scripts/simulated-replay-mcp.js:main` read the entire cassette path before `createSimulatedReplay` enforced the 1 MiB schema cap. The launcher now checks regular-file identity and size around a bounded descriptor read, and strictly decodes UTF-8 before parsing. An oversized or changing input refuses startup before the MCP request loop; the caller's cassette file is left intact.

@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refresh the host audit with Codex 0.160.0 fixture coverage and the separate project-trust gate for real hook validation.
 - Bound the fixture MCP launcher's cassette disk read before JSON parsing.
 - Bound output verification and guarded-undo reads; detect a same-content path replacement during reconciliation.
 - Bound source-file reads during capture so a file enlarged after inspection cannot bypass the 1 MiB limit.

@@ -1,6 +1,6 @@
 # First-release audit
 
-Audited: 2026-10-02. Outcome: the local prototype is reviewable; release readiness remains blocked on real host validation. O008 audits the current implementation and does not complete the outstanding milestones in [PLAN.md](PLAN.md).
+Audited: 2026-10-02; host status refreshed 2026-10-04. Outcome: the local prototype is reviewable; release readiness remains blocked on real host validation. O008 audits the current implementation and does not complete the outstanding milestones in [PLAN.md](PLAN.md).
 
 ## Implemented and verified locally
 
@@ -15,10 +15,10 @@ Current validation runs on Node.js 24.12.0 and Git 2.52.0.windows.1. The engine/
 | Direct Node CLI | Manual capture, compare, select, preview, branch, undo, recovery | Disposable Git tests and runnable demo | Validate the complete user workflow in the supported editor/agent combination |
 | VS Code | Development extension with capture, review, and undo commands | Command and webview fixtures; CLI present | Launch, trust, render, keyboard/mouse interaction, opening output, and confirmation in a real Extension Development Host |
 | Claude Code CLI | Bundled session and pre/success/failure tool hooks | Payload/privacy/config fixtures | CLI absent; installation, trust, actual event names and failed-tool partial writes unverified |
-| Codex CLI | Portable manifest with session, interrupt, and pre/post local tool hooks | Payload/privacy/config fixtures; installed CLI 0.159.2 version/help checked | Plugin loading, hook trust, actual lifecycle/tool delivery, and capture coverage unverified |
+| Codex CLI | Portable manifest with session, interrupt, and pre/post local tool hooks | Payload/privacy/config fixtures; installed CLI 0.160.0; one read-only fixture MCP call sequence observed | Project/plugin trust, actual hook delivery, and capture coverage unverified |
 | Codex Desktop native panel | No Chronicle panel integration | No verified rendering API in this project | Use the CLI or VS Code review surface; native embedding is outside the implemented slice |
 
-Official [plugin packaging](https://developers.openai.com/plugins/build/plugins) and [hook documentation](https://learn.chatgpt.com/docs/hooks) were checked during the audit. Plugin installation does not establish hook trust. A real host check must verify trusted hook delivery and local executable availability; version/help output alone is insufficient. No host settings, installations, trust decisions, or model-driven sessions were changed during this audit.
+Official [plugin packaging](https://developers.openai.com/plugins/build/plugins) and [hook documentation](https://learn.chatgpt.com/docs/hooks) were checked during the audit and refreshed for the host status. Plugin installation does not establish hook trust. Project-local hooks also require a trusted project layer; `--dangerously-bypass-hook-trust` is a separate one-off hook-definition option. A real host check must verify trusted hook delivery and local executable availability; version/help output and a fixture MCP sequence are insufficient. The 2026-10-02 audit changed no host settings, installations, trust decisions, or model-driven sessions. The later Codex MCP probe used a temporary config and model turn; a separate no-prompt hook probe quit at the persistent project-trust prompt without accepting it or changing global settings. See [REVIEW.md](REVIEW.md).
 
 ## Remaining limitations
 
@@ -32,6 +32,6 @@ Official [plugin packaging](https://developers.openai.com/plugins/build/plugins)
 
 ## Next host validation
 
-Resume O004 when Claude CLI and an actual editor UI runtime are available. Codex CLI is already present, but its hooks still require a verified local install/trust workflow. Use a disposable, text-only Git project with pre-existing staged and unstaged edits. Capture a successful edit and a tool that writes before failing; inspect checkpoint boundaries, gaps, status, exclusions, and attribution. Select a subset through the real panel, verify complete output bytes and the unchanged original index, then exercise guarded undo and its refusal after later edits. Record host versions and observed payload/command behavior without committing private recordings.
+Resume O004 when Claude CLI and an actual editor UI runtime are available. Codex CLI is already present, but its hooks still require a verified local project/plugin trust workflow. In a disposable, text-only Git project, explicitly review the project and hook definition in Codex, then observe an actually executed supported tool boundary and inspect checkpoint/gap evidence. For the complete editor flow, include pre-existing staged and unstaged edits, capture a successful edit and a tool that writes before failing, select a subset through the real panel, verify complete output bytes and the unchanged original index, then exercise guarded undo and its refusal after later edits. Record host versions and observed payload/command behavior without committing private recordings.
 
-All currently viable queue work is complete after this audit. Retain O004 as blocked and await its prerequisite; do not expand the first release or make repetitive unchanged-status commits. See [HANDOFF.md](HANDOFF.md) for current results and [ORCHESTRATION.md](ORCHESTRATION.md) for publication boundaries.
+The fixture-backed local queue has been advanced through O014; its remaining host/orchestrator acceptance step and O004 still need the prerequisites above. Do not expand the first release or make repetitive unchanged-status commits. See [HANDOFF.md](HANDOFF.md) for current results and [ORCHESTRATION.md](ORCHESTRATION.md) for publication boundaries.
