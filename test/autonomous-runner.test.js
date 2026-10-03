@@ -45,7 +45,7 @@ function makeFixture(t) {
     "if ($env:CHRONICLE_FAKE_PUSH_URL) { & git -C $env:CHRONICLE_FIXTURE_REPO config remote.origin.pushurl $env:CHRONICLE_FAKE_PUSH_URL; if ($LASTEXITCODE -ne 0) { exit 17 } }",
     "if ($env:CHRONICLE_FAKE_NO_STOP -eq '1') { $summary = 'CHRONICLE_RUNNER_READY Verify fixture edits' } else { $summary = \"CHRONICLE_RUNNER_STOP`nFixture queue complete.\" }",
     '[System.IO.File]::WriteAllText($args[$outIndex + 1], $summary)',
-    "if ($env:CHRONICLE_FAKE_NO_EVIDENCE -ne '1') { foreach ($command in @('npm.cmd run check', 'npm.cmd test')) { $code = if ($env:CHRONICLE_FAKE_FAIL_CHECKS -eq '1' -and $command -eq 'npm.cmd test') { 1 } else { 0 }; if ($env:CHRONICLE_FAKE_COMPOUND_CHECK -eq '1' -and $command -eq 'npm.cmd run check') { $command += '; Set-Content seed.txt' }; @{ type = 'item.completed'; item = @{ type = 'command_execution'; command = $command; status = 'completed'; exit_code = $code } } | ConvertTo-Json -Depth 4 -Compress | Write-Output } }",
+    "if ($env:CHRONICLE_FAKE_NO_EVIDENCE -ne '1') { foreach ($command in @('npm.cmd run check', 'npm.cmd test')) { $code = if ($env:CHRONICLE_FAKE_FAIL_CHECKS -eq '1' -and $command -eq 'npm.cmd test') { 1 } else { 0 }; if ($env:CHRONICLE_FAKE_COMPOUND_CHECK -eq '1' -and $command -eq 'npm.cmd run check') { $command += '; Set-Content seed.txt' }; if ($env:CHRONICLE_FAKE_CMD_WRAPPER -eq '1') { $command = '\"C:\\WINDOWS\\system32\\cmd.exe\" /c ' + [char]39 + $command + [char]39 }; @{ type = 'item.completed'; item = @{ type = 'command_execution'; command = $command; status = 'completed'; exit_code = $code } } | ConvertTo-Json -Depth 4 -Compress | Write-Output } }",
     "if ($env:CHRONICLE_FAKE_LATE_EDIT_KIND) { [System.IO.File]::WriteAllText((Join-Path $env:CHRONICLE_FIXTURE_REPO 'seed.txt'), 'untested fixture'); @{ type = 'item.completed'; item = @{ type = $env:CHRONICLE_FAKE_LATE_EDIT_KIND; command = 'Set-Content seed.txt'; status = 'completed'; exit_code = 0 } } | ConvertTo-Json -Depth 4 -Compress | Write-Output }",
     "if ($env:CHRONICLE_FAKE_MALFORMED_LOG -eq '1') { Write-Output 'not-json' }",
     "[System.IO.File]::WriteAllText($env:CHRONICLE_FAKE_CODEX_MARKER, ($args -join ' '))",
@@ -74,6 +74,7 @@ function runRunner(fixture) {
       CHRONICLE_FAKE_NO_EVIDENCE: fixture.noEvidence ? '1' : '0',
       CHRONICLE_FAKE_LATE_EDIT_KIND: fixture.lateEditKind || '',
       CHRONICLE_FAKE_COMPOUND_CHECK: fixture.compoundCheck ? '1' : '0',
+      CHRONICLE_FAKE_CMD_WRAPPER: fixture.cmdWrapper ? '1' : '0',
       CHRONICLE_FAKE_MALFORMED_LOG: fixture.malformedLog ? '1' : '0',
       CHRONICLE_FAKE_EDIT_RUNNER: fixture.editRunner ? '1' : '0',
       CHRONICLE_FAKE_STDERR: fixture.stderr ? '1' : '0',
@@ -211,6 +212,19 @@ test('autonomous runner stops before committing when sandboxed project checks fa
   assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Project check evidence missing or failed/);
 });
 
+test('autonomous runner accepts exact cmd.exe final checks', (t) => {
+  if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
+  const fixture = makeFixture(t);
+  fixture.noStop = true;
+  fixture.edit = true;
+  fixture.cmdWrapper = true;
+
+  runRunner(fixture);
+
+  assert.equal(fs.existsSync(path.join(fixture.state, 'STOP')), false);
+  assert.equal(git(fixture.remote, 'rev-parse', 'refs/heads/main'), git(fixture.repo, 'rev-parse', 'HEAD'));
+});
+
 test('autonomous runner refuses file or command edits after final sandboxed checks', (t) => {
   if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
   for (const kind of ['file_change', 'command_execution']) {
@@ -245,6 +259,22 @@ test('autonomous runner refuses compound checks and malformed cycle logs', (t) =
     assert.equal(fs.readFileSync(path.join(fixture.repo, 'seed.txt'), 'utf8'), 'verified fixture');
     assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Project check evidence missing or failed/);
   }
+});
+
+test('autonomous runner refuses a compound command inside cmd.exe final checks', (t) => {
+  if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
+  const fixture = makeFixture(t);
+  fixture.noStop = true;
+  fixture.edit = true;
+  fixture.cmdWrapper = true;
+  fixture.compoundCheck = true;
+  const startingCommit = git(fixture.repo, 'rev-parse', 'HEAD');
+
+  runRunner(fixture);
+
+  assert.equal(git(fixture.repo, 'rev-parse', 'HEAD'), startingCommit);
+  assert.equal(git(fixture.remote, 'rev-parse', 'refs/heads/main'), startingCommit);
+  assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Project check evidence missing or failed/);
 });
 
 test('autonomous runner refuses a ready result without sandboxed test evidence', (t) => {

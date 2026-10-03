@@ -91,8 +91,8 @@ function Test-RunEvidence([string]$RunLogPath) {
             continue
         }
         $command = [string]$event.item.command
-        $isSyntax = $command -match '(?i)(^npm(?:\.cmd)?\s+run\s+check\s*$|-Command\s+[''"]npm(?:\.cmd)?\s+run\s+check[''"]\s*$)'
-        $isTest = $command -match '(?i)(^npm(?:\.cmd)?\s+test\s*$|-Command\s+[''"]npm(?:\.cmd)?\s+test[''"]\s*$)'
+        $isSyntax = $command -match '(?i)(^npm(?:\.cmd)?\s+run\s+check\s*$|-Command\s+[''"]npm(?:\.cmd)?\s+run\s+check[''"]\s*$|^"[^"]*\\cmd\.exe"\s+/c\s+[''"]npm(?:\.cmd)?\s+run\s+check[''"]\s*$)'
+        $isTest = $command -match '(?i)(^npm(?:\.cmd)?\s+test\s*$|-Command\s+[''"]npm(?:\.cmd)?\s+test[''"]\s*$|^"[^"]*\\cmd\.exe"\s+/c\s+[''"]npm(?:\.cmd)?\s+test[''"]\s*$)'
         if ($event.type -eq 'item.started') {
             if ($syntaxPassed -and -not $testPassed -and $isTest) { continue }
             $syntaxPassed = $false

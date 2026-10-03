@@ -1,5 +1,9 @@
 # Latest development review
 
+## Runner cmd.exe check wrapper (2026-10-03)
+
+**P1 — valid final checks were rejected (fixed for the observed shell form).** In cycle `20261003-134340-646`, Codex ran final `npm run check` and `npm test` through quoted `cmd.exe /c` commands; both completed with exit code 0. `Test-RunEvidence` recognized only bare npm or PowerShell `-Command` forms, so the trusted wrapper wrote `STOP` and preserved the eight edited files. After an independent `npm run check`, 70/70 tests, diff review, and destination check, the preserved O014 change was committed and normally pushed as `35d1d16`. The matcher now accepts the exact quoted `cmd.exe /c` forms while still refusing an appended compound command. Focused fake-runner fixtures passed 2/2. A full suite first passed 71/72: the existing real-controller recovery test missed its 10-second PID-publication deadline without controller stderr. That test then passed focused in both checkouts, and the full rerun passed 72/72; syntax passed. This is a timing concern to monitor, not proof of a recovery regression. A live post-fix cycle is pending; this same-agent review is not an independent reviewer.
+
 ## O014 child launch witness (2026-10-03)
 
 **P1 — A dead controller could leave a launched fixture child with no published PID (partially closed).** `runFixtureSubprocess` saved `spawning` before process creation and saved `childPid` afterward. A crash between those writes left recovery unable to distinguish a launched child from an attempted launch. The controlled MCP child now writes a fsynced, exclusive launch witness containing its run ID and PID before reading its cassette. When the journal is still `spawning` with no child PID, recovery can mark the run interrupted only after the controller and witnessed child are both confirmed absent. A malformed witness remains pending; the pre-spawn case is recoverable only when no witness exists.
