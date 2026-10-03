@@ -91,7 +91,9 @@ function readRegularLimited(file, maximumBytes) {
     const opened = fs.fstatSync(fd, { bigint: true });
     if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino ||
         opened.ctimeNs !== before.ctimeNs || opened.size > BigInt(maximumBytes)) throw new Error('Evidence file changed before read');
-    const bytes = Buffer.alloc(maximumBytes + 1);
+    // Keep one spare byte to detect growth without allocating the full limit
+    // for every small blob, journal, or sidecar.
+    const bytes = Buffer.alloc(Math.min(maximumBytes + 1, Number(opened.size) + 1));
     let count = 0, read;
     while (count < bytes.length && (read = fs.readSync(fd, bytes, count, bytes.length - count, null)) > 0) count += read;
     const after = fs.fstatSync(fd, { bigint: true });
@@ -245,7 +247,7 @@ class Chronicle {
   bytes(file) {
     if (!file) return Buffer.alloc(0);
     if (!/^[a-f0-9]{64}$/.test(file.hash)) throw new Error('Invalid blob hash');
-    const bytes = fs.readFileSync(path.join(this.store, 'blobs', file.hash));
+    const bytes = readRegularLimited(path.join(this.store, 'blobs', file.hash), MAX_FILE);
     if (hash(bytes) !== file.hash) throw new Error('Snapshot integrity check failed');
     return bytes;
   }
@@ -253,7 +255,7 @@ class Chronicle {
   writeBlob(bytes, digest) {
     const target = path.join(this.store, 'blobs', digest);
     try {
-      const existing = fs.readFileSync(target);
+      const existing = readRegularLimited(target, MAX_FILE);
       if (hash(existing) !== digest) throw new Error('Existing blob is damaged; checkpoint was not saved');
       return;
     } catch (error) { if (error.code !== 'ENOENT') throw error; }

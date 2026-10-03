@@ -788,6 +788,25 @@ test('corrupted snapshots fail integrity checks', t => {
   assert.throws(() => engine.bytes(entry), /integrity/);
 });
 
+test('oversized or non-regular saved blobs cannot be read or reused', t => {
+  const { engine } = fixture(t);
+  const cp = engine.capture();
+  const entry = cp.files['README.md'];
+  const blob = path.join(engine.store, 'blobs', entry.hash);
+  const original = fs.readFileSync(blob);
+  fs.writeFileSync(blob, Buffer.alloc(1024 * 1024 + 1));
+  assert.throws(() => engine.bytes(entry), /Invalid evidence file/);
+  assert.throws(() => engine.capture(), /Invalid evidence file/);
+  assert.equal(engine.list().length, 1);
+  fs.unlinkSync(blob);
+  fs.mkdirSync(blob);
+  assert.throws(() => engine.bytes(entry), /Invalid evidence file/);
+  assert.throws(() => engine.capture(), /Invalid evidence file/);
+  fs.rmdirSync(blob);
+  fs.writeFileSync(blob, original);
+  assert.equal(engine.bytes(entry).toString(), 'one\ntwo\nthree\n');
+});
+
 test('interrupted blob publication leaves no poisoned content hash', t => {
   const { engine } = fixture(t);
   const originalLink = fs.linkSync;

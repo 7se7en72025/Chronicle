@@ -1,5 +1,11 @@
 # Latest development review
 
+## Bounded snapshot blob reads (2026-10-04)
+
+**P2 — persisted blobs bypassed the capture file limit on later reads (fixed).** `src/engine.js:bytes` and `writeBlob` used unbounded `readFileSync` on saved blob paths. A damaged, oversized, or redirected blob could be read during preview, capture, or undo despite the 1 MiB capture limit. Both paths now use the bounded regular-file descriptor helper, which checks object identity and size around the read, then retains the existing content-hash check. The helper allocates the observed size plus one growth-detection byte, capped at the configured limit, so reading many small blobs does not allocate 1 MiB per file.
+
+**Verification and limit:** a focused disposable-repository regression passed 1/1: an oversized blob and a directory at the blob path both refuse reading and reuse without creating another checkpoint; restoring the original bytes succeeds. `npm run check` and the final full `npm test` suite passed 78/78 after the small-buffer optimization; changed Markdown relative links and `git diff --check` passed. Second-pass review checked the one-byte growth allowance, descriptor closure, unchanged hash verification, and refusal paths. The local store remains mutable; the helper does not authenticate blobs or detect every concurrent same-size rewrite. No independent reviewer participated.
+
 ## Hook stdin byte limit (2026-10-04)
 
 **P2 — multi-byte payloads bypassed the intended 1 MiB limit (fixed).** `src/hook.js` compared decoded JavaScript string lengths, so about 400,000 three-byte characters produced more than 1 MiB of UTF-8 input while passing the guard. The streaming guard now counts raw stdin bytes, stops accumulating input once the limit is exceeded, and strictly decodes UTF-8 before JSON parsing. It still drains stdin and exits without blocking the agent. Oversized or malformed raw input is not persisted; without a trustworthy parsed root, Chronicle cannot confidently attribute it to a repository gap record.

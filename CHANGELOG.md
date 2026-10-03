@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Bound saved snapshot blob reads and reuse to regular files within the capture file limit.
 - Enforce the hook's 1 MiB input cap in UTF-8 bytes, skipping oversized payloads before parsing or capture.
 - Treat staged output-index changes as modified during reconciliation; refuse fixture binding and reported-check attachment until the saved output is restored.
 - Use bounded descriptor reads for fixture-run journals during binding, recovery, and saved branch comparison.
