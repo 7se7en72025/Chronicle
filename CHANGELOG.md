@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Validate one ordered, read-only fixture MCP tool-call sequence in Codex CLI 0.160.0 using temporary host configuration; full fresh-agent replay remains unverified.
 - Record observed Codex CLI fixture MCP tool discovery and the remaining tool-call/privacy boundary; the overnight supervisor completed four guarded automatic publications before stopping on its queue-blocked marker.
 - End fixture MCP stdio replay with a failure when its input stream closes before EOF, avoiding a hung session after an abrupt host disconnect.
 - Stop fixture MCP replay after rejecting an unsupported JSON-RPC batch, so a later call cannot consume a response intended for a batched tool call.

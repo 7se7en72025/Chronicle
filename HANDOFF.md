@@ -4,12 +4,13 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout. After its Git warning fix, the supervisor automatically verified, committed, and pushed four focused MCP replay fixes through `cd55c5e`. The next cycle reported the remaining queue blocked on real host validation and wrote `STOP`; the task is `Ready`, not running. A separate read-only Codex CLI run reported discovery of the fixture MCP tools, but tool calls and the review UI remain unvalidated. The chat heartbeat remains paused.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task is registered against a clean sibling checkout. Its supervisor automatically verified, committed, and pushed four focused MCP replay fixes through `cd55c5e`, then stopped on a host-validation blocker. A separate read-only Codex CLI 0.160.0 run now called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated. The chat heartbeat remains paused.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
 ## Latest work
 
+- Verified one real Codex MCP fixture call sequence: lookup `issueId: "42"`, then search `query: "README headings", limit: 2`, with matching saved responses and no reported tool error. This was a model-mediated run that consumed usage; no persistent MCP config was added. See [REVIEW.md](REVIEW.md).
 - Verified the registered supervisor's real publication path in four consecutive cycles: each log records a guarded push and matching `origin/main`, ending at `cd55c5e`. The following cycle stopped on its explicit queue-blocked marker without edits. See [REVIEW.md](REVIEW.md).
 - In a separate Codex CLI 0.160.0 read-only model turn, a temporary command-line MCP configuration was accepted and the model reported tools `fixture_issue_lookup` and `fixture_issue_search`. The configuration was not persisted. The host did not call either tool; see [REVIEW.md](REVIEW.md).
 - Closed an MCP stdio shutdown gap: an input stream that closes without EOF now ends fixture replay unsuccessfully instead of leaving its promise pending. A stream regression passes; host behavior remains unverified. See [REVIEW.md](REVIEW.md).
@@ -55,7 +56,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 The earlier pre-initialization MCP regression covers calls before `initialize` and before `notifications/initialized`, including a stdio sequence with a later valid call. Its full `npm.cmd test` suite passed 59/59 and `npm.cmd run check` passed; see [REVIEW.md](REVIEW.md). That earlier change was subsequently reviewed and pushed as `9826ddd`.
 
-The latest MCP abrupt-input-close regression passed in the 13/13 focused suite, and its sandboxed full `npm test` suite passed 61/61 with `npm run check` passing. The supervisor published it as `cd55c5e`. The next cycle reported 61/61 and syntax passing with a clean diff, then stopped because it found no viable local queue item. O014 has a Codex CLI model report of the tool names; independent server startup and fixture tool-call dispatch through Codex remain unverified.
+The latest MCP abrupt-input-close regression passed in the 13/13 focused suite, and its sandboxed full `npm test` suite passed 61/61 with `npm run check` passing. The supervisor published it as `cd55c5e`. The next cycle reported 61/61 and syntax passing with a clean diff, then stopped because it found no viable local queue item. O014 now has Codex CLI tool-start/completion events and matching saved responses for one ordered pair of fixture calls; fresh-agent orchestration remains unverified.
 
 The replay and push-destination fixes passed their recorded full suites. The revised supervisor passes eleven focused Windows PowerShell tests and has now published four real verified cycles. Codex hook behavior and editor interactions remain host-unvalidated.
 
@@ -65,7 +66,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** O014 has a limited Codex model report of tool names, but a fixture call and full fresh-agent replay are unverified. A proposed two-call read-only fixture test was rejected by automatic approval review because its repository-derived responses would reach the Codex service. Keep the runner's queue-complete/blocked `STOP` marker in place until a viable authorized task is identified; simply restarting would repeat the stop. Real Codex/Claude hook and editor validation remains separate under O004.
+**Next:** O014 has one verified Codex fixture tool-call sequence. Review whether the local branch/evidence layer can distinguish injected, live, and unmatched events, then advance the smallest viable controlled-fixture task. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified. The earlier `STOP` marker may be cleared after the handoff is published and both checkouts are aligned, because host validation has changed the queue state.
 
 ## Open choices
 
@@ -73,4 +74,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Obtain specific authorization for the two local fixture responses to be sent to the Codex service, or validate MCP calls through a host route that keeps those responses local. Then record actual tool-call behavior and decide whether O014 has a viable next implementation task. Keep the scheduled runner stopped meanwhile. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+After publishing this handoff, synchronize the clean runner checkout, review its `STOP` marker, and restart the existing task for bounded O014 work. It should stop again if no viable local task exists. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).

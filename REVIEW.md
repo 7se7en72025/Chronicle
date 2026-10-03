@@ -1,6 +1,14 @@
 # Latest development review
 
-Status: first-release local audit completed; roadmap execution is active. Limited Codex MCP tool-name discovery was observed; full host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
+Status: first-release local audit completed; roadmap execution is active. One Codex MCP fixture call sequence is verified; full fresh-agent and editor validation remain open. This is a single-agent review log, not evidence of independent approval.
+
+## Codex fixture MCP calls (2026-10-03)
+
+**O014 host boundary advanced.** After the user replied “start” to the specific two-call fixture test request, Codex CLI 0.160.0 ran with temporary command-line MCP configuration and a read-only sandbox. The first CLI invocation failed before model execution because shell quoting split the prompt. The corrected invocation exited zero and emitted tool-start/completion events for `chronicle_replay/fixture.issue.lookup` followed by `chronicle_replay/fixture.issue.search`. The model reported the saved lookup response for `issueId: "42"` and the saved search response for `query: "README headings", limit: 2`; both matched the committed cassette. No shell command, file edit, or other tool call appeared in the CLI output. The two fixture responses were sent to the Codex service as authorized. The MCP configuration was temporary and no global entry was added.
+
+This verifies one ordered, allowlisted, read-only tool-call path in a real Codex host. It does not validate mismatch handling in that host, Claude Code, the Codex hook adapter, VS Code UI, a forked coding-agent run, or restoration of browser/OS state. The local cassette regressions remain the evidence for fail-closed paths. Next, assess an O014 local implementation step that distinguishes injected, live, and unmatched events in branch evidence; keep fresh-agent orchestration scoped to controlled fixtures. Restarting the stopped runner is warranted now that the prior host-access blocker has new evidence. No independent agent reviewed this result.
+
+**Documentation check:** the updated root Markdown links resolve, `git diff --check` exits zero, and the final diff was reviewed against the observed CLI tool events and committed cassette. No product code changed in this update.
 
 ## Runner publication and bounded Codex host discovery (2026-10-03)
 
@@ -8,7 +16,7 @@ Status: first-release local audit completed; roadmap execution is active. Limite
 
 Codex CLI 0.160.0 is available in the approved host context outside the worker sandbox. A temporary command-line MCP configuration was accepted for a read-only `codex exec` turn. The model reported `fixture_issue_lookup` and `fixture_issue_search`, corresponding to the server's dotted MCP names. Exit status was zero with no startup error. This is limited model-visible tool-name evidence, not a no-prompt `/mcp` UI inspection, independent startup trace, or a successful tool call. No persistent MCP configuration was added. The [official Codex MCP guide](https://developers.openai.com/codex/mcp) documents local stdio configuration and the distinction between `codex mcp list` and the active `/mcp` view.
 
-An exact, ordered two-call fixture test was attempted but **rejected by automatic approval review before process creation**: its repository-derived issue title and paths would be sent to the Codex service without specific disclosure authorization. No tool response was sent by that attempted call. Do not bypass the rejection by indirect execution. The existing local direct/stdio tests remain valid, but O014's Codex tool-call compatibility and fresh-agent orchestration remain unverified. A new runner cycle would hit the same queue blocker, so the task remains stopped. This review is by the same agent, not an independent-agent approval.
+An exact, ordered two-call fixture test was initially **rejected by automatic approval review before process creation**: its repository-derived issue title and paths would be sent to the Codex service without specific disclosure authorization. No tool response was sent by that rejected attempt. The user then replied “start” to the pending specific request, and the authorized call result is recorded above. At the time of this earlier review the runner remained stopped; the new host evidence permits reconsidering the queue. This review is by the same agent, not an independent-agent approval.
 
 **Documentation verification:** root Markdown relative links resolve (zero broken), `git diff --check` exits zero, and the final diff was reviewed for claims beyond the observed CLI output. No product code changed in this handoff update.
 
