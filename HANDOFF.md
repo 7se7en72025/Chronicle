@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- `recover` now reports unresolved gap `.tmp` names without moving them, because gap recording can run outside the operation lock. The focused engine/CLI fixture preserves both partial and published gap bytes; see [REVIEW.md](REVIEW.md).
 - Final blob publication verification now uses the bounded descriptor read too. A race-style fixture enlarged the linked target and confirmed capture refused without publishing a checkpoint; see [REVIEW.md](REVIEW.md).
 - Saved snapshot blobs now use bounded regular-file reads during reuse and retrieval. An oversized or non-regular blob refuses capture/preview instead of being loaded unboundedly; a disposable-repo regression passed. See [REVIEW.md](REVIEW.md).
 - The hook's 1 MiB stdin limit now counts UTF-8 bytes. A subprocess regression verifies a multi-byte payload is skipped without a checkpoint while a small payload still records. Oversized input has no trustworthy repository root for a persistent gap; see [REVIEW.md](REVIEW.md).

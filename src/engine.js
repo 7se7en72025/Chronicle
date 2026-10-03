@@ -945,8 +945,13 @@ class Chronicle {
             fs.renameSync(from, to); quarantined.push({ original: dir + '/' + name, savedAs: to });
           }
         }
+        // Gap writes deliberately do not take operation.lock: a failed capture
+        // may need to record its gap while another operation owns that lock.
+        // Report their temps without moving a potentially live gap writer's file.
+        const unresolvedGapTemps = fs.readdirSync(path.join(this.store, 'gaps'))
+          .filter(name => name.endsWith('.tmp')).sort().map(name => 'gaps/' + name);
         const pendingOperations = this.operations().filter(operation => operation.state !== 'completed');
-        return { quarantined, pendingOperations, staleLock: movedLock || null, modelRequests: 0 };
+        return { quarantined, unresolvedGapTemps, pendingOperations, staleLock: movedLock || null, modelRequests: 0 };
       });
     } catch (error) {
       // The dead lock has already been preserved if a concurrent recorder won the race.

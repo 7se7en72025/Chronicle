@@ -1,5 +1,11 @@
 # Latest development review
 
+## Unresolved gap temp visibility (2026-10-04)
+
+**P2 — interrupted gap writes were invisible to storage recovery (fixed for inspection).** `src/engine.js:recordGap` writes atomic JSON outside `operation.lock` so a failed capture can report a gap even when another operation owns the lock. `recoverStorage` quarantined `.tmp` files from blobs, checkpoints, and operations but neither moved nor reported gap temps. It now returns `unresolvedGapTemps` with relative gap temp names, including through the CLI, while preserving their bytes. Recovery does not assume that a listed gap writer is dead or promote partial content into a published gap.
+
+**Verification and limit:** the focused disposable-repository recovery test passed 1/1. It creates a partial gap temp, confirms `recover` reports it on repeat invocation, and verifies both that file and a published legacy gap remain byte-identical. The first full-suite attempt failed while disposable Git fixtures were being created because C: reported zero free bytes; no project cleanup was performed. Space returned without Chronicle action, and `npm run check` plus the final full `npm test` suite passed 79/79. Changed Markdown relative links and `git diff --check` passed. Second-pass review confirmed recovery still moves only the original three temp categories and leaves gap bytes untouched; sorted names are read-only status. Observation can race a live gap writer, and no automatic deletion or repair is claimed. No independent reviewer participated.
+
 ## Blob publication read bound (2026-10-04)
 
 **P2 — final blob verification still read without a bound (fixed).** After `writeBlob` linked its temporary file into the store, it verified the target with unbounded `readFileSync`. A concurrent enlargement or replacement could bypass the bounded read used for existing blobs. Final publication verification now uses the same regular-file descriptor and 1 MiB limit. The previous content hash remains required.

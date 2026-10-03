@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Report unresolved capture-gap temp files during storage recovery without moving a possibly live gap writer's file.
 - Bound final blob publication verification so a changed linked target cannot trigger an unbounded read.
 - Bound saved snapshot blob reads and reuse to regular files within the capture file limit.
 - Enforce the hook's 1 MiB input cap in UTF-8 bytes, skipping oversized payloads before parsing or capture.

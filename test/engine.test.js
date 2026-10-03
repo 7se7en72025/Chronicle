@@ -854,15 +854,23 @@ test('storage recovery quarantines interrupted files without deleting data', t =
   const blobTemp = path.join(engine.store, 'blobs', 'dead-write.tmp'); fs.writeFileSync(blobTemp, 'partial blob');
   const checkpointTemp = path.join(engine.store, 'checkpoints', 'dead-checkpoint.tmp'); fs.writeFileSync(checkpointTemp, 'partial metadata');
   const operationTemp = path.join(engine.store, 'operations', 'dead-operation.tmp'); fs.writeFileSync(operationTemp, '{"state":"applying"');
+  const gapTemp = path.join(engine.store, 'gaps', 'uncertain-gap.tmp'); fs.writeFileSync(gapTemp, 'partial gap');
   const pending = path.join(engine.store, 'operations', 'pending.json'); fs.writeFileSync(pending, JSON.stringify({ id: 'pending', state: 'applying' }));
   const result = engine.recoverStorage();
   assert.equal(result.quarantined.length, 3);
+  assert.deepEqual(result.unresolvedGapTemps, ['gaps/uncertain-gap.tmp']);
+  assert.equal(fs.readFileSync(gapTemp, 'utf8'), 'partial gap');
   assert.equal(result.pendingOperations[0].id, 'pending');
   assert.equal(fs.existsSync(blobTemp), false);
   assert.equal(fs.readFileSync(result.quarantined.find(f => f.original.startsWith('blobs/')).savedAs, 'utf8'), 'partial blob');
   assert.equal(fs.existsSync(path.join(engine.store, 'operation.lock')), false);
   assert.deepEqual(fs.readFileSync(legacyCheckpointPath), legacyCheckpointBytes);
   assert.deepEqual(fs.readFileSync(legacyGapPath), legacyGapBytes);
+  const cli = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'cli.js'), 'recover'], {
+    cwd: engine.root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) }
+  });
+  assert.equal(cli.status, 0, cli.stderr);
+  assert.deepEqual(JSON.parse(cli.stdout).unresolvedGapTemps, ['gaps/uncertain-gap.tmp']);
 });
 
 test('storage recovery refuses a live lock and explicitly preserves a dead lock', async t => {
