@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 read-only sidecar inspection (2026-10-03)
+
+**P2 — preserved child events had no bounded comparison against the controller journal (fixed for inspection).** `Chronicle.inspectFixtureEvidence` and the CLI's `inspect-fixture-evidence` command now read only a regular sidecar of at most 256 KiB, reject incomplete lines and malformed or foreign events, and compare its ordered events with the journal prefix. The result reports `consistent`, `sidecar-ahead`, `conflict`, `invalid`, or `unavailable` with counts, without returning payloads or changing files. This is metadata consistency, not host-tool provenance or proof that replay finished. A sidecar-ahead pending run stays pending; recovery/binding behavior is unchanged.
+
+**Verification and limit:** a disposable-repository regression passed 1/1 for consistent, sidecar-ahead, conflicting, incomplete, and absent evidence while preserving a pending journal. `npm.cmd run check`, full `npm.cmd test` (74/74), changed Markdown links, and `git diff --check` pass. Second-pass review checked size/type limits, strict UTF-8 and newline framing, sequence/identity fields, and unchanged recovery/binding paths. A concurrent path swap between stat and read remains outside the read-only inspection guarantee; the sidecar is local evidence, not an authenticated host trace. No independent reviewer participated.
+
 ## O014 child-written fixture evidence (2026-10-03)
 
 **P1 — controller death could lose already emitted fixture evidence (partially closed).** `runFixtureSubprocess` previously persisted evidence only after receiving child stderr. The controlled child now writes and fsyncs each bounded metadata-only event to an exclusive per-run JSONL sidecar before forwarding it on stderr. Successful and rejected calls retain their journal behavior, and the child exits unsuccessfully if it cannot persist an event. The sidecar is inspection evidence only: recovery does not merge it into a pending journal, infer a completed run, or bind a branch. A child killed before the first durable write, a partial final line, concurrent replacement, and host tool activity remain outside this coverage.

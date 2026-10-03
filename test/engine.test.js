@@ -187,6 +187,41 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.throws(() => engine.bindFixtureRun(rejected.id, operation.id), /incomplete/);
 });
 
+test('fixture evidence inspection reports durable events without repairing an incomplete journal', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, [
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' } } },
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } },
+    { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } } }
+  ]);
+  assert.equal(run.outcome.status, 'complete');
+  const journal = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const sidecar = path.join(engine.store, 'fixture-runs', run.id + '.evidence.jsonl');
+  const journalBytes = fs.readFileSync(journal), sidecarBytes = fs.readFileSync(sidecar);
+  assert.deepEqual(engine.inspectFixtureEvidence(run.id), { runId: run.id, status: 'consistent', journalEvents: 2, durableEvents: 2 });
+  const interrupted = JSON.parse(journalBytes);
+  interrupted.outcome = null;
+  interrupted.events.pop();
+  fs.writeFileSync(journal, JSON.stringify(interrupted));
+  assert.deepEqual(engine.inspectFixtureEvidence(run.id), { runId: run.id, status: 'sidecar-ahead', journalEvents: 1, durableEvents: 2 });
+  assert.equal(JSON.parse(fs.readFileSync(journal, 'utf8')).outcome, null);
+  interrupted.events[0].responseHash = '0'.repeat(64);
+  fs.writeFileSync(journal, JSON.stringify(interrupted));
+  assert.equal(engine.inspectFixtureEvidence(run.id).status, 'conflict');
+  fs.writeFileSync(journal, journalBytes);
+  fs.writeFileSync(sidecar, Buffer.concat([sidecarBytes, Buffer.from('{')]));
+  assert.equal(engine.inspectFixtureEvidence(run.id).status, 'invalid');
+  fs.writeFileSync(sidecar, Buffer.concat([sidecarBytes, Buffer.from('\n')]));
+  assert.equal(engine.inspectFixtureEvidence(run.id).status, 'invalid');
+  fs.writeFileSync(sidecar, sidecarBytes);
+  fs.unlinkSync(sidecar);
+  assert.equal(engine.inspectFixtureEvidence(run.id).status, 'unavailable');
+  assert.throws(() => engine.inspectFixtureEvidence('../outside'), /Invalid fixture run ID/);
+});
+
 test('fixture subprocess recovery fails closed only after both recorded processes are gone', async t => {
   const { engine } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));

@@ -623,6 +623,55 @@ class Chronicle {
     });
   }
 
+  inspectFixtureEvidence(runId) {
+    if (typeof runId !== 'string' || !/^[a-f0-9-]{36}$/.test(runId)) throw new Error('Invalid fixture run ID');
+    const folder = path.join(this.store, 'fixture-runs');
+    const runFile = path.join(folder, runId + '.json');
+    const runStat = fs.lstatSync(runFile);
+    if (!runStat.isFile() || runStat.size > 1024 * 1024) throw new Error('Fixture run journal is unavailable or invalid');
+    const runBytes = fs.readFileSync(runFile);
+    if (runBytes.length > 1024 * 1024) throw new Error('Fixture run journal is unavailable or invalid');
+    const run = JSON.parse(runBytes.toString('utf8'));
+    if (run.id !== runId || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
+        run.transport !== 'stdio-subprocess' || !Array.isArray(run.events) || run.events.length > 257 ||
+        !/^[a-f0-9]{64}$/.test(run.cassetteHash)) throw new Error('Fixture run journal is unavailable or invalid');
+    const sidecar = path.join(folder, runId + '.evidence.jsonl');
+    let bytes;
+    try {
+      const stat = fs.lstatSync(sidecar);
+      if (!stat.isFile() || stat.size > 256 * 1024) return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null };
+      bytes = fs.readFileSync(sidecar);
+    } catch (error) {
+      return { runId, status: error.code === 'ENOENT' ? 'unavailable' : 'invalid', journalEvents: run.events.length, durableEvents: null };
+    }
+    if (bytes.length > 256 * 1024 || bytes.length && bytes[bytes.length - 1] !== 10) return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null };
+    let sidecarText;
+    try { sidecarText = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+    catch { return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null }; }
+    const lines = bytes.length ? sidecarText.slice(0, -1).split('\n') : [];
+    if (lines.length > 257) return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null };
+    let events;
+    try { events = lines.map(line => {
+      if (Buffer.byteLength(line) > 2048) throw new Error('Oversized fixture event');
+      return JSON.parse(line);
+    }); } catch { return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null }; }
+    const injectedKeys = ['callId', 'cassetteHash', 'fixtureId', 'kind', 'requestHash', 'responseHash', 'runId', 'sequence', 'tool'];
+    const rejectedKeys = ['cassetteHash', 'code', 'fixtureId', 'kind', 'position', 'runId', 'sequence'];
+    const valid = events.every((event, index) => event && typeof event === 'object' && !Array.isArray(event) &&
+      event.runId === runId && event.sequence === index + 1 && event.cassetteHash === run.cassetteHash &&
+      event.fixtureId === run.fixtureId && (
+        event.kind === 'injected-fixture' && JSON.stringify(Object.keys(event).sort()) === JSON.stringify(injectedKeys) &&
+          typeof event.callId === 'string' && typeof event.tool === 'string' &&
+          /^[a-f0-9]{64}$/.test(event.requestHash) && /^[a-f0-9]{64}$/.test(event.responseHash) ||
+        event.kind === 'rejected-fixture' && JSON.stringify(Object.keys(event).sort()) === JSON.stringify(rejectedKeys) &&
+          typeof event.code === 'string' && Number.isSafeInteger(event.position) && event.position >= 0
+      ));
+    if (!valid) return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null };
+    const matches = run.events.length <= events.length && run.events.every((event, index) => JSON.stringify(event) === JSON.stringify(events[index]));
+    return { runId, status: matches ? events.length === run.events.length ? 'consistent' : 'sidecar-ahead' : 'conflict',
+      journalEvents: run.events.length, durableEvents: events.length };
+  }
+
   recordCheck(operationId, label, exitCode) {
     return this.exclusive(() => {
       if (typeof operationId !== 'string' || !/^[a-f0-9-]{36}$/.test(operationId)) throw new Error('Invalid operation ID');

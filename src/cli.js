@@ -7,6 +7,7 @@ function main(args) {
   if (!command || command === 'help' || command === '--help') {
     console.log('Chronicle — local file checkpoints, no model calls\n\nRun inside a Git repository with at least one commit:\n  node /path/to/Chronicle/src/cli.js capture "Before agent"\n  node /path/to/Chronicle/src/cli.js list\n  node /path/to/Chronicle/src/cli.js diff <before-id> <after-id>\n  node /path/to/Chronicle/src/cli.js gaps\n  node /path/to/Chronicle/src/cli.js preview <before-id> <after-id> <hunk-or-group-id> ...\n  node /path/to/Chronicle/src/cli.js branch <before-id> <after-id> chronicle/my-selection <hunk-or-group-id> ...\n  node /path/to/Chronicle/src/cli.js operations\n  node /path/to/Chronicle/src/cli.js compare-operations <first-operation-id> <second-operation-id>\n  node /path/to/Chronicle/src/cli.js record-check <operation-id> <exit-code> <check-label>\n  node /path/to/Chronicle/src/cli.js undo <operation-id>   # guarded; output worktree only\n  node /path/to/Chronicle/src/cli.js reconcile\n  node /path/to/Chronicle/src/cli.js recover [--confirm-stale-lock]\n\nUndo restores selected paths in Chronicle’s output worktree only. It refuses if those paths changed or were staged, or if the branch has new commits.\nSnapshots: per-user application data, or CHRONICLE_HOME outside the repo.');
     console.log('  node /path/to/Chronicle/src/cli.js recover-fixture-runs   # mark proven abandoned subprocess runs failed');
+    console.log('  node /path/to/Chronicle/src/cli.js inspect-fixture-evidence <run-id>   # read-only sidecar check');
     return;
   }
   const engine = new Chronicle(process.cwd());
@@ -24,6 +25,7 @@ function main(args) {
   else if (command === 'reconcile') result = engine.reconcileOperations();
   else if (command === 'recover') result = engine.recoverStorage(rest.includes('--confirm-stale-lock'));
   else if (command === 'recover-fixture-runs') result = engine.recoverFixtureRuns();
+  else if (command === 'inspect-fixture-evidence') result = engine.inspectFixtureEvidence(rest[0]);
   else throw new Error('Unknown command. Run with --help.');
   console.log(JSON.stringify(result, null, 2));
 }
