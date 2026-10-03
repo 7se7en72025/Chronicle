@@ -1,5 +1,11 @@
 # Latest development review
 
+## Runner false queue stop (2026-10-03)
+
+**P1 — the worker stopped with viable local O014 work still queued (guidance fixed).** Cycle `20261003-171828-698` returned `CHRONICLE_RUNNER_STOP` because `Get-Command codex, claude` found neither command inside its restricted PATH, and it inferred that host validation blocked O014. The supervisor had launched that Codex worker, while [HANDOFF.md](HANDOFF.md) still queued independent pre-witness and durable-evidence recovery tasks. The worker made no edits. The runner prompt now explicitly separates worker PATH from host availability and directs it to assess those local tasks before declaring the queue blocked. This is guidance rather than an enforcement guarantee; the existing STOP gate still honors a later genuine blocker.
+
+**Verification:** focused Windows runner tests passed 16/16; `npm.cmd run check` and full `npm.cmd test` passed 73/73. Changed Markdown local links and `git diff --check` passed. A second-pass diff review found that the change only appends worker guidance and updates handoff/review text; the trusted STOP and publication gates are unchanged. No independent reviewer participated.
+
 ## O014 comparison rechecks saved cassette (2026-10-03)
 
 **P2 — a bound fixture summary survived loss of its replay input (fixed).** Binding checked the saved subprocess cassette once, but `compareOperations` later trusted the binding and showed injected call counts even if the cassette had changed or disappeared. Comparison now requires the cassette to remain a regular file of at most 1 MiB with the pinned SHA-256 hash before showing that summary. In-process fixture runs have no saved subprocess cassette and retain their existing path.

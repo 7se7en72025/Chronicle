@@ -4,7 +4,7 @@ Updated: 2026-10-03.
 
 ## State
 
-The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task uses a clean sibling checkout and may run on battery. A live cycle after the stdout/stderr capture fix published `e3dfb0b` with 73/73 sandboxed tests and clean JSONL. A later overlapping-check cycle was safely preserved and independently published as `216f09c`. Power returned and the revised prompt's next live cycle published comparison evidence as `6eea915`. The task was stopped while idle to fix a legitimate `record-check` interaction; resume only after that fix is checked and synced. The chat heartbeat remains paused. A separate read-only Codex CLI 0.160.0 run called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated.
+The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task uses a clean sibling checkout and may run on battery. Recent verified cycles published comparison evidence as `6eea915` and cassette integrity checks as `eba2be1`; the append-only reported-check fix was separately verified and published as `f95020a`. The 17:18 UTC cycle stopped without edits after its restricted PATH hid `codex` and `claude`, even though the supervisor launched Codex and independent O014 local work remains in this handoff. The chat heartbeat remains paused. A separate read-only Codex CLI 0.160.0 run called both allowlisted fixture MCP tools in order and received the saved responses. Full agent replay and the review UI remain unvalidated.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
@@ -98,7 +98,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** Design recovery for a child that starts but dies before writing its launch witness, and durable event evidence beyond reported journal-replacement candidates. Binding and comparison check saved cassette bytes, but concurrent path swaps remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** Resume the existing task from its clean sibling checkout after the runner-guidance fix is verified and synced. Design recovery for a child that starts but dies before writing its launch witness, and durable event evidence beyond reported journal-replacement candidates. Binding and comparison check saved cassette bytes, but concurrent path swaps remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
