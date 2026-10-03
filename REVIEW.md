@@ -1,5 +1,11 @@
 # Latest development review
 
+## Unreadable fixture run journal during branch comparison (2026-10-04)
+
+**P2 — comparison could display ambiguous fixture provenance (fixed).** `src/engine.js:compareOperations` skipped an unreadable UUID-named run journal and could still display a single bound run as unique. The unreadable journal might contain another binding for that operation, so uniqueness was not established. `bindFixtureRun` already refused such journals. Comparison now hides fixture evidence when any UUID-named run journal cannot be read or parsed, without changing either journal or output workspace.
+
+**Verification and second pass:** the existing disposable-repository binding fixture now inserts both an oversized and a malformed UUID-named journal after a valid binding. Comparison hides provenance in each case and restores it when the damaged file is removed; unrelated non-run JSON remains ignored. The focused test passed 1/1, `npm.cmd run check` passed, and the full `npm.cmd test` suite passed 83/83. Changed Markdown links and `git diff --check` passed. The final code diff changes only the unreadable-journal branch of read-only comparison; it does not claim that a separately mutable local store is authenticated or that live host tools were fully observed. No independent reviewer participated.
+
 ## Real Codex CLI fixture-tool hook delivery (2026-10-04)
 
 **P2 — tool-boundary host coverage was missing (narrowly verified).** Codex CLI 0.160.0 ran a fresh read-only turn in the clean disposable Git repository with temporary inline `PreToolUse` and `PostToolUse` hooks matching `mcp__chronicle_replay__.*`. Both allowed fixture MCP tools returned their saved responses. Chronicle wrote four external checkpoints: pre/post for `fixture.issue.lookup` and pre/post for `fixture.issue.search`. Each pair shares its host `toolUseId`; all four share one session and turn ID, report `privacy: metadata-only` and `statusCertainty: boundary-only`, and point to the same baseline Git commit. The post events say `observed`, not succeeded. Codex JSONL reported both MCP calls completed and the turn exited zero. The source repository stayed clean. Raw host logs and snapshots remain outside Git.

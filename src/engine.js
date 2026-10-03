@@ -737,7 +737,7 @@ class Chronicle {
           const file = path.join(folder, name);
           run = JSON.parse(readRegularLimited(file, 1024 * 1024).toString('utf8'));
         }
-        catch { continue; }
+        catch { return null; }
         if (run.binding?.operationId !== operation.id) continue;
         if (run.transport === 'stdio-subprocess') {
           try {

@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Saved branch comparison now hides fixture provenance if any UUID-named run journal is unreadable, because that journal could contain another binding. Oversized/malformed regression, syntax check, and full 83/83 suite passed; see [REVIEW.md](REVIEW.md).
 - A temporary MCP-specific inline matcher captured `PreToolUse` and `PostToolUse` for both read-only fixture calls in a real Codex CLI turn. Four external checkpoints form two matching tool-use-ID pairs; the shipped plugin does not include that MCP matcher, and broader tool coverage remains unverified. See [REVIEW.md](REVIEW.md).
 - A corrected disposable Codex CLI probe stored Chronicle evidence outside the test repository and captured real `SessionStart` and `SessionEnd` checkpoints. A previous negative probe had used an invalid in-repository `CHRONICLE_HOME`, so it could not establish lack of host delivery. Both turns used temporary inline hooks; project/plugin trust and the shipped local tool matchers remain unverified. See [REVIEW.md](REVIEW.md).
 - Fixture binding now scans only bounded UUID-named run journals for duplicate relationships. Unrelated cassette/launch JSON cannot block binding; a damaged run journal still refuses it. See [REVIEW.md](REVIEW.md).

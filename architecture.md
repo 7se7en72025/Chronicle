@@ -14,6 +14,8 @@ The optional overnight development runner is separate from Chronicle's product r
 
 Hook capture failures produce sanitized, bounded local gap records visible through the CLI and checkpoint comparison. Raw prompts, commands, tool errors, and repository paths are not stored in these records. A 1,000-event cap produces an explicit limit marker.
 
+Saved branch comparison displays bound fixture-call evidence only when the run journals needed to establish a unique binding are readable. A damaged UUID-named journal hides that provenance rather than being silently skipped; unrelated non-run JSON files do not participate in the scan.
+
 The prototype uses CommonJS JavaScript and atomic JSON metadata to avoid build and native database dependencies. TypeScript, SQLite, and React below remain target choices, not installed dependencies. See [D007](DECISIONS.md#d007--dependency-free-first-slice) and [run instructions](GETTING_STARTED.md).
 
 Source files and saved snapshot blobs use bounded regular-file descriptor reads within the 1 MiB per-file capture limit. Selected output files use a 2 MiB read bound for verification and guarded undo, since a combination of two captured versions can exceed 1 MiB. The descriptor read checks pre-open and opened identity plus post-read size/timestamps; it narrows growth and path-replacement races without making the two-pass workspace capture atomic or the local store tamper-proof.

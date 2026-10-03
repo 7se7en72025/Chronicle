@@ -80,6 +80,12 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
     runId: run.id, injectedFixtureCalls: 2, rejectedFixtureCalls: 0, liveToolCalls: null
   });
   assert.equal(comparison.second.fixtureEvidence, null);
+  fs.writeFileSync(damagedRun, Buffer.alloc(1024 * 1024 + 1));
+  assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
+  fs.writeFileSync(damagedRun, '{broken');
+  assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
+  fs.unlinkSync(damagedRun);
+  assert.deepEqual(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, comparison.first.fixtureEvidence);
   engine.recordCheck(op.id, 'after binding', 0);
   assert.deepEqual(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, comparison.first.fixtureEvidence);
   const operationFile = path.join(engine.store, 'operations', op.id + '.json');
