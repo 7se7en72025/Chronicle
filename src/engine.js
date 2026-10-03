@@ -259,7 +259,16 @@ class Chronicle {
     const checkpoints = from && to ? [this.checkpoint(from), this.checkpoint(to)] : [];
     const start = checkpoints.length ? Math.min(...checkpoints.map(cp => Date.parse(cp.createdAt))) : -Infinity;
     const end = checkpoints.length ? Math.max(...checkpoints.map(cp => Date.parse(cp.createdAt))) : Infinity;
-    return fs.readdirSync(path.join(this.store, 'gaps')).filter(name => name.endsWith('.json')).map(name => readJsonLimited(path.join(this.store, 'gaps', name), MAX_FILE)).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return fs.readdirSync(path.join(this.store, 'gaps')).filter(name => name.endsWith('.json')).map(name => {
+      const gap = readJsonLimited(path.join(this.store, 'gaps', name), MAX_FILE);
+      if (name === 'limit-reached.json') {
+        if (gap.schema !== 1 || gap.kind !== 'capture-gap-limit') throw new Error('Capture-gap limit record identity is invalid');
+      } else if (!/^[a-f0-9-]{36}\.json$/.test(name) || gap.schema !== 1 || gap.kind !== 'capture-gap' ||
+                 gap.id + '.json' !== name || gap.repoId !== hash(this.root)) {
+        throw new Error('Capture-gap record identity is invalid');
+      }
+      return gap;
+    }).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   unpairedToolBoundaries(from, to) {

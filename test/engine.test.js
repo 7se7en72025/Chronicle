@@ -1270,6 +1270,27 @@ test('checkpoint and gap storage project adapter metadata without raw caller fie
   assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);
 });
 
+test('swapped gap identity refuses review without changing the source or index', t => {
+  const { root, engine, file } = fixture(t);
+  const before = engine.capture('Before');
+  const gap = engine.recordGap({ source: 'codex-cli', boundary: 'PostToolUse', tool: 'Bash' }, new Error('busy'));
+  fs.writeFileSync(file, 'changed\n');
+  const after = engine.capture('After');
+  const originalSource = fs.readFileSync(file);
+  const originalIndex = git(root, ['ls-files', '--stage', '-z']);
+  const gapFile = path.join(engine.store, 'gaps', gap.id + '.json');
+  const originalGap = fs.readFileSync(gapFile);
+  for (const changed of [{ ...gap, id: crypto.randomUUID() }, { ...gap, repoId: 'another-repository' }]) {
+    fs.writeFileSync(gapFile, JSON.stringify(changed));
+    assert.throws(() => engine.gaps(), /Capture-gap record identity is invalid/);
+    assert.throws(() => engine.compare(before.id, after.id), /Capture-gap record identity is invalid/);
+  }
+  fs.writeFileSync(gapFile, originalGap);
+  assert.equal(engine.gaps().length, 1);
+  assert.equal(fs.readFileSync(file).equals(originalSource), true);
+  assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);
+});
+
 test('CLI can inspect gaps without invoking a model or exposing raw tool errors', t => {
   const { root, engine } = fixture(t);
   engine.recordGap({ boundary: 'PostToolUseFailure', sessionId: 'session-safe', tool: 'Bash' }, new Error('busy during SECRET_COMMAND at private/path'));

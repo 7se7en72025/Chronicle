@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Gap review now validates each saved gap's filename, ID, kind, schema, and repository identity before counting it. A swapped local record makes review refuse the evidence while source and index remain unchanged; see [REVIEW.md](REVIEW.md).
 - Checkpoint and capture-gap storage now allowlist adapter event fields even for direct engine callers; raw extras and supplied references are dropped, while unsupported event contract versions refuse capture. A disposable regression checks persisted JSON and source/index preservation; see [REVIEW.md](REVIEW.md).
 - Bounded local checkpoint, gap, operation, and lock metadata reads and rejected swapped checkpoint/operation IDs. A disposable regression confirmed fail-closed review/undo/check/recovery behavior, preserved source/output/index, and sanitized malformed JSON errors; see [REVIEW.md](REVIEW.md).
 - A real read-only Codex turn attempted a shell working-directory command that policy blocked; native stderr reported the rejection, but JSONL omitted a command item. The trace auditor now accepts bounded stderr and requires it for host/server consistency status, returning `review-required` for the observed diagnostic. This does not establish full tool coverage; see [REVIEW.md](REVIEW.md).

@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse saved capture gaps whose ID, filename, repository identity, or limit-record kind disagree before using them in review.
 - Project adapter events again at the checkpoint/gap storage boundary, dropping unknown raw caller fields and refusing unsupported contract versions.
 - Bound checkpoint, gap, operation, and lock metadata reads; reject swapped checkpoint/operation IDs and sanitize invalid stored JSON errors.
 - Screen Codex native stderr in fixture trace inspection and fail closed on diagnostics or missing stderr when comparing server evidence; a policy-blocked shell attempt was absent from host JSONL.

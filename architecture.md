@@ -84,6 +84,8 @@ The review panel talks directly to the local engine. Selecting changes must not 
 
 The external host is an event source, not a state snapshot. A hook tells Chronicle that a host boundary occurred; it does not by itself prove exclusive authorship, reveal hidden reasoning, or establish that every file/tool event was seen. Mark event status according to what that host actually reports, and retain explicit capture gaps.
 
+When reading saved capture gaps, the engine checks the gap ID against its filename and the repository identity against the current workspace before showing or counting coverage. An unreadable or mismatched local record stops review; it is not silently attributed to another run. The special history-limit record has its own fixed filename and kind. This check does not authenticate a store writable by another process.
+
 ## 4. Recommended stack
 
 | Layer | Initial choice | Reason |

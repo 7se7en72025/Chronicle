@@ -1,5 +1,11 @@
 # Latest development review
 
+## Saved capture-gap identity (2026-10-04)
+
+**P2 — gap review accepted swapped local records (fixed).** `src/engine.js:Chronicle.gaps` bounded each JSON read but did not check its ID against the filename or its repository hash against the current workspace. A same-shaped record in the wrong gap filename could be counted in review or branch coverage as though it belonged here. The reader now validates schema, kind, filename/ID, and repository identity for capture gaps, with a separate fixed-name check for the history-limit record. A mismatch refuses review instead of silently reattributing evidence.
+
+**Verification:** a disposable Git regression replaced a saved gap's ID and then repository identity. Both variants made `gaps()` and checkpoint comparison refuse the evidence; restoring the bytes restored review. The source file and original Git index stayed unchanged. Focused test passed 1/1, `npm.cmd run check` passed, and full `npm.cmd test` passed 91/91. This checks accidental or local tampering consistency, not authenticity against a process that can rewrite the whole evidence store. No independent reviewer participated.
+
 ## Adapter metadata storage boundary (2026-10-04)
 
 **P1 — direct engine calls could persist raw adapter fields (fixed).** `src/engine.js:Chronicle.capture` and `Chronicle.recordGap` spread an object bearing the version-1 adapter contract into checkpoint and gap records. The hook adapter normalized its own payload, but a direct caller could append `tool_input`, an error string, or arbitrary fields and have them saved under an event labeled `metadata-only`. The engine now projects only supported source/boundary, bounded identifiers, recorder-derived status/timestamp, attribution, privacy, and newly generated snapshot/gap references. It refuses unsupported event contracts before capture. Legacy manual events are also reduced to known fields. Gap top-level identifiers and boundary use the same allowlist.
