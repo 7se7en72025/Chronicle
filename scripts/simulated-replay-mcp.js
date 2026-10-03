@@ -49,7 +49,8 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
     let message;
     try { message = JSON.parse(decoder.decode(line)); }
     catch {
-      return writeMessage(output, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error.' } });
+      failTransport('MCP message could not be parsed; replay stopped.', null, -32700);
+      return false;
     }
     return writeMessage(output, server.handle(message));
   }

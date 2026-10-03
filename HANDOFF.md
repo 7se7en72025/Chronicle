@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Closed an MCP stdio framing gap: malformed JSON or UTF-8 now ends the fixture replay session before a later valid call can consume a cassette response. A subprocess regression confirms no injection evidence is emitted; host compatibility remains unverified. See [REVIEW.md](REVIEW.md).
 - Closed an MCP fixture replay gap: a `tools/call` with a missing or invalid JSON-RPC ID now stops the cassette before a later valid call can consume it. Focused and full tests pass; host integration remains unverified. See [REVIEW.md](REVIEW.md).
 - Moved the overnight cycle's Git commit into the trusted supervisor because Codex's `workspace-write` sandbox keeps `.git` read-only. The supervisor accepts only unstaged tracked-file modifications, requires successful sandboxed test events, commits once, and guards the normal push. It does not execute model-edited code outside the sandbox. Fake CLI tests cover publication, changed push URL, untracked/protected files, and missing or failed check evidence; see [REVIEW.md](REVIEW.md).
 - Closed a push-destination freshness gap in the Windows runner. A fake Codex cycle that changes `remote.origin.pushurl` now leaves its edits local, writes `STOP`, and pushes to neither the approved nor alternate disposable remote; see [REVIEW.md](REVIEW.md).
@@ -46,6 +47,8 @@ The current direction is a local companion for Codex or Claude Code: record supp
 The supplied [reference repository](https://github.com/medhu123/amzn_code) listing inspired the documentation structure. Linked contents could not be fetched, so internal practices were not audited or copied.
 
 ## Verification
+
+The latest malformed-frame MCP regression covers invalid JSON and UTF-8 followed by a valid call in one stdio stream. The full `npm.cmd test` suite passes 58/58 and `npm.cmd run check` passes. The change is local and unstaged; supported-host MCP registration remains unverified.
 
 The latest MCP invalid-request regression passes 10/10 focused tests; the full `npm.cmd test` suite passes 58/58 and `npm.cmd run check` passes. The sandboxed model left six tracked edits unstaged as required. The supervisor stopped on a Git line-ending warning before committing; an authorized recovery review checked the diff and test events, then committed and pushed this change. O014 still needs supported-host discovery evidence.
 

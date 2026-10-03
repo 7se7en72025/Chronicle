@@ -2,6 +2,12 @@
 
 Status: first-release local audit completed; roadmap execution is active. Real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
 
+## MCP stdio malformed-frame review (2026-10-03)
+
+**P1 — A malformed frame could leave the cassette usable (fixed locally).** `scripts/simulated-replay-mcp.js:processLine` returned a JSON-RPC parse error for invalid JSON or UTF-8, then continued reading. Because an unparseable frame might have been a tool call, the next valid call could consume a response intended for the lost call. The transport now sends a parse error, stops input processing, and exits unsuccessfully. A child-process regression sends a valid initialization, malformed frame, and matching tool call in one input stream; it receives no tool result or injection evidence. This changes only the experimental fixture server's transport behavior; no host was contacted.
+
+**Verification:** focused MCP tests pass 10/10; the full suite passes 58/58 and `npm.cmd run check` passes. The regression exercises both invalid JSON and invalid UTF-8 followed by a valid call. O014 remains in progress because supported-host discovery is still unavailable here. No independent reviewer participated.
+
 ## Review scope
 
 Reviewed `src/engine.js`, `src/extension.js`, `src/hook.js`, CLI behavior, tests, and related documentation. Focus: failure coverage, crash-safe blobs, data exposure, user-work preservation, and output correctness.

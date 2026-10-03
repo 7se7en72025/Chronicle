@@ -170,18 +170,23 @@ test('fixture MCP adapter stops after a tool call with no or invalid request id'
   assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
 });
 
-test('stdio server reports incomplete cassette consumption and malformed requests clearly', () => {
-  const messages = [
-    '{bad json',
-    JSON.stringify(request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } })),
-    JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })
-  ].join('\n') + '\n';
-  const result = runWire(messages);
-  assert.equal(result.status, 1);
-  const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
-  assert.equal(replies[0].error.code, -32700);
-  assert.equal(replies[1].result.serverInfo.name, 'chronicle-simulated-replay');
-  assert.match(result.stderr, /Replay did not complete \(SIMULATED_REPLAY_INCOMPLETE\)/);
+test('stdio server stops after a malformed frame before a later valid tool call', () => {
+  const prefix = [
+    request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),
+    { jsonrpc: '2.0', method: 'notifications/initialized' }
+  ].map(message => JSON.stringify(message)).join('\n') + '\n';
+  const laterCall = JSON.stringify(request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })) + '\n';
+  for (const malformed of [Buffer.from('{bad json'), Buffer.from([0xff])]) {
+    const messages = Buffer.concat([Buffer.from(prefix), malformed, Buffer.from('\n' + laterCall)]);
+    const result = runWire(messages);
+    assert.equal(result.status, 1);
+    const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+    assert.equal(replies.length, 2);
+    assert.equal(replies[0].result.serverInfo.name, 'chronicle-simulated-replay');
+    assert.equal(replies[1].error.code, -32700);
+    assert.match(result.stderr, /MCP message could not be parsed; replay stopped/);
+    assert.doesNotMatch(result.stderr, /Chronicle replay evidence/);
+  }
 });
 
 test('stdio server bounds individual messages and emits only JSON-RPC on stdout', () => {
