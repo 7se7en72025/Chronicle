@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 bounded launch-witness read (2026-10-03)
+
+**P2 — launch-witness stat and read could refer to different objects (partially closed).** `recoverFixtureRuns` now uses the bounded descriptor read for an observed witness. If it disappears, changes identity, is oversized, redirected, or cannot be parsed, recovery keeps the run pending for inspection. Only a genuinely absent witness can support the existing pre-spawn failure rule. This narrows path-swap and growth races but cannot establish whether a child died before its first durable write or detect every same-size concurrent mutation.
+
+**Verification and limit:** the three focused recovery fixtures passed 3/3, including oversized, redirected, malformed, and absent witness paths. `npm.cmd run check`, full `npm.cmd test` (75/75), changed Markdown links, and `git diff --check` pass. Second-pass review checked that a witness observed before the bounded read remains an inspection case even if a later read fails, and that binding and branch paths are unchanged. A real concurrent rename during this read was not injected. No independent reviewer participated.
+
 ## O014 bounded evidence-file reads (2026-10-03)
 
 **P2 — path checks and file reads could refer to different evidence objects (partially closed).** Cassette binding/comparison and read-only sidecar inspection now use an opened regular-file descriptor, compare pre-open and opened file identity, and reject growth or metadata change during a bounded read. The helper caps journal/cassette reads at 1 MiB and sidecar reads at 256 KiB. It does not make the local store tamper-proof or guarantee detection of a same-size concurrent rewrite; launch-witness reads still have their earlier conservative rule.

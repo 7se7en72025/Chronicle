@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Read fixture launch witnesses through the bounded descriptor path while leaving changed or unreadable witness evidence pending for inspection.
 - Narrow cassette and sidecar path-swap/growth races with bounded open-file reads and identity checks during binding, inspection, and comparison.
 - Require a consistent child-written evidence sidecar before binding or displaying provenance for new controlled fixture subprocess runs; retain legacy record behavior.
 - Keep pending fixture runs unchanged for inspection when a child-written evidence sidecar is invalid or conflicts with the journal.

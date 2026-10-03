@@ -612,15 +612,14 @@ class Chronicle {
         const launchFile = path.join(folder, run.id + '.launch.json');
         let launchWitness = false;
         let witnessPid = null;
-        let witnessStat;
-        try { witnessStat = fs.lstatSync(launchFile); launchWitness = true; }
-        catch (error) { if (error.code !== 'ENOENT') launchWitness = true; }
-        // A redirected or oversized witness is ambiguous evidence; do not read it.
-        if (launchWitness && witnessStat?.isFile() && witnessStat.size <= 512) {
-          try {
-            const witness = JSON.parse(fs.readFileSync(launchFile, 'utf8'));
-            if (witness.runId === run.id && Number.isSafeInteger(witness.pid) && witness.pid > 0) witnessPid = witness.pid;
-          } catch { /* An unreadable launch witness requires inspection. */ }
+        try {
+          fs.lstatSync(launchFile);
+          launchWitness = true;
+          const witness = JSON.parse(readRegularLimited(launchFile, 512).toString('utf8'));
+          if (witness.runId === run.id && Number.isSafeInteger(witness.pid) && witness.pid > 0) witnessPid = witness.pid;
+        } catch (error) {
+          // Only a genuinely absent witness supports pre-spawn recovery.
+          if (error.code !== 'ENOENT') launchWitness = true;
         }
         if (launchWitness && (witnessPid === null || (childPid !== null && witnessPid !== childPid))) {
           results.push({ id: run.id, assessment: 'pending-inspect' });
