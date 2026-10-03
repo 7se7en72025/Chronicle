@@ -11,6 +11,7 @@ const cassettePath = process.argv[2] || path.join(__dirname, '..', 'fixtures', '
 const launchPath = process.argv[3];
 const launchRunId = process.argv[4];
 const evidencePath = process.argv[5];
+const completionPath = process.argv[6];
 
 function readCassetteBytes(file) {
   const before = fs.lstatSync(file, { bigint: true });
@@ -147,6 +148,7 @@ function runStdioReplay({ input, output, errorOutput, cassette, onEvidence = () 
 
 async function main() {
   let evidenceFd;
+  if (completionPath && !launchPath) throw new Error('MISSING_LAUNCH_PATH');
   if (launchPath) {
     if (!/^[a-f0-9-]{36}$/.test(launchRunId || '')) throw new Error('INVALID_LAUNCH_ID');
     if (!evidencePath) throw new Error('MISSING_EVIDENCE_PATH');
@@ -159,15 +161,27 @@ async function main() {
     const cassetteBytes = readCassetteBytes(cassettePath);
     const cassette = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(cassetteBytes));
     const cassetteHash = crypto.createHash('sha256').update(cassetteBytes).digest('hex');
+    const evidenceDigest = crypto.createHash('sha256');
     let sequence = 0;
     const exitCode = await runStdioReplay({ input: process.stdin, output: process.stdout, errorOutput: process.stderr, cassette,
       onEvidence: evidence => {
         if (evidenceFd === undefined) return;
         if (++sequence > 257) throw new Error('MCP_EVIDENCE_LIMIT');
-        fs.writeFileSync(evidenceFd, JSON.stringify({ ...evidence, runId: launchRunId, cassetteHash, sequence }) + '\n');
+        const line = JSON.stringify({ ...evidence, runId: launchRunId, cassetteHash, sequence }) + '\n';
+        fs.writeFileSync(evidenceFd, line);
         fs.fsyncSync(evidenceFd);
+        evidenceDigest.update(line);
       }
     });
+    if (exitCode === 0 && completionPath) {
+      const marker = {
+        schema: 1, kind: 'chronicle.fixture-server-completion', runId: launchRunId,
+        cassetteHash, consumedCalls: sequence, evidenceHash: evidenceDigest.digest('hex')
+      };
+      const completionFd = fs.openSync(completionPath, 'wx', 0o600);
+      try { fs.writeFileSync(completionFd, JSON.stringify(marker) + '\n'); fs.fsyncSync(completionFd); }
+      finally { fs.closeSync(completionFd); }
+    }
     process.exitCode = exitCode;
   } finally {
     if (evidenceFd !== undefined) fs.closeSync(evidenceFd);

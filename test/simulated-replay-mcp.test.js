@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { Readable, Writable, PassThrough } = require('node:stream');
 const { createSimulatedReplayMcp, PROTOCOL_VERSION } = require('../src/simulated-replay-mcp');
@@ -69,6 +70,55 @@ test('legacy fixture MCP adapter initializes, lists read-only tools, and injects
   assert.match(JSON.parse(stdoutLines[2]).result.content[0].text, /Keep headings/);
   assert.match(processResult.stderr, /Chronicle replay evidence .*injected-fixture/);
   assert.match(processResult.stderr, /Chronicle replay complete \(2 cassette calls\)/);
+});
+
+test('fixture server writes a fsynced completion marker only after consuming the cassette', t => {
+  const tempRoot = fs.realpathSync(os.tmpdir());
+  const base = fs.realpathSync(fs.mkdtempSync(path.join(tempRoot, 'chronicle-mcp-completion-')));
+  assert.ok(base.startsWith(tempRoot + path.sep));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const cassetteBytes = fs.readFileSync(fixturePath);
+  const cassetteHash = crypto.createHash('sha256').update(cassetteBytes).digest('hex');
+  const invoke = (messages, name) => {
+    const runId = crypto.randomUUID();
+    const launch = path.join(base, name + '.launch.json');
+    const evidence = path.join(base, name + '.evidence.jsonl');
+    const completion = path.join(base, name + '.completion.json');
+    const result = spawnSync(process.execPath, [scriptPath, fixturePath, launch, runId, evidence, completion], {
+      input: messages.map(message => JSON.stringify(message)).join('\n') + '\n',
+      encoding: 'utf8', timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true
+    });
+    return { result, runId, launch, evidence, completion };
+  };
+  const setup = [
+    request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),
+    { jsonrpc: '2.0', method: 'notifications/initialized' }
+  ];
+  const successful = invoke([...setup,
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } }),
+    request(3, 'tools/call', { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } })
+  ], 'complete');
+  assert.equal(successful.result.status, 0, successful.result.stderr);
+  const lines = fs.readFileSync(successful.evidence, 'utf8');
+  assert.equal(lines.trim().split('\n').length, 2);
+  const marker = JSON.parse(fs.readFileSync(successful.completion, 'utf8'));
+  assert.deepEqual(marker, { schema: 1, kind: 'chronicle.fixture-server-completion', runId: successful.runId,
+    cassetteHash, consumedCalls: 2, evidenceHash: crypto.createHash('sha256').update(lines).digest('hex') });
+  assert.equal(JSON.parse(fs.readFileSync(successful.launch, 'utf8')).runId, successful.runId);
+
+  const incomplete = invoke([...setup,
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ], 'incomplete');
+  assert.equal(incomplete.result.status, 1);
+  assert.equal(fs.existsSync(incomplete.completion), false);
+  assert.equal(fs.readFileSync(incomplete.evidence, 'utf8').trim().split('\n').length, 1);
+
+  const rejected = invoke([...setup,
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: 'wrong' } })
+  ], 'rejected');
+  assert.equal(rejected.result.status, 1);
+  assert.equal(fs.existsSync(rejected.completion), false);
+  assert.match(fs.readFileSync(rejected.evidence, 'utf8'), /rejected-fixture/);
 });
 
 test('fixture MCP launcher refuses an oversized cassette before accepting calls', t => {

@@ -5,10 +5,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { inspectCodexTrace } = require('../src/codex-trace');
+const { createSimulatedReplay } = require('../src/simulated-replay');
 
-const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+const cassetteBytes = fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'));
+const cassette = JSON.parse(cassetteBytes.toString('utf8'));
+const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const item = (index, status) => ({
   id: `item_${index + 1}`, type: 'mcp_tool_call', server: 'chronicle_replay',
   tool: cassette.calls[index].tool, arguments: cassette.calls[index].input, status,
@@ -74,4 +78,47 @@ test('Codex trace inspector checks ordered fixture calls and refuses ambiguous h
   const malformed = spawnSync(process.execPath, [script, trace, fixture], { encoding: 'utf8' });
   assert.equal(malformed.status, 1);
   assert.equal(malformed.stderr.includes('PRIVATE_CASSETTE'), false);
+});
+
+test('Codex trace inspector checks consistency with a completed fixture server sidecar', t => {
+  const runId = crypto.randomUUID();
+  const replay = createSimulatedReplay(cassette);
+  const cassetteHash = hash(cassetteBytes);
+  const lines = cassette.calls.map((call, index) => JSON.stringify({
+    ...replay.invoke(call.tool, call.input).evidence, runId, cassetteHash, sequence: index + 1
+  }) + '\n').join('');
+  const completion = { schema: 1, kind: 'chronicle.fixture-server-completion', runId,
+    cassetteHash, consumedCalls: 2, evidenceHash: hash(lines) };
+  const serverEvidence = { sidecarBytes: Buffer.from(lines), completionBytes: Buffer.from(JSON.stringify(completion) + '\n'), cassetteBytes };
+  const accepted = inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', serverEvidence);
+  assert.equal(accepted.status, 'host-server-evidence-consistent');
+  assert.equal(accepted.serverEvidenceMatches, true);
+  const drifted = { ...serverEvidence, sidecarBytes: Buffer.from(lines.replace('injected-fixture', 'rejected-fixture')) };
+  assert.equal(inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', drifted).status, 'review-required');
+  const wrongRun = { ...serverEvidence, completionBytes: Buffer.from(JSON.stringify({ ...completion, runId: crypto.randomUUID() }) + '\n') };
+  assert.equal(inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', wrongRun).serverEvidenceMatches, false);
+  const hostFailed = complete();
+  hostFailed[3].item.status = 'failed';
+  assert.equal(inspectCodexTrace(bytes(hostFailed), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
+
+  const tempRoot = fs.realpathSync(os.tmpdir());
+  const base = fs.realpathSync(fs.mkdtempSync(path.join(tempRoot, 'chronicle-codex-correlation-')));
+  assert.ok(base.startsWith(tempRoot + path.sep));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const paths = ['trace.jsonl', 'cassette.json', 'server.jsonl', 'completion.json'].map(name => path.join(base, name));
+  for (const [index, data] of [bytes(complete()), cassetteBytes, serverEvidence.sidecarBytes, serverEvidence.completionBytes].entries()) {
+    fs.writeFileSync(paths[index], data);
+  }
+  const script = path.join(__dirname, '..', 'scripts', 'inspect-codex-trace.js');
+  const good = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
+  assert.equal(good.status, 0, good.stderr);
+  assert.equal(JSON.parse(good.stdout).status, 'host-server-evidence-consistent');
+  fs.writeFileSync(paths[3], wrongRun.completionBytes);
+  const refused = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
+  assert.equal(refused.status, 2, refused.stderr);
+  assert.equal(JSON.parse(refused.stdout).serverEvidenceMatches, false);
+  const missing = spawnSync(process.execPath, [script, ...paths.slice(0, 3), path.join(base, 'PRIVATE_MISSING_MARKER.json')], { encoding: 'utf8' });
+  assert.equal(missing.status, 1);
+  assert.equal(missing.stdout, '');
+  assert.equal(missing.stderr.includes('PRIVATE_MISSING_MARKER'), false);
 });

@@ -1,17 +1,47 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { createSimulatedReplay } = require('./simulated-replay');
 
 const MAX_TRACE_BYTES = 4 * 1024 * 1024;
 const MAX_TRACE_LINES = 10000;
+const MAX_SERVER_EVIDENCE_BYTES = 256 * 1024;
+const MAX_COMPLETION_BYTES = 1024;
 
-function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay') {
+function matchesServerEvidence(serverEvidence, expected) {
+  const { sidecarBytes, completionBytes, cassetteBytes } = serverEvidence;
+  if (![sidecarBytes, completionBytes, cassetteBytes].every(Buffer.isBuffer) ||
+      sidecarBytes.length > MAX_SERVER_EVIDENCE_BYTES || completionBytes.length > MAX_COMPLETION_BYTES ||
+      (sidecarBytes.length !== 0 && sidecarBytes[sidecarBytes.length - 1] !== 10)) return false;
+  let marker, lines;
+  try {
+    marker = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(completionBytes));
+    lines = sidecarBytes.length === 0 ? [] :
+      new TextDecoder('utf-8', { fatal: true }).decode(sidecarBytes).slice(0, -1).split('\n').map(line => JSON.parse(line));
+  } catch { return false; }
+  const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+  if (!marker || marker.schema !== 1 || marker.kind !== 'chronicle.fixture-server-completion' ||
+      typeof marker.runId !== 'string' || !/^[a-f0-9-]{36}$/.test(marker.runId) ||
+      marker.cassetteHash !== hash(cassetteBytes) || marker.evidenceHash !== hash(sidecarBytes) ||
+      marker.consumedCalls !== expected.length || lines.length !== expected.length) return false;
+  return lines.every((line, index) => {
+    const wanted = expected[index];
+    return line && line.kind === 'injected-fixture' && line.runId === marker.runId &&
+      line.cassetteHash === marker.cassetteHash && line.sequence === index + 1 &&
+      line.fixtureId === wanted.fixtureId && line.callId === wanted.callId &&
+      line.tool === wanted.tool && line.requestHash === wanted.requestHash &&
+      line.responseHash === wanted.responseHash;
+  });
+}
+
+function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverEvidence = null) {
   if (!Buffer.isBuffer(bytes) || bytes.length > MAX_TRACE_BYTES) throw new Error('Codex trace exceeds the 4 MiB limit');
   const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   if (!source.endsWith('\n')) throw new Error('Codex trace has an incomplete final line');
   const lines = source.slice(0, -1).split('\n');
   if (lines.length > MAX_TRACE_LINES) throw new Error('Codex trace has too many events');
   const replay = createSimulatedReplay(cassette);
+  const expectedEvidence = [];
   const pending = new Map();
   let threadStarted = 0, turnStarted = 0, turnCompleted = 0, turnActive = false;
   let matchedCalls = 0, failedCalls = 0, otherToolItems = 0, hostErrorItems = 0;
@@ -63,7 +93,7 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay') {
             invalid = true;
             continue;
           }
-          replay.invoke(item.tool, item.arguments);
+          expectedEvidence.push(replay.invoke(item.tool, item.arguments).evidence);
           matchedCalls++;
         } catch { invalid = true; }
       } else if (item.type === 'error') hostErrorItems++;
@@ -72,13 +102,16 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay') {
   }
   let traceCallsMatchCassette = false;
   try { replay.assertComplete(); traceCallsMatchCassette = true; } catch { /* Incomplete or rejected tool sequence. */ }
+  const serverEvidenceMatches = serverEvidence === null ? null : matchesServerEvidence(serverEvidence, expectedEvidence);
   const hostReportedMatch = !invalid && threadStarted === 1 && turnStarted === 1 && turnCompleted === 1 &&
     pending.size === 0 && failedCalls === 0 && otherToolItems === 0 && hostErrorItems === 0 && traceCallsMatchCassette;
   return {
-    status: hostReportedMatch ? 'host-reported-match' : 'review-required',
+    status: hostReportedMatch && serverEvidenceMatches === true ? 'host-server-evidence-consistent' :
+      hostReportedMatch && serverEvidenceMatches === null ? 'host-reported-match' : 'review-required',
     matchedCalls, expectedCalls: cassette.calls.length, failedCalls, otherToolItems,
-    hostErrorItems, pendingCalls: pending.size, traceStructureValid: !invalid, traceCallsMatchCassette
+    hostErrorItems, pendingCalls: pending.size, traceStructureValid: !invalid, traceCallsMatchCassette,
+    ...(serverEvidence !== null ? { serverEvidenceMatches } : {})
   };
 }
 
-module.exports = { inspectCodexTrace, MAX_TRACE_BYTES };
+module.exports = { inspectCodexTrace, MAX_TRACE_BYTES, MAX_SERVER_EVIDENCE_BYTES, MAX_COMPLETION_BYTES };

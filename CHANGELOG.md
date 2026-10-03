@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Add optional fixture-server completion evidence and a read-only Codex host/server consistency check; a real Codex turn showed two matching calls but no graceful server completion marker.
 - Add a bounded read-only Codex JSONL fixture trace auditor that rejects visible failed, extra, incomplete, or mismatched tool calls without binding branch provenance.
 - Show unpaired Codex pre-tool checkpoints as outcome-unknown coverage warnings in review and new branch evidence; keep actual capture gaps separate.
 - Keep damaged pending fixture-run journals inspectable while recovery continues assessing other runs.

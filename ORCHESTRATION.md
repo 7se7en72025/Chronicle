@@ -69,6 +69,8 @@ Task priority may change to address a concrete bug or unmet prerequisite within 
 
 O014 now includes a read-only Codex JSONL fixture trace auditor. A clean two-call host trace matched; unmatched and exhausted-call traces require review. This is a host-reported inspection aid, not independently durable MCP completion, complete tool-path observation, or permission to bind a fresh agent run. See [REVIEW.md](REVIEW.md).
 
+An optional fixture-server completion marker and bounded host/server evidence consistency check now exist. A controlled stdio fixture produced matching evidence, but a real Codex CLI two-call turn exited without the server's graceful-end marker. Content consistency alone cannot link two identical-cassette runs uniquely. Do not treat the host's zero exit or matching JSONL as server completion. Keep O014 unbound until the host/server lifecycle, unique run linkage, and other-tool observation are verified.
+
 ## Boundaries and stopping
 
 Autonomous implementation, focused tests, living-document updates, commits, and normal pushes are authorized. Current destination: `origin` at `https://github.com/7se7en72025/Chronicle.git`, branch `main`. Recheck the branch and remote before each push; do not silently redirect publication.
