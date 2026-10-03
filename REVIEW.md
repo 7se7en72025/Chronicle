@@ -1,5 +1,11 @@
 # Latest development review
 
+## Fixture binding scans only run journals (2026-10-04)
+
+**P2 — binding read unrelated JSON in the fixture folder without a bound (fixed).** `src/engine.js:bindFixtureRun` checked duplicate bindings by parsing every `.json` file in `fixture-runs`, including cassette and launch artifacts. An unrelated malformed JSON file blocked a valid run, while a large file caused an unbounded read. The duplicate scan now examines only UUID-named run journals and uses the existing 1 MiB regular-file descriptor reader. A damaged run journal still refuses binding because Chronicle cannot safely rule out a duplicate relationship.
+
+**Verification and limit:** the focused disposable-repository regression passed 1/1. It left malformed unrelated JSON and an oversized cassette-named file in place while a valid run bound successfully; an oversized UUID-named run journal first caused binding to refuse without changing the target run, then binding succeeded after that disposable test artifact was removed. `npm run check` and the full `npm test` suite passed 83/83. Changed Markdown relative links and `git diff --check` passed. Second-pass review confirmed that the scan still refuses unreadable UUID-named journals and still checks duplicate bindings while ignoring non-run artifacts. This guards local duplicate scanning, not live host-tool provenance. No independent reviewer participated.
+
 ## Codex host fixture rejection and completion signal (2026-10-04)
 
 **P1 — a completed Codex turn did not mean the cassette replay completed.** In a disposable Git repo with temporary command-line MCP configuration, Codex CLI 0.160.0 called `fixture.issue.lookup` with an invalid first input. Its JSONL reported one `mcp_tool_call` with `status: failed` and `SIMULATED_REPLAY_UNMATCHED`; no other tool item appeared. A separate read-only turn called the two fixture tools with the cassette's saved inputs and received the matching saved responses, then called lookup once more. That third item was `failed` with `SIMULATED_REPLAY_EXHAUSTED` and an explicit no-live-fallback result. Codex still emitted `turn.completed` and exited zero. Therefore a future controller must not infer complete replay from the host process exit or turn completion alone; it needs ordered per-tool outcomes and independent cassette-side completion evidence.

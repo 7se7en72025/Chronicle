@@ -568,9 +568,9 @@ class Chronicle {
           throw new Error('Fixture evidence sidecar is unavailable or differs from the run; binding refused');
         }
       }
-      for (const name of fs.readdirSync(folder).filter(name => name.endsWith('.json'))) {
+      for (const name of fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
         if (name === runId + '.json') continue;
-        const other = JSON.parse(fs.readFileSync(path.join(folder, name), 'utf8'));
+        const other = JSON.parse(readRegularLimited(path.join(folder, name), 1024 * 1024).toString('utf8'));
         if (other.binding?.operationId === operationId) throw new Error('Operation already has fixture evidence');
       }
       const op = JSON.parse(fs.readFileSync(path.join(this.store, 'operations', operationId + '.json'), 'utf8'));

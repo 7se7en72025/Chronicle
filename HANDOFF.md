@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Fixture binding now scans only bounded UUID-named run journals for duplicate relationships. Unrelated cassette/launch JSON cannot block binding; a damaged run journal still refuses it. See [REVIEW.md](REVIEW.md).
 - Two temporary Codex CLI 0.160.0 fixture runs now show host-reported rejection: an invalid first lookup produced `SIMULATED_REPLAY_UNMATCHED`; two valid calls followed by a third produced `SIMULATED_REPLAY_EXHAUSTED`. Codex exited zero despite the failed MCP item, so O014 must check per-tool outcomes and cassette completion before binding any host run. Raw logs stayed outside Git. See [REVIEW.md](REVIEW.md).
 - The fixture MCP launcher now bounds the cassette disk read before parsing; an oversized file refuses startup without accepting calls. See [REVIEW.md](REVIEW.md).
 - Output verification, reconciliation, and guarded undo now use bounded descriptor reads for mutable output files. A same-content replacement during a reconciliation read is reported as modified; see [REVIEW.md](REVIEW.md).

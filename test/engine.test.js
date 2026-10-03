@@ -49,7 +49,18 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   assert.equal(fs.existsSync(replacement), true);
   fs.unlinkSync(replacement);
   engine.recordCheck(op.id, 'before binding', 0);
+  const unrelatedJson = path.join(engine.store, 'fixture-runs', 'unrelated.json');
+  const oversizedCassette = path.join(engine.store, 'fixture-runs', 'unrelated.cassette.json');
+  fs.writeFileSync(unrelatedJson, '{broken');
+  fs.writeFileSync(oversizedCassette, Buffer.alloc(1024 * 1024 + 1));
+  const damagedRun = path.join(engine.store, 'fixture-runs', crypto.randomUUID() + '.json');
+  fs.writeFileSync(damagedRun, Buffer.alloc(1024 * 1024 + 1));
+  assert.throws(() => engine.bindFixtureRun(run.id, op.id), /Invalid evidence file/);
+  assert.equal(JSON.parse(fs.readFileSync(fileName, 'utf8')).binding, null);
+  fs.unlinkSync(damagedRun);
   assert.equal(engine.bindFixtureRun(run.id, op.id).operationId, op.id);
+  assert.equal(fs.readFileSync(unrelatedJson, 'utf8'), '{broken');
+  assert.equal(fs.statSync(oversizedCassette).size, 1024 * 1024 + 1);
   assert.throws(() => engine.bindFixtureRun(run.id, op.id), /already bound/);
 
   const duplicate = engine.beginFixtureRun(cassette, before.id);
