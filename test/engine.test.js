@@ -1340,7 +1340,10 @@ test('gap history is capped and exposes the overflow state', t => {
   const before = engine.capture('Before gaps');
   fs.writeFileSync(file, 'changed\n');
   const priorAfter = engine.capture('Before history limit');
+  const partial = path.join(engine.store, 'gaps', crypto.randomUUID() + '.json.' + crypto.randomUUID() + '.tmp');
+  fs.writeFileSync(partial, 'interrupted gap write');
   for (let i = 0; i < 1001; i++) engine.recordGap({ boundary: 'PostToolUse', tool: 'Bash' }, new Error('busy'));
+  assert.equal(fs.readFileSync(partial, 'utf8'), 'interrupted gap write');
   const gaps = engine.gaps();
   assert.equal(gaps.filter(g => g.kind === 'capture-gap').length, 1000);
   assert.equal(gaps.some(g => g.kind === 'capture-gap-limit'), true);

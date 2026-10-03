@@ -1,5 +1,11 @@
 # Latest development review
 
+## Partial gap files and the history cap (2026-10-04)
+
+**P2 — interrupted temp files could end gap recording early (fixed).** `src/engine.js:Chronicle.recordGap` used the total entry count in the gap directory for its 1000-record cap. A preserved `.tmp` from an interrupted write consumed a slot even though no published gap existed. The cap now counts UUID-named published gap JSON records, and an existing limit marker remains terminal. It leaves temp files intact for recovery inspection.
+
+**Verification:** the disposable overflow fixture placed an interrupted `.tmp` in the gap directory, then attempted 1001 gap records. It preserved the temp bytes, recorded 1000 actual gaps, and created the limit marker; branch evidence still separated the recorded count and overflow flag. Focused test passed 1/1, `npm.cmd run check` passed, and full `npm.cmd test` passed 91/91. A concurrently writing gap file may still race the directory count; this is a local single-writer cap, not a transaction. No independent reviewer participated.
+
 ## Gap limit timing in historical review (2026-10-04)
 
 **P2 — a later global overflow marker warned on earlier intervals (fixed).** `src/engine.js:Chronicle.gaps` included the history-limit record for every checkpoint interval, even if that interval ended before the cap was reached. A branch created later from an earlier pair of checkpoints could therefore claim incomplete capture coverage for a period when recording had not yet overflowed. Interval review now includes the limit marker only when its recorded timestamp is at or before the interval end; unrestricted gap inspection still shows it.

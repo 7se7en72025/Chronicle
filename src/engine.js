@@ -317,7 +317,7 @@ class Chronicle {
   recordGap(event, error) {
     const dir = path.join(this.store, 'gaps');
     const entries = fs.readdirSync(dir);
-    if (entries.length >= 1000) {
+    if (entries.includes('limit-reached.json') || entries.filter(name => /^[a-f0-9-]{36}\.json$/.test(name)).length >= 1000) {
       const limit = path.join(dir, 'limit-reached.json');
       if (!fs.existsSync(limit)) writeJson(limit, { schema: 1, kind: 'capture-gap-limit', createdAt: new Date().toISOString(), message: 'Capture-gap history reached its 1000-event limit; later gaps may not be recorded.' });
       return;

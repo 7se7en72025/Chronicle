@@ -86,6 +86,8 @@ The external host is an event source, not a state snapshot. A hook tells Chronic
 
 When reading saved capture gaps, the engine checks the gap ID against its filename and the repository identity against the current workspace before showing or counting coverage. It also requires parseable checkpoint and gap timestamps before using an interval, because an invalid timestamp could otherwise hide a gap. An unreadable or mismatched local record stops review; it is not silently attributed to another run. The special history-limit record has its own fixed filename and kind. These checks do not authenticate a store writable by another process.
 
+The 1000-gap history cap counts published UUID-named gap JSON records. Interrupted temporary files remain for recovery inspection but do not consume a published-gap slot; once the limit marker exists, later gaps are still not recorded.
+
 New branch manifests count only `capture-gap` records under `captureCoverage.gaps` and set `gapHistoryLimitReached` when the separate global limit marker exists at or before the reviewed interval's end. Saved comparison warns that later gaps may be missing when this flag is true. Older manifests have no flag and are not retroactively reinterpreted.
 
 The derived Codex unpaired-tool warning scan checks timestamps on intermediate checkpoints too. If any checkpoint in that scan is unreadable or invalid, the warning count is unavailable rather than zero; it cannot establish complete hook coverage.
