@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 pinned cassette binding (2026-10-03)
+
+**P1 — a completed fixture run could bind after its saved cassette changed (fixed at the local file boundary).** `src/engine.js:bindFixtureRun` checked journal events and output freshness but did not read the `.cassette.json` file saved before subprocess launch. A missing or edited cassette could therefore leave a binding that implied preserved replay inputs. Binding now requires a regular cassette file of at most 1 MiB whose bytes match the run's pinned SHA-256 hash. A missing, unreadable, oversized, redirected, or mismatched file refuses binding without modifying the run or operation.
+
+**Evidence and limits:** the focused disposable-repository subprocess test passed 1/1. It checks changed, missing, directory, and oversized cassette entries; it checks a redirected symlink when Windows permits creating one, then restores the original bytes and binds successfully. This verifies binding time integrity, not atomicity against a concurrent path swap or the unresolved pre-witness child death. The fixture server cannot observe live tools; O014 remains in progress. Sandboxed final checks passed, but an earlier still-running `npm test` completed after the later final check pair, so the trusted gate correctly preserved the result. Independent `npm.cmd run check` and full `npm.cmd test` passed 73/73. No independent reviewer participated.
+
 ## O014 launch-witness file bounds (2026-10-03)
 
 **P2 — recovery read an untrusted witness path without a file-type or size check (fixed at fixture level).** `src/engine.js:recoverFixtureRuns` previously read any existing `.launch.json` path. A symlink could redirect that read outside the fixture store, and an oversized file could make recovery read unbounded input. Recovery now parses only a regular witness of at most 512 bytes; other existing entries remain `pending-inspect` without changing the run journal. The child still writes its small witness exclusively and fsyncs it.

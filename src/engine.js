@@ -532,6 +532,20 @@ class Chronicle {
             !/^[a-f0-9]{64}$/.test(event.requestHash) || !/^[a-f0-9]{64}$/.test(event.responseHash))) {
         throw new Error('Fixture run is incomplete, rejected, already bound, or unrelated to this operation');
       }
+      if (run.transport === 'stdio-subprocess') {
+        const cassetteFile = path.join(folder, runId + '.cassette.json');
+        let cassetteBytes;
+        try {
+          const stat = fs.lstatSync(cassetteFile);
+          if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error('Invalid cassette file');
+          cassetteBytes = fs.readFileSync(cassetteFile);
+        } catch {
+          throw new Error('Fixture cassette is unavailable or invalid; binding refused');
+        }
+        if (!/^[a-f0-9]{64}$/.test(run.cassetteHash) || hash(cassetteBytes) !== run.cassetteHash) {
+          throw new Error('Fixture cassette differs from the pinned run; binding refused');
+        }
+      }
       for (const name of fs.readdirSync(folder).filter(name => name.endsWith('.json'))) {
         if (name === runId + '.json') continue;
         const other = JSON.parse(fs.readFileSync(path.join(folder, name), 'utf8'));

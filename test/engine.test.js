@@ -115,6 +115,29 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
     { runId: run.id, pid: saved.childPid });
   assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
   const operation = run.createBranch(after.id, selected, 'chronicle/process-bound');
+  const cassetteFile = path.join(engine.store, 'fixture-runs', run.id + '.cassette.json');
+  const cassetteBytes = fs.readFileSync(cassetteFile);
+  fs.writeFileSync(cassetteFile, '{}');
+  assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /cassette differs/);
+  fs.unlinkSync(cassetteFile);
+  assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /cassette is unavailable/);
+  fs.mkdirSync(cassetteFile);
+  assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /cassette is unavailable/);
+  fs.rmdirSync(cassetteFile);
+  fs.writeFileSync(cassetteFile, ' '.repeat(1024 * 1024 + 1));
+  assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /cassette is unavailable/);
+  fs.unlinkSync(cassetteFile);
+  const outsideCassette = path.join(path.dirname(engine.store), 'outside-cassette.json');
+  fs.writeFileSync(outsideCassette, cassetteBytes);
+  try {
+    fs.symlinkSync(outsideCassette, cassetteFile, 'file');
+    assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /cassette is unavailable/);
+    fs.unlinkSync(cassetteFile);
+  } catch (error) {
+    if (error.code !== 'EPERM' && error.code !== 'EACCES' && error.code !== 'ENOTSUP') throw error;
+  }
+  assert.deepEqual(fs.readFileSync(outsideCassette), cassetteBytes);
+  fs.writeFileSync(cassetteFile, cassetteBytes);
   assert.equal(engine.bindFixtureRun(run.id, operation.id).operationId, operation.id);
 
   const rejected = await engine.runFixtureSubprocess(cassette, before.id, [initialize, ready, { ...lookup, params: {

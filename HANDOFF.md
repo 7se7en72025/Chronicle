@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014 subprocess binding now checks the saved cassette's regular-file type, size, and pinned hash before attaching evidence to an output operation. A focused regression and independent syntax/full suite pass (73/73). The trusted gate preserved the worker result because an earlier test session completed after its later final check pair; no automatic publication occurred. Concurrent path swaps and pre-witness child death remain open. See [REVIEW.md](REVIEW.md).
 - O014 recovery now reads only regular launch-witness files up to 512 bytes. Oversized entries and redirected paths stay pending for inspection. A focused disposable-repository test passed; final check outcomes are in the cycle's runner evidence. This does not resolve pre-witness child death or a concurrent path swap; see [REVIEW.md](REVIEW.md).
 - The runner now captures native Codex stderr separately from its JSONL stdout. A disposable ready-edit fixture publishes despite stderr diagnostics while keeping the JSONL parseable; malformed JSONL still stops. Syntax and the full suite pass 73/73; task restart remains pending. See [REVIEW.md](REVIEW.md).
 - O014 fixture recovery now checks an existing launch witness against the journal's recorded child PID. Conflicting or unreadable evidence stays pending for inspection. The focused regression, independent syntax check, and 72/72 full tests passed. The pre-witness death and durable-log gaps remain; see [REVIEW.md](REVIEW.md).
@@ -93,7 +94,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** Design recovery for a child that starts but dies before writing its launch witness, and durable event evidence beyond reported journal-replacement candidates. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** Design recovery for a child that starts but dies before writing its launch witness, and durable event evidence beyond reported journal-replacement candidates. Binding now checks saved cassette bytes, but concurrent path swaps remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 

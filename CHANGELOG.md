@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse fixture subprocess evidence binding when its saved cassette is missing, redirected, oversized, or differs from the hash pinned before launch.
 - Keep oversized or non-regular fixture launch witnesses pending for inspection instead of reading redirected or unbounded evidence during recovery.
 - Capture native Codex stderr separately from strict JSONL evidence so harmless diagnostics do not block a passing autonomous cycle.
 - Refuse fixture-run recovery when an existing child launch witness is unreadable or disagrees with the recorded child PID; retain the pending evidence for inspection.

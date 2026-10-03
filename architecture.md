@@ -20,6 +20,8 @@ Storage recovery quarantines interrupted temporary files and reports unfinished 
 
 Completed operations also contain a schema-1 evidence manifest: source checkpoint IDs, baseline commit, selected change IDs, result checkpoint's observed host/attribution labels, gap/exclusion counts, measured Node/platform/architecture, and saved output hashes/modes. The CLI's `compare-operations` and VS Code's **Chronicle: Compare Saved Branches** compare two completed manifests and label each path added, deleted, changed, or identical. This is a deterministic saved-file comparison; it does not rerun checks or agent work. `record-check` appends a developer-reported check label, timestamp, exit code, and reported outcome to a completed operation; it does not execute or independently verify the named check. Checks remain empty until explicitly reported, and cost is unavailable (`null`). No test pass or zero cost should be inferred.
 
+For controlled fixture subprocess runs, binding replay evidence to a completed output also checks that the saved cassette is a regular file within the 1 MiB limit and matches the hash pinned before launch. This is a binding-time check; concurrent replacement of the file remains outside the current contract. The fixture subprocess does not observe live tools used by a coding-agent host.
+
 ## 1. What we are building first
 
 Chronicle is an open-source, local-first companion for coding agents. It records workspace changes, shows where they came from, and lets a developer keep selected changes without asking the model to generate them again.
