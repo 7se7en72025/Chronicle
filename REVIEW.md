@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 child launch witness (2026-10-03)
+
+**P1 — A dead controller could leave a launched fixture child with no published PID (partially closed).** `runFixtureSubprocess` saved `spawning` before process creation and saved `childPid` afterward. A crash between those writes left recovery unable to distinguish a launched child from an attempted launch. The controlled MCP child now writes a fsynced, exclusive launch witness containing its run ID and PID before reading its cassette. When the journal is still `spawning` with no child PID, recovery can mark the run interrupted only after the controller and witnessed child are both confirmed absent. A malformed witness remains pending; the pre-spawn case is recoverable only when no witness exists.
+
+**Evidence and limit:** the focused subprocess and phase-recovery fixtures passed 2/2. They verify witness/PID correlation, preservation of witness and cassette bytes, malformed-witness refusal, and pre-spawn recovery. The tests simulate the stale journal after a completed child; they do not kill a controller in the narrow pre-publication window. A child killed before writing the witness leaves `spawning` pending, and PID reuse remains conservative. The journal still uses atomic replacement and does not provide an append-only event log. Final full-suite and syntax results are reported by the cycle handoff after the final checks. No independent reviewer participated.
+
 ## Runner final-check freshness (2026-10-03)
 
 **P1 — a passing check could precede a later, untested edit (fixed for recorded tool order).** `scripts/run-autonomous.ps1:Test-RunEvidence` previously accepted the last successful `npm test` and `npm run check` events anywhere in the Codex JSONL. The 13:13 cycle had an initial failing test, later passes, and a final diff-review command; that run ended with passing checks and no observed later edit, but the gate would also have accepted an edit after the checks. The worker prompt now requires final edits, documentation, and diff review first, followed by separate `npm run check` and `npm test` commands as the last two tool actions. The supervisor accepts only those exact passing commands in order and invalidates evidence on any subsequent tool event or malformed JSONL line.

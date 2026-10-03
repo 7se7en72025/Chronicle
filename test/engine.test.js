@@ -111,6 +111,8 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.equal(run.responses.filter(response => response.result?.isError === false).length, 2);
   const saved = JSON.parse(fs.readFileSync(path.join(engine.store, 'fixture-runs', run.id + '.json'), 'utf8'));
   assert.deepEqual(saved.processExit, { code: 0, signal: null });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(engine.store, 'fixture-runs', run.id + '.launch.json'), 'utf8')),
+    { runId: run.id, pid: saved.childPid });
   assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
   const operation = run.createBranch(after.id, selected, 'chronicle/process-bound');
   assert.equal(engine.bindFixtureRun(run.id, operation.id).operationId, operation.id);
@@ -157,6 +159,7 @@ test('fixture recovery distinguishes pre-spawn from uncertain child launch', asy
   const run = await engine.runFixtureSubprocess(cassette, before.id, []);
   const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
   const cassetteFile = path.join(engine.store, 'fixture-runs', run.id + '.cassette.json');
+  const launchFile = path.join(engine.store, 'fixture-runs', run.id + '.launch.json');
   const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
   const cassetteBytes = fs.readFileSync(cassetteFile);
   assert.equal(saved.launchPhase, 'child-recorded');
@@ -165,14 +168,33 @@ test('fixture recovery distinguishes pre-spawn from uncertain child launch', asy
   saved.childPid = null;
   saved.launchPhase = 'spawning';
   fs.writeFileSync(file, JSON.stringify(saved));
+  const launchBytes = fs.readFileSync(launchFile);
+  fs.unlinkSync(launchFile);
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
-  saved.launchPhase = 'prepared';
-  fs.writeFileSync(file, JSON.stringify(saved));
+  fs.writeFileSync(launchFile, '{');
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'pending-inspect' }]);
+  fs.writeFileSync(launchFile, launchBytes);
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
-  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).outcome,
-    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.deepEqual(fs.readFileSync(launchFile), launchBytes);
   assert.deepEqual(fs.readFileSync(cassetteFile), cassetteBytes);
-  assert.throws(() => engine.bindFixtureRun(run.id, crypto.randomUUID()), /incomplete/);
+  assert.deepEqual(engine.recoverFixtureRuns(), []);
+
+  const second = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const secondFile = path.join(engine.store, 'fixture-runs', second.id + '.json');
+  const secondLaunch = path.join(engine.store, 'fixture-runs', second.id + '.launch.json');
+  const preSpawn = JSON.parse(fs.readFileSync(secondFile, 'utf8'));
+  preSpawn.outcome = null;
+  preSpawn.controllerPid = preSpawn.childPid;
+  preSpawn.childPid = null;
+  preSpawn.launchPhase = 'prepared';
+  fs.writeFileSync(secondFile, JSON.stringify(preSpawn));
+  fs.writeFileSync(secondLaunch, '{');
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: second.id, assessment: 'pending-inspect' }]);
+  fs.unlinkSync(secondLaunch);
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: second.id, assessment: 'interrupted-recorded' }]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(secondFile, 'utf8')).outcome,
+    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.throws(() => engine.bindFixtureRun(second.id, crypto.randomUUID()), /incomplete/);
   assert.deepEqual(engine.recoverFixtureRuns(), []);
 });
 

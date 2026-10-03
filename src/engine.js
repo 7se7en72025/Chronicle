@@ -445,6 +445,7 @@ class Chronicle {
     const folder = path.join(this.store, 'fixture-runs');
     const file = path.join(folder, id + '.json');
     const cassetteFile = path.join(folder, id + '.cassette.json');
+    const launchFile = path.join(folder, id + '.launch.json');
     const run = {
       schema: 1, kind: 'chronicle.fixture-run', id, transport: 'stdio-subprocess',
       fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
@@ -460,7 +461,7 @@ class Chronicle {
       run.launchPhase = 'spawning';
       writeJson(file, run);
     });
-    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile],
+    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile, launchFile, id],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     if (Number.isSafeInteger(child.pid) && child.pid > 0) this.exclusive(() => {
       run.childPid = child.pid;
@@ -574,7 +575,18 @@ class Chronicle {
         }
         if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
             run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
-        const childAbsent = (run.launchPhase === 'prepared' && run.childPid === null) || isDead(run.childPid);
+        let childPid = run.childPid;
+        let launchWitness = false;
+        if ((run.launchPhase === 'spawning' || run.launchPhase === 'prepared') && childPid === null) {
+          const launchFile = path.join(folder, run.id + '.launch.json');
+          try { fs.lstatSync(launchFile); launchWitness = true; }
+          catch (error) { if (error.code !== 'ENOENT') launchWitness = true; }
+          try {
+            const witness = JSON.parse(fs.readFileSync(launchFile, 'utf8'));
+            if (witness.runId === run.id && Number.isSafeInteger(witness.pid) && witness.pid > 0) childPid = witness.pid;
+          } catch { /* A missing or unreadable launch witness leaves the run uncertain. */ }
+        }
+        const childAbsent = (run.launchPhase === 'prepared' && run.childPid === null && !launchWitness) || isDead(childPid);
         if (run.candidateOperationId || run.binding || !isDead(run.controllerPid) || !childAbsent) {
           results.push({ id: run.id, assessment: 'pending-inspect' });
           continue;

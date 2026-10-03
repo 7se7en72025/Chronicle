@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014's controlled fixture child now writes a fsynced launch witness with its PID before reading the cassette. If the controller died after saving `spawning` but before publishing `childPid`, recovery can use a valid witness and confirmed dead child PID to record interruption; a missing or unreadable witness stays pending. The focused subprocess and recovery fixtures passed 2/2. This does not recover a child killed before the witness write or resolve PID reuse; see [REVIEW.md](REVIEW.md).
 - The trusted Windows runner now requires exact final `npm run check` then `npm test` events, with no later tool activity, before publication. A disposable fake-Codex cycle confirms late file or command edits remain uncommitted. This is event-order evidence, not a content hash; see [REVIEW.md](REVIEW.md).
 - O014 fixture-run recovery now reports an interrupted atomic journal replacement for inspection and preserves both the published record and temporary candidate. Binding refuses that ambiguity. The regression simulates the replacement boundary; it does not kill a process during rename or provide an append-only log. See [REVIEW.md](REVIEW.md).
 - O014 records a pre-spawn `prepared` phase and a `spawning` phase for controlled fixture subprocesses. Recovery can fail a dead controller's `prepared` run with no child PID, while an uncertain launch remains pending. A fixture regression covers phase assessments and preserved cassette; see [REVIEW.md](REVIEW.md). Real interruption in this window and journal replacement remain untested.
@@ -84,7 +85,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** Close or explicitly classify the uncertain window after spawn but before child PID publication, and design durable evidence recovery beyond the reported journal-replacement candidate. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** Design recovery for a child that starts but dies before writing its launch witness, and durable event evidence beyond reported journal-replacement candidates. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
@@ -92,4 +93,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Continue O014 with the remaining uncertain-launch and durable evidence recovery work, following D011. Interrupted journal-replacement candidates are now preserved and flagged, but require manual inspection. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+Continue O014 with the remaining pre-witness launch ambiguity and durable evidence recovery work, following D011. Interrupted journal-replacement candidates are preserved and flagged, but require manual inspection. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).

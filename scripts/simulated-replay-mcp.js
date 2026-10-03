@@ -6,6 +6,8 @@ const { TextDecoder } = require('node:util');
 const { createSimulatedReplayMcp, MAX_MESSAGE_BYTES } = require('../src/simulated-replay-mcp');
 
 const cassettePath = process.argv[2] || path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
+const launchPath = process.argv[3];
+const launchRunId = process.argv[4];
 
 function writeMessage(output, message) {
   return message === null || output.write(JSON.stringify(message) + '\n');
@@ -120,6 +122,12 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
 }
 
 async function main() {
+  if (launchPath) {
+    if (!/^[a-f0-9-]{36}$/.test(launchRunId || '')) throw new Error('INVALID_LAUNCH_ID');
+    const fd = fs.openSync(launchPath, 'wx', 0o600);
+    try { fs.writeFileSync(fd, JSON.stringify({ runId: launchRunId, pid: process.pid })); fs.fsyncSync(fd); }
+    finally { fs.closeSync(fd); }
+  }
   const cassette = JSON.parse(fs.readFileSync(cassettePath, 'utf8'));
   const exitCode = await runStdioReplay({ input: process.stdin, output: process.stdout, errorOutput: process.stderr, cassette });
   process.exitCode = exitCode;

@@ -68,7 +68,7 @@ Revisit when: the stdio subset is validated with a real supported host, and a co
 
 ## D011 — Correlate replay evidence through a controller-owned run
 
-Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Conservative pending subprocess recovery is tested after a real controller termination, and a persisted pre-spawn phase can be recovered when its controller is dead. The uncertain launch window, durable logging, and host observation remain open.
+Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Conservative pending subprocess recovery is tested after a real controller termination. A persisted pre-spawn phase can be recovered when its controller is dead, and a child-owned launch witness can resolve a stale `spawning` record after its PID is confirmed absent. Death before the witness write, durable event logging, and host observation remain open.
 
 Assign a random run ID before fixture tools start. The controllers pin the cassette hash and source state, sequence bounded local evidence, and create one candidate branch before checked binding. The in-process path records session completion; the controlled subprocess path also records process exit. Reused fixture IDs and independent MCP stderr records are insufficient to identify an operation. Reject stale or ambiguous bindings without rewriting the operation journal. Treat live-tool activity as unavailable unless the controller or host separately observes it; a rejected fixture call is not proof of a live fallback.
 
