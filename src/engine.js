@@ -287,7 +287,7 @@ class Chronicle {
       const folder = path.join(this.store, 'checkpoints');
       checkpoints = fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name)).map(name => {
         const cp = JSON.parse(readRegularLimited(path.join(folder, name), MAX_TOTAL * 2).toString('utf8'));
-        if (cp.id !== name.slice(0, -5) || cp.schema !== 1 || cp.root !== this.root) throw new Error('Invalid checkpoint');
+        if (cp.id !== name.slice(0, -5) || cp.schema !== 1 || cp.root !== this.root || !validTimestamp(cp.createdAt)) throw new Error('Invalid checkpoint');
         return cp;
       }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     }

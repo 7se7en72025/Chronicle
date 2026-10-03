@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Mark Codex tool-boundary coverage unavailable when an intermediate checkpoint has an invalid saved timestamp.
 - Reject invalid saved gap or checkpoint timestamps before interval coverage and checkpoint review.
 - Refuse saved capture gaps whose ID, filename, repository identity, or limit-record kind disagree before using them in review.
 - Project adapter events again at the checkpoint/gap storage boundary, dropping unknown raw caller fields and refusing unsupported contract versions.

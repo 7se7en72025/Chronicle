@@ -1227,6 +1227,13 @@ test('unpaired Codex tool boundaries show an unknown-outcome warning in review a
   assert.deepEqual(diff.coverageWarnings.map(item => [item.reason, item.status, item.toolUseId]),
     [['POST_BOUNDARY_UNOBSERVED', 'outcome-unknown', 'call-1']]);
   assert.equal(JSON.stringify(diff.coverageWarnings).includes('SECRET_ISSUE'), false);
+  const pre = engine.list().find(checkpoint => checkpoint.event?.boundary === 'PreToolUse');
+  const preFile = path.join(engine.store, 'checkpoints', pre.id + '.json');
+  const originalPre = fs.readFileSync(preFile);
+  fs.writeFileSync(preFile, JSON.stringify({ ...pre, createdAt: 'invalid timestamp' }));
+  assert.equal(engine.compare(before.id, after.id).coverageWarnings, null);
+  fs.writeFileSync(preFile, originalPre);
+  assert.equal(engine.compare(before.id, after.id).coverageWarnings.length, 1);
   const selected = [diff.changes[0].hunks[0].id];
   const output = engine.createBranch(before.id, after.id, selected, 'chronicle/unpaired-boundary');
   assert.equal(output.manifest.captureCoverage.unpairedToolBoundaries, 1);

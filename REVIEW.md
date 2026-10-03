@@ -1,5 +1,11 @@
 # Latest development review
 
+## Intermediate checkpoint coverage timestamps (2026-10-04)
+
+**P2 — corrupt intermediate time could hide an unpaired Codex tool boundary (fixed).** `src/engine.js:Chronicle.unpairedToolBoundaries` reads checkpoint records separately from endpoint lookup. It validated ID, schema, and root but not `createdAt`; an invalid timestamp on a pre-tool checkpoint failed its interval comparison and could turn a real warning into an empty list. The scan now rejects that record and returns its existing `null`/coverage-unavailable result.
+
+**Verification:** the disposable Codex pre-tool review fixture first showed one unpaired boundary, then changed that intermediate checkpoint timestamp. Comparison reported unavailable coverage; restoring bytes restored the warning. Focused test passed 1/1, `npm.cmd run check` passed, and full `npm.cmd test` passed 91/91. This does not prove every host tool event was observed. No independent reviewer participated.
+
 ## Invalid saved timestamps could hide coverage (2026-10-04)
 
 **P2 — gap interval filtering accepted unparseable timestamps (fixed).** `src/engine.js:Chronicle.gaps` used `Date.parse` directly. If a saved gap's `createdAt` was invalid, comparisons with the interval became false and silently omitted that gap from checkpoint review or a branch manifest. An invalid endpoint checkpoint time could similarly make the interval unusable. Gap reads now refuse invalid timestamps, and checkpoint list/lookup validates timestamps before comparison. This does not prove evidence authenticity against a writer with store access.
