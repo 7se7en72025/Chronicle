@@ -63,6 +63,14 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   assert.throws(() => engine.bindFixtureRun(duplicate.id, op.id), /incomplete/);
 
   const stale = duplicate.createBranch(after.id, selected, 'chronicle/fixture-stale');
+  const comparison = engine.compareOperations(op.id, stale.id);
+  assert.deepEqual(comparison.first.fixtureEvidence, {
+    runId: run.id, injectedFixtureCalls: 2, rejectedFixtureCalls: 0, liveToolCalls: null
+  });
+  assert.equal(comparison.second.fixtureEvidence, null);
+  fs.writeFileSync(replacement, '{}');
+  assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
+  fs.unlinkSync(replacement);
   fs.writeFileSync(path.join(stale.target, 'README.md'), 'later edit\n');
   assert.throws(() => engine.bindFixtureRun(duplicate.id, stale.id), /stale/);
   const otherSource = engine.capture('Different source');

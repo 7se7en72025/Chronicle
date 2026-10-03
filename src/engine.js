@@ -647,6 +647,33 @@ class Chronicle {
       return operation;
     };
     const first = read(firstId), second = read(secondId);
+    const fixtureEvidence = operation => {
+      const folder = path.join(this.store, 'fixture-runs');
+      const expectedHash = hash(Buffer.from(JSON.stringify(operation.manifest), 'utf8'));
+      const entries = fs.readdirSync(folder);
+      const matches = [];
+      for (const name of entries.filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
+        let run;
+        try {
+          const file = path.join(folder, name);
+          const stat = fs.lstatSync(file);
+          if (!stat.isFile() || stat.size > 1024 * 1024) continue;
+          run = JSON.parse(fs.readFileSync(file, 'utf8'));
+        }
+        catch { continue; }
+        if (run.binding?.operationId !== operation.id) continue;
+        if (entries.some(entry => entry.startsWith(name + '.') && /^[a-f0-9-]{36}\.tmp$/.test(entry.slice(name.length + 1))) ||
+            run.id !== name.slice(0, -5) || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
+            run.binding.manifestHash !== expectedHash || run.candidateOperationId !== operation.id ||
+            run.outcome?.status !== 'complete' || !Array.isArray(run.events) ||
+            run.events.length !== run.outcome.consumedCalls ||
+            run.events.some((event, index) => event.kind !== 'injected-fixture' || event.sequence !== index + 1 ||
+              event.runId !== run.id || event.cassetteHash !== run.cassetteHash || event.fixtureId !== run.fixtureId ||
+              !/^[a-f0-9]{64}$/.test(event.requestHash) || !/^[a-f0-9]{64}$/.test(event.responseHash))) return null;
+        matches.push({ runId: run.id, injectedFixtureCalls: run.events.length, rejectedFixtureCalls: 0, liveToolCalls: null });
+      }
+      return matches.length === 1 ? matches[0] : null;
+    };
     const files = new Map();
     for (const [side, operation] of [['first', first], ['second', second]]) for (const file of operation.manifest.outputFiles) {
       const previous = files.get(file.path) || { path: file.path, first: null, second: null };
@@ -657,7 +684,7 @@ class Chronicle {
       ...file,
       status: !file.first ? 'added' : !file.second ? 'deleted' : file.first.hash === file.second.hash && file.first.mode === file.second.mode ? 'identical' : 'changed'
     }));
-    return { first: { id: first.id, branch: first.branch, manifest: first.manifest }, second: { id: second.id, branch: second.branch, manifest: second.manifest }, files: comparisons, modelRequests: 0 };
+    return { first: { id: first.id, branch: first.branch, manifest: first.manifest, fixtureEvidence: fixtureEvidence(first) }, second: { id: second.id, branch: second.branch, manifest: second.manifest, fixtureEvidence: fixtureEvidence(second) }, files: comparisons, modelRequests: 0 };
   }
 
   undoOperation(id) {
