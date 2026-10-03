@@ -1,5 +1,11 @@
 # Latest development review
 
+## In-process fixture-run binding review (2026-10-03)
+
+**P1 — fixture call evidence had no checked operation identity (fixed at fixture level).** `createBranch` recorded a completed operation without a run key, while `createSimulatedReplayMcp` emitted process-local evidence. Reused fixture IDs could not identify a particular branch. `Chronicle.beginFixtureRun` now owns an in-process MCP adapter, pins source checkpoint/commit and cassette hash, and persists bounded sequenced events. The controller creates one candidate branch from its pinned source; `bindFixtureRun` checks that candidate, complete injected-only evidence, one-to-one operation binding, manifest output hashes, and current output freshness before atomically recording the relationship in the run record. Rejection, incomplete sessions, unrelated operations, and stale output refuse without changing the operation journal.
+
+**Limit:** this API does not launch or observe a separate MCP/host process, use an append-only crash log, detect other tools, or expose provenance in the comparison UI. A completed in-process cassette is evidence only for the fixture calls handled by this controller. Interruption and recovery remain O014 work. Focused engine tests pass 32/32, the full suite passes 63/63, and syntax, local links, and whitespace checks pass; no independent reviewer participated. The second pass caught and closed an ambiguous binding path: the controller now creates exactly one candidate branch after replay completion, and binding refuses unrelated operation IDs.
+
 Status: first-release local audit completed; roadmap execution is active. One Codex MCP fixture call sequence is verified; full fresh-agent and editor validation remain open. This is a single-agent review log, not evidence of independent approval.
 
 ## O014 fixture-run correlation design (2026-10-03)

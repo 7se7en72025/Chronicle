@@ -6,6 +6,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { TextDecoder } = require('node:util');
+const { createSimulatedReplayMcp } = require('./simulated-replay-mcp');
 
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const MAX_FILE = 1024 * 1024;
@@ -103,7 +104,7 @@ class Chronicle {
     }
     const relativeStore = path.relative(this.root, this.store);
     if (!relativeStore || (relativeStore !== '..' && !relativeStore.startsWith('..' + path.sep) && !path.isAbsolute(relativeStore))) throw new Error('Snapshot storage must be outside the recorded repository');
-    const directories = ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery'];
+    const directories = ['blobs', 'checkpoints', 'operations', 'worktrees', 'gaps', 'recovery', 'fixture-runs'];
     fs.mkdirSync(this.store, { recursive: true, mode: 0o700 });
     // Validate every existing child before creating any of them. In particular,
     // a symlinked blob directory must not redirect immutable snapshots into a
@@ -380,6 +381,87 @@ class Chronicle {
 
   operations() {
     return fs.readdirSync(path.join(this.store, 'operations')).filter(n => n.endsWith('.json')).map(n => JSON.parse(fs.readFileSync(path.join(this.store, 'operations', n), 'utf8')));
+  }
+
+  beginFixtureRun(cassette, sourceCheckpointId) {
+    const source = this.checkpoint(sourceCheckpointId);
+    const id = crypto.randomUUID();
+    const file = path.join(this.store, 'fixture-runs', id + '.json');
+    const run = {
+      schema: 1, kind: 'chronicle.fixture-run', id,
+      fixtureId: cassette.fixtureId, cassetteHash: hash(Buffer.from(JSON.stringify(cassette), 'utf8')),
+      source: { checkpoint: sourceCheckpointId, commit: source.head },
+      events: [], outcome: null, candidateOperationId: null, binding: null
+    };
+    const server = createSimulatedReplayMcp(cassette, {
+      onEvidence: evidence => this.exclusive(() => {
+        if (run.outcome || run.events.length >= 257) throw new Error('Fixture evidence limit reached or run already ended');
+        run.events.push({ ...evidence, runId: id, cassetteHash: run.cassetteHash, sequence: run.events.length + 1 });
+        writeJson(file, run);
+      })
+    });
+    this.exclusive(() => writeJson(file, run));
+    return Object.freeze({
+      id, server: Object.freeze({ handle: message => {
+        if (run.outcome) throw new Error('Fixture run already ended');
+        return server.handle(message);
+      } }),
+      createBranch: (to, selected, branch) => {
+        if (run.outcome?.status !== 'complete') throw new Error('Complete fixture replay before creating a candidate branch');
+        if (run.candidateOperationId) throw new Error('Fixture run already has a candidate operation');
+        const operation = this.createBranch(sourceCheckpointId, to, selected, branch);
+        this.exclusive(() => {
+          run.candidateOperationId = operation.id;
+          writeJson(file, run);
+        });
+        return operation;
+      },
+      finish: () => this.exclusive(() => {
+        if (run.outcome) throw new Error('Fixture run already ended');
+        try {
+          const result = server.finish();
+          run.outcome = { status: 'complete', consumedCalls: result.consumedCalls };
+        } catch (error) {
+          run.outcome = { status: 'failed', code: error.code || 'SIMULATED_REPLAY_ERROR' };
+        }
+        writeJson(file, run);
+        return run.outcome;
+      })
+    });
+  }
+
+  bindFixtureRun(runId, operationId) {
+    return this.exclusive(() => {
+      if (!/^[a-f0-9-]{36}$/.test(runId) || !/^[a-f0-9-]{36}$/.test(operationId)) throw new Error('Invalid fixture run or operation ID');
+      const folder = path.join(this.store, 'fixture-runs');
+      const file = path.join(folder, runId + '.json');
+      const run = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (run.id !== runId || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
+          run.outcome?.status !== 'complete' || run.binding || run.candidateOperationId !== operationId || !Array.isArray(run.events) ||
+          run.events.length !== run.outcome.consumedCalls ||
+          run.events.some((event, index) => event.sequence !== index + 1 || event.runId !== runId ||
+            event.cassetteHash !== run.cassetteHash || event.kind !== 'injected-fixture' || event.fixtureId !== run.fixtureId ||
+            !/^[a-f0-9]{64}$/.test(event.requestHash) || !/^[a-f0-9]{64}$/.test(event.responseHash))) {
+        throw new Error('Fixture run is incomplete, rejected, already bound, or unrelated to this operation');
+      }
+      for (const name of fs.readdirSync(folder).filter(name => name.endsWith('.json'))) {
+        if (name === runId + '.json') continue;
+        const other = JSON.parse(fs.readFileSync(path.join(folder, name), 'utf8'));
+        if (other.binding?.operationId === operationId) throw new Error('Operation already has fixture evidence');
+      }
+      const op = JSON.parse(fs.readFileSync(path.join(this.store, 'operations', operationId + '.json'), 'utf8'));
+      if (op.id !== operationId || op.state !== 'completed' || op.from !== run.source.checkpoint ||
+          op.head !== run.source.commit || op.manifest?.baselineCommit !== run.source.commit ||
+          op.manifest?.checkpoints?.from !== run.source.checkpoint ||
+          !Array.isArray(op.manifest.outputFiles) || op.manifest.outputFiles.length !== op.files?.length ||
+          op.manifest.outputFiles.some(file => !op.files.some(saved => saved.path === file.path && saved.hash === file.hash)) ||
+          this.reconcileOperations().find(item => item.id === operationId)?.assessment !== 'completed') {
+        throw new Error('Operation source or output is stale; fixture binding refused');
+      }
+      run.binding = { operationId, manifestHash: hash(Buffer.from(JSON.stringify(op.manifest), 'utf8')) };
+      writeJson(file, run);
+      return run.binding;
+    });
   }
 
   recordCheck(operationId, label, exitCode) {

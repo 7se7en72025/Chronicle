@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { Chronicle, git, hash, safePath } = require('../src/engine');
 const { recordHook } = require('../src/hook');
 const { spawnSync } = require('node:child_process');
@@ -20,6 +21,72 @@ function fixture(t, content = 'one\ntwo\nthree\n') {
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   return { root, engine, file: path.join(root, 'README.md') };
 }
+
+test('fixture run evidence binds only a complete run to a fresh matching output', t => {
+  const { engine, file } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After');
+  const selected = [engine.compare(before.id, after.id).changes[0].hunks[0].id];
+  const run = engine.beginFixtureRun(cassette, before.id);
+  const server = run.server;
+  server.handle({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+    protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' }
+  } });
+  server.handle({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  server.handle({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } });
+  server.handle({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } } });
+  assert.deepEqual(run.finish(), { status: 'complete', consumedCalls: 2 });
+  const op = run.createBranch(after.id, selected, 'chronicle/fixture-bound');
+  const fileName = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const saved = JSON.parse(fs.readFileSync(fileName, 'utf8'));
+  assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
+  assert.ok(saved.events.every(event => event.runId === run.id && event.cassetteHash === saved.cassetteHash));
+  assert.equal(engine.bindFixtureRun(run.id, op.id).operationId, op.id);
+  assert.throws(() => engine.bindFixtureRun(run.id, op.id), /already bound/);
+
+  const duplicate = engine.beginFixtureRun(cassette, before.id);
+  const second = duplicate.server;
+  second.handle({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+    protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' }
+  } });
+  second.handle({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  second.handle({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } });
+  second.handle({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } } });
+  duplicate.finish();
+  assert.throws(() => engine.bindFixtureRun(duplicate.id, op.id), /incomplete/);
+
+  const stale = duplicate.createBranch(after.id, selected, 'chronicle/fixture-stale');
+  fs.writeFileSync(path.join(stale.target, 'README.md'), 'later edit\n');
+  assert.throws(() => engine.bindFixtureRun(duplicate.id, stale.id), /stale/);
+  const otherSource = engine.capture('Different source');
+  fs.writeFileSync(file, 'one\nother change\nthree\n');
+  const otherResult = engine.capture('Different result');
+  const otherSelection = [engine.compare(otherSource.id, otherResult.id).changes[0].hunks[0].id];
+  const unrelated = engine.createBranch(otherSource.id, otherResult.id, otherSelection, 'chronicle/fixture-other-source');
+  assert.throws(() => engine.bindFixtureRun(duplicate.id, unrelated.id), /incomplete/);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(engine.store, 'fixture-runs', duplicate.id + '.json'), 'utf8')).binding, null);
+});
+
+test('rejected or incomplete fixture runs remain unbound', t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = engine.beginFixtureRun(cassette, before.id);
+  assert.deepEqual(run.finish(), { status: 'failed', code: 'MCP_NOT_INITIALIZED' });
+  assert.throws(() => engine.bindFixtureRun(run.id, crypto.randomUUID()), /incomplete/);
+  const rejected = engine.beginFixtureRun(cassette, before.id);
+  rejected.server.handle({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+    protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' }
+  } });
+  rejected.server.handle({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  rejected.server.handle({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: 'wrong' } } });
+  assert.deepEqual(rejected.finish(), { status: 'failed', code: 'SIMULATED_REPLAY_UNMATCHED' });
+  const record = JSON.parse(fs.readFileSync(path.join(engine.store, 'fixture-runs', rejected.id + '.json'), 'utf8'));
+  assert.deepEqual(record.events.map(event => event.kind), ['rejected-fixture']);
+  assert.throws(() => engine.bindFixtureRun(rejected.id, crypto.randomUUID()), /rejected/);
+});
 
 test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => {
   const original = Array.from({ length: 120 }, (_, i) => `line ${i}\n`);

@@ -10,7 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
-- O014's next local slice is an accepted correlation design, not an implementation: a controller-owned run ID, pinned cassette/source state, sequenced evidence, and checked binding to one completed branch operation. Source review found that `createBranch` has no run identity and MCP events are process-local stderr records. See [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract), D011, and [REVIEW.md](REVIEW.md#o014-fixture-run-correlation-design-2026-10-03).
+- O014 now has an in-process fixture-run API: it pins source/cassette state, records ordered injected or rejected fixture events, and checks a completed branch before binding. It does not launch or observe a host process, rewrite branch manifests, or detect live tools. See [REVIEW.md](REVIEW.md) and [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract).
 - O014 fixture MCP now emits one bounded `rejected-fixture` event on its first rejected call, separate from successful `injected-fixture` hashes. These process-local events have no branch-manifest correlation, and the fixture server cannot observe other host tools. See [REVIEW.md](REVIEW.md).
 - Verified one real Codex MCP fixture call sequence: lookup `issueId: "42"`, then search `query: "README headings", limit: 2`, with matching saved responses and no reported tool error. This was a model-mediated run that consumed usage; no persistent MCP config was added. See [REVIEW.md](REVIEW.md).
 - Verified the registered supervisor's real publication path in four consecutive cycles: each log records a guarded push and matching `origin/main`, ending at `cd55c5e`. The following cycle stopped on its explicit queue-blocked marker without edits. See [REVIEW.md](REVIEW.md).
@@ -56,7 +56,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-For this O014 design cycle, `npm test` passes 61/61 and `npm run check` passes. All 130 tracked local Markdown links resolve and `git diff --check` passes. The final diff was reviewed in a second pass for source support, stale or ambiguous binding cases, and implemented-versus-proposed wording. The correlation design is documented, while controller, event log, manifest binding, and live-tool observation remain unimplemented. This cycle's tracked documentation edits are local and unstaged for the trusted wrapper; no commit or push occurred inside the sandbox.
+For this O014 fixture-controller cycle, the focused engine suite passes 32/32, the full `npm test` suite passes 63/63, and `npm run check` passes. All 129 root Markdown local links resolve, and `git diff --check` passes. The final diff was reviewed in a second pass, including candidate-branch identity, rejected/incomplete runs, stale output, documentation claims, and repository status. The implementation is fixture-level and leaves external process ownership, interruption recovery, live-tool observation, and comparison UI integration open. This cycle's seven tracked-file edits are local and unstaged for the trusted wrapper; no commit or push occurred inside the sandbox.
 
 The earlier pre-initialization MCP regression covers calls before `initialize` and before `notifications/initialized`, including a stdio sequence with a later valid call. Its full `npm.cmd test` suite passed 59/59 and `npm.cmd run check` passed; see [REVIEW.md](REVIEW.md). That earlier change was subsequently reviewed and pushed as `9826ddd`.
 
@@ -70,7 +70,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** Implement and fixture-test the controller-owned run evidence and checked operation binding described in [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract). A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified. The earlier `STOP` marker may be cleared after the handoff is published and both checkouts are aligned, because host validation has changed the queue state.
+**Next:** Extend O014's in-process controller to own and observe a fixture MCP subprocess, then test interruption and recovery before exposing bound evidence in comparison views. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
@@ -78,4 +78,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-After this review cycle is published by the trusted wrapper, continue O014 with a controlled fixture-run evidence store and checked branch binding, following D011. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+After this review cycle is published by the trusted wrapper, continue O014 with subprocess ownership and interruption recovery, following D011. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
