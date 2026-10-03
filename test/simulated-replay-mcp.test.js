@@ -3,6 +3,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { Readable, Writable, PassThrough } = require('node:stream');
@@ -68,6 +69,33 @@ test('legacy fixture MCP adapter initializes, lists read-only tools, and injects
   assert.match(JSON.parse(stdoutLines[2]).result.content[0].text, /Keep headings/);
   assert.match(processResult.stderr, /Chronicle replay evidence .*injected-fixture/);
   assert.match(processResult.stderr, /Chronicle replay complete \(2 cassette calls\)/);
+});
+
+test('fixture MCP launcher refuses an oversized cassette before accepting calls', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-cassette-limit-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const large = path.join(dir, 'large.json');
+  fs.writeFileSync(large, Buffer.alloc(1024 * 1024 + 1, 65));
+  const result = spawnSync(process.execPath, [scriptPath, large], {
+    input: JSON.stringify(request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION,
+      capabilities: {}, clientInfo: { name: 'test', version: '1' } })) + '\n',
+    encoding: 'utf8', timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true
+  });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /Chronicle replay server failed to start/);
+  assert.equal(fs.statSync(large).size, 1024 * 1024 + 1);
+
+  const malformed = path.join(dir, 'malformed.json');
+  const bytes = fs.readFileSync(fixturePath);
+  bytes[bytes.indexOf(Buffer.from('sample-issue-tracker-v1'))] = 0xff;
+  fs.writeFileSync(malformed, bytes);
+  const invalid = spawnSync(process.execPath, [scriptPath, malformed], {
+    input: '', encoding: 'utf8', timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true
+  });
+  assert.equal(invalid.status, 1);
+  assert.equal(invalid.stdout, '');
+  assert.match(invalid.stderr, /Chronicle replay server failed to start/);
 });
 
 test('fixture MCP adapter stops on the first unmatched call without consuming or falling back', () => {

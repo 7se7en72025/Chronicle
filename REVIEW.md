@@ -1,5 +1,11 @@
 # Latest development review
 
+## Fixture MCP cassette startup read (2026-10-04)
+
+**P2 — cassette files were loaded without a disk-read bound (fixed).** `scripts/simulated-replay-mcp.js:main` read the entire cassette path before `createSimulatedReplay` enforced the 1 MiB schema cap. The launcher now checks regular-file identity and size around a bounded descriptor read, and strictly decodes UTF-8 before parsing. An oversized or changing input refuses startup before the MCP request loop; the caller's cassette file is left intact.
+
+**Verification and limit:** a subprocess fixture supplied a 1 MiB-plus-one-byte cassette and an `initialize` request. The launcher exited unsuccessfully without a JSON-RPC response or modifying the cassette; malformed UTF-8 also refused startup. The focused test passed 1/1, including that later assertion. `npm run check` and the full `npm test` suite passed 83/83 before the final test-only UTF-8 assertion; its focused rerun passed. Changed Markdown relative links and `git diff --check` passed. Second-pass review confirmed the disk-read cap shares the replay schema's exported constant, and the existing launch-witness and sidecar sequence is unchanged for controlled runs. The local cassette remains mutable between separate launches, and this does not establish live host-tool provenance. No independent reviewer participated.
+
 ## Output read bounds and replacement detection (2026-10-04)
 
 **P2 — output verification and undo read mutable files by path without a bound (fixed).** `src/engine.js:createBranch`, `reconcileOperations`, and `undoOperation` used unbounded reads for output and undo verification. A later edit could make a saved output path arbitrarily large; a same-content replacement between `lstat` and the read could also pass reconciliation. These paths now use the existing bounded regular-file descriptor reader. The output bound is 2 MiB because selecting additions while retaining baseline text can produce a file larger than either 1 MiB source checkpoint. Reconciliation treats an unreadable or changed file as modified; undo refuses before changing a selected path, or keeps its recovery journal if a file changes during undo.

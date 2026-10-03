@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Bound the fixture MCP launcher's cassette disk read before JSON parsing.
 - Bound output verification and guarded-undo reads; detect a same-content path replacement during reconciliation.
 - Bound source-file reads during capture so a file enlarged after inspection cannot bypass the 1 MiB limit.
 - Report unresolved capture-gap temp files during storage recovery without moving a possibly live gap writer's file.

@@ -92,4 +92,4 @@ function createSimulatedReplay(inputCassette) {
   });
 }
 
-module.exports = { createSimulatedReplay, SIMULATED_TOOLS: Object.freeze([...SIMULATED_TOOLS]) };
+module.exports = { createSimulatedReplay, MAX_CASSETTE_BYTES, SIMULATED_TOOLS: Object.freeze([...SIMULATED_TOOLS]) };

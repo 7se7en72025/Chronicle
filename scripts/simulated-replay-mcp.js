@@ -5,11 +5,30 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { TextDecoder } = require('node:util');
 const { createSimulatedReplayMcp, MAX_MESSAGE_BYTES } = require('../src/simulated-replay-mcp');
+const { MAX_CASSETTE_BYTES } = require('../src/simulated-replay');
 
 const cassettePath = process.argv[2] || path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 const launchPath = process.argv[3];
 const launchRunId = process.argv[4];
 const evidencePath = process.argv[5];
+
+function readCassetteBytes(file) {
+  const before = fs.lstatSync(file, { bigint: true });
+  if (!before.isFile() || before.size > BigInt(MAX_CASSETTE_BYTES)) throw new Error('Invalid cassette file');
+  const fd = fs.openSync(file, 'r');
+  try {
+    const opened = fs.fstatSync(fd, { bigint: true });
+    if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino ||
+        opened.ctimeNs !== before.ctimeNs || opened.size > BigInt(MAX_CASSETTE_BYTES)) throw new Error('Cassette changed before read');
+    const bytes = Buffer.alloc(Number(opened.size) + 1);
+    let count = 0, read;
+    while (count < bytes.length && (read = fs.readSync(fd, bytes, count, bytes.length - count, null)) > 0) count += read;
+    const after = fs.fstatSync(fd, { bigint: true });
+    if (count > MAX_CASSETTE_BYTES || BigInt(count) !== opened.size || after.size !== opened.size ||
+        after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) throw new Error('Cassette changed during read');
+    return bytes.subarray(0, count);
+  } finally { fs.closeSync(fd); }
+}
 
 function writeMessage(output, message) {
   return message === null || output.write(JSON.stringify(message) + '\n');
@@ -137,8 +156,8 @@ async function main() {
     finally { fs.closeSync(fd); }
   }
   try {
-    const cassetteBytes = fs.readFileSync(cassettePath);
-    const cassette = JSON.parse(cassetteBytes.toString('utf8'));
+    const cassetteBytes = readCassetteBytes(cassettePath);
+    const cassette = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(cassetteBytes));
     const cassetteHash = crypto.createHash('sha256').update(cassetteBytes).digest('hex');
     let sequence = 0;
     const exitCode = await runStdioReplay({ input: process.stdin, output: process.stdout, errorOutput: process.stderr, cassette,

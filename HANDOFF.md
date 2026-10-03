@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- The fixture MCP launcher now bounds the cassette disk read before parsing; an oversized file refuses startup without accepting calls. See [REVIEW.md](REVIEW.md).
 - Output verification, reconciliation, and guarded undo now use bounded descriptor reads for mutable output files. A same-content replacement during a reconciliation read is reported as modified; see [REVIEW.md](REVIEW.md).
 - Capture now reads source files through the bounded descriptor path, closing a gap between the per-file size check and the read. A disposable-repo race fixture enlarges a file at that boundary; capture refuses without publishing a checkpoint or changing the source. See [REVIEW.md](REVIEW.md).
 - `recover` now reports unresolved gap `.tmp` names without moving them, because gap recording can run outside the operation lock. The focused engine/CLI fixture preserves both partial and published gap bytes; see [REVIEW.md](REVIEW.md).
