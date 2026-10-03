@@ -7,6 +7,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { Chronicle, git, hash, safePath } = require('../src/engine');
 const { recordHook } = require('../src/hook');
+const { normalizeAdapterEvent } = require('../src/event-contract');
 const { spawnSync } = require('node:child_process');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
@@ -1240,6 +1241,33 @@ test('unpaired Codex tool boundaries show an unknown-outcome warning in review a
   const fallback = engine.createBranch(before.id, after.id, selected, 'chronicle/coverage-unavailable');
   assert.equal(fallback.manifest.captureCoverage.unpairedToolBoundaries, null);
   fs.unlinkSync(damagedCheckpoint);
+});
+
+test('checkpoint and gap storage project adapter metadata without raw caller fields', t => {
+  const { root, engine, file } = fixture(t);
+  const originalIndex = git(root, ['ls-files', '--stage', '-z']);
+  const event = {
+    ...normalizeAdapterEvent({ cwd: root, hook_event_name: 'PostToolUse', session_id: 'safe-session', tool_name: 'Bash' }, 'codex-cli'),
+    tool_input: { command: 'SECRET_COMMAND' }, error: 'SECRET_ERROR',
+    references: { snapshotId: 'SECRET_REFERENCE', gapId: 'SECRET_REFERENCE' },
+    status: 'succeeded', privacy: 'raw-content', extra: 'SECRET_EXTRA'
+  };
+  const checkpoint = engine.capture('Safe', event);
+  const gap = engine.recordGap(event, new Error('busy SECRET_ERROR'));
+  assert.equal(checkpoint.event.status, 'observed');
+  assert.equal(checkpoint.event.privacy, 'metadata-only');
+  assert.deepEqual(checkpoint.event.references, { snapshotId: checkpoint.id, gapId: null });
+  assert.deepEqual(gap.event.references, { snapshotId: null, gapId: gap.id });
+  assert.equal(gap.reason, 'RECORDER_BUSY');
+  assert.equal(JSON.stringify([checkpoint, gap]).includes('SECRET_'), false);
+  assert.equal(fs.readFileSync(path.join(engine.store, 'checkpoints', checkpoint.id + '.json'), 'utf8').includes('SECRET_'), false);
+  assert.equal(fs.readFileSync(path.join(engine.store, 'gaps', gap.id + '.json'), 'utf8').includes('SECRET_'), false);
+  const legacy = engine.capture('Legacy', { source: 'manual', tool_input: 'SECRET_LEGACY' });
+  assert.deepEqual(legacy.event, { source: 'manual', attribution: 'unknown' });
+  assert.throws(() => engine.capture('Invalid', { ...event, contractVersion: 2 }), /Unsupported adapter event metadata/);
+  assert.equal(engine.list().length, 2);
+  assert.equal(fs.readFileSync(file, 'utf8'), 'one\ntwo\nthree\n');
+  assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);
 });
 
 test('CLI can inspect gaps without invoking a model or exposing raw tool errors', t => {

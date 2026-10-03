@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Project adapter events again at the checkpoint/gap storage boundary, dropping unknown raw caller fields and refusing unsupported contract versions.
 - Bound checkpoint, gap, operation, and lock metadata reads; reject swapped checkpoint/operation IDs and sanitize invalid stored JSON errors.
 - Screen Codex native stderr in fixture trace inspection and fail closed on diagnostics or missing stderr when comparing server evidence; a policy-blocked shell attempt was absent from host JSONL.
 - Add an explicit controlled fixture finish tool and verify its fsynced completion receipt in a real Codex CLI read-only turn; agent-run binding remains deferred.

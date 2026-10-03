@@ -114,6 +114,42 @@ function readJsonLimited(file, maximumBytes) {
   catch { throw new Error('Stored JSON evidence is invalid'); }
 }
 
+const adapterBoundaries = Object.freeze({
+  'claude-code': new Set(['SessionStart', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure']),
+  'codex-cli': new Set(['SessionStart', 'SessionEnd', 'Interrupt', 'PreToolUse', 'PostToolUse'])
+});
+
+function safeIdentifier(value, limit = 128) {
+  return typeof value === 'string' && value.length <= limit && /^[a-zA-Z0-9._:-]+$/.test(value) ? value : undefined;
+}
+
+function storedEvent(event, references) {
+  if (event?.contract !== undefined && (event.contract !== 'chronicle.adapter-event' || event.contractVersion !== 1)) {
+    throw new Error('Unsupported adapter event metadata');
+  }
+  if (event?.contract === 'chronicle.adapter-event') {
+    if (!adapterBoundaries[event.source]?.has(event.boundary)) throw new Error('Unsupported adapter event metadata');
+    const status = event.boundary === 'PostToolUseFailure' ? 'failed'
+      : event.boundary === 'PostToolUse' && event.source === 'claude-code' ? 'succeeded'
+        : event.boundary === 'PostToolUse' && event.source === 'codex-cli' ? 'observed' : 'boundary';
+    return {
+      contract: 'chronicle.adapter-event', contractVersion: 1,
+      eventId: /^[a-f0-9-]{36}$/.test(event.eventId || '') ? event.eventId : crypto.randomUUID(),
+      recordedAt: new Date().toISOString(), timestampSource: 'recorder',
+      source: event.source, boundary: event.boundary, status,
+      statusCertainty: ['succeeded', 'failed'].includes(status) ? 'host-reported' : 'boundary-only',
+      sessionId: safeIdentifier(event.sessionId), turnId: safeIdentifier(event.turnId),
+      toolUseId: safeIdentifier(event.toolUseId), tool: safeIdentifier(event.tool, 80),
+      attribution: 'observed-boundary-not-exclusive-authorship', privacy: 'metadata-only', references
+    };
+  }
+  return {
+    source: ['manual', 'claude-code', 'codex-cli'].includes(event?.source) ? event.source : 'manual',
+    attribution: 'unknown',
+    ...(adapterBoundaries[event?.source]?.has(event?.boundary) ? { boundary: event.boundary } : {})
+  };
+}
+
 class Chronicle {
   constructor(root, options = {}) {
     this.root = fs.realpathSync(git(root, ['rev-parse', '--show-toplevel']).trim());
@@ -191,6 +227,8 @@ class Chronicle {
 
   capture(label = 'Checkpoint', event = { source: 'manual', attribution: 'unknown' }) {
     return this.exclusive(() => {
+      const checkpointId = crypto.randomUUID();
+      const capturedEvent = storedEvent(event, { snapshotId: checkpointId, gapId: null });
       const head = git(this.root, ['rev-parse', 'HEAD']).trim();
       const index = git(this.root, ['ls-files', '--stage', '-z']);
       const first = this.inventory(), second = this.inventory();
@@ -201,10 +239,6 @@ class Chronicle {
         this.writeBlob(file.bytes, file.hash);
         files[name] = { hash: file.hash, mode: file.mode };
       }
-      const checkpointId = crypto.randomUUID();
-      const capturedEvent = event?.contract === 'chronicle.adapter-event' && event.contractVersion === 1
-        ? { ...event, references: { ...event.references, snapshotId: checkpointId, gapId: null } }
-        : event;
       const checkpoint = { schema: 1, id: checkpointId, label: String(label).slice(0, 200), createdAt: new Date().toISOString(), root: this.root, head, files, tracked: first.tracked, excluded: first.excluded, event: capturedEvent };
       // Index evidence is separate; no command stages or resets the original index.
       checkpoint.index = index;
@@ -272,14 +306,15 @@ class Chronicle {
     }
     const detail = String(error?.message || '');
     const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
-    const clean = value => typeof value === 'string' ? value.slice(0, 200) : undefined;
     const gapId = crypto.randomUUID();
-    const gapEvent = event?.contract === 'chronicle.adapter-event' && event.contractVersion === 1
-      ? { ...event, references: { ...event.references, snapshotId: null, gapId } }
-      : undefined;
+    const source = event?.source === 'codex-cli' ? 'codex-cli' : 'claude-code';
+    const gapEvent = event?.contract ? storedEvent(event, { snapshotId: null, gapId }) : undefined;
     const gap = {
       schema: 1, kind: 'capture-gap', id: gapId, repoId: hash(this.root), createdAt: new Date().toISOString(),
-      status: 'skipped', reason, source: event.source === 'codex-cli' ? 'codex-cli' : 'claude-code', boundary: clean(event.boundary), sessionId: clean(event.sessionId), toolUseId: clean(event.toolUseId), tool: clean(event.tool),
+      status: 'skipped', reason, source,
+      boundary: adapterBoundaries[source].has(event?.boundary) ? event.boundary : undefined,
+      sessionId: safeIdentifier(event?.sessionId), toolUseId: safeIdentifier(event?.toolUseId),
+      tool: safeIdentifier(event?.tool, 80),
       ...(gapEvent ? { event: gapEvent } : {})
     };
     writeJson(path.join(dir, gap.id + '.json'), gap);
