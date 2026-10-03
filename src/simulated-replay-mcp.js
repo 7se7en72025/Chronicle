@@ -104,7 +104,13 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
     }
 
     if (message.method === 'ping') return { jsonrpc: '2.0', id, result: {} };
-    if (phase !== 'ready') return rpcError(id, -32002, 'Server not initialized.');
+    if (phase !== 'ready') {
+      if (attemptedToolCall) {
+        stopped = true;
+        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+      }
+      return rpcError(id, -32002, 'Server not initialized.');
+    }
 
     if (message.method === 'tools/list') {
       return { jsonrpc: '2.0', id, result: { tools: availableTools } };

@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Stop fixture MCP replay when a tool call arrives before initialization completes; a later call cannot consume its uncertain cassette response.
 - Stop fixture MCP stdio replay on a malformed JSON or UTF-8 frame so a later valid call cannot consume an uncertain cassette response.
 - Treat Git's nonfatal line-ending diagnostics as data in the Windows supervisor, and decide validation, staging, and commit success by Git exit codes.
 - Stop experimental MCP cassette replay when a tool call has a missing or invalid JSON-RPC request ID; later calls cannot consume its response.

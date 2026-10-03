@@ -2,6 +2,12 @@
 
 Status: first-release local audit completed; roadmap execution is active. Real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
 
+## MCP pre-initialization call review (2026-10-03)
+
+**P1 — A rejected early tool call left replay usable (fixed locally).** In `src/simulated-replay-mcp.js:handle`, a `tools/call` before the server reached `ready` returned `-32002` without stopping the cassette. After initialization, a later call could consume the response that the early call may have intended. The handler now marks replay stopped for that sequence violation. Direct tests cover both calls before `initialize` and calls before `notifications/initialized`; a subprocess test confirms the later call receives an error and emits no injection evidence.
+
+**Verification:** `npm.cmd test` passes 59/59, including the new direct and stdio regression; `npm.cmd run check` passes. The final diff has no whitespace errors and local Markdown links resolve. The second pass checked that early calls leave the cassette position at zero, later calls get only a stopped error, and the subprocess emits no injection evidence. O014 still requires supported-host discovery; neither Codex nor Claude CLI is available in this sandbox. No independent reviewer participated.
+
 ## MCP stdio malformed-frame review (2026-10-03)
 
 **P1 — A malformed frame could leave the cassette usable (fixed locally).** `scripts/simulated-replay-mcp.js:processLine` returned a JSON-RPC parse error for invalid JSON or UTF-8, then continued reading. Because an unparseable frame might have been a tool call, the next valid call could consume a response intended for the lost call. The transport now sends a parse error, stops input processing, and exits unsuccessfully. A child-process regression sends a valid initialization, malformed frame, and matching tool call in one input stream; it receives no tool result or injection evidence. This changes only the experimental fixture server's transport behavior; no host was contacted.
