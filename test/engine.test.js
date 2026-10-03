@@ -159,6 +159,9 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   }
   assert.deepEqual(fs.readFileSync(outsideCassette), cassetteBytes);
   fs.writeFileSync(cassetteFile, cassetteBytes);
+  fs.writeFileSync(evidenceFile, Buffer.concat([evidenceBytes, Buffer.from('{')]));
+  assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /evidence sidecar/);
+  fs.writeFileSync(evidenceFile, evidenceBytes);
   assert.equal(engine.bindFixtureRun(run.id, operation.id).operationId, operation.id);
   const other = engine.createBranch(before.id, after.id, selected, 'chronicle/process-comparison');
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
@@ -168,6 +171,13 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
   fs.writeFileSync(cassetteFile, cassetteBytes);
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
+  fs.writeFileSync(evidenceFile, Buffer.concat([evidenceBytes, Buffer.from('{')]));
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
+  fs.writeFileSync(evidenceFile, evidenceBytes);
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
+  fs.unlinkSync(evidenceFile);
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
+  fs.writeFileSync(evidenceFile, evidenceBytes);
   const runFile = path.join(engine.store, 'fixture-runs', run.id + '.json');
   const boundBytes = fs.readFileSync(runFile);
   const incompleteJournal = JSON.parse(boundBytes);
@@ -175,6 +185,13 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   fs.writeFileSync(runFile, JSON.stringify(incompleteJournal));
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
   assert.deepEqual(fs.readFileSync(evidenceFile), evidenceBytes);
+  fs.writeFileSync(runFile, boundBytes);
+  const legacyJournal = JSON.parse(boundBytes);
+  delete legacyJournal.evidenceSidecar;
+  fs.writeFileSync(runFile, JSON.stringify(legacyJournal));
+  fs.unlinkSync(evidenceFile);
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
+  fs.writeFileSync(evidenceFile, evidenceBytes);
   fs.writeFileSync(runFile, boundBytes);
 
   const rejected = await engine.runFixtureSubprocess(cassette, before.id, [initialize, ready, { ...lookup, params: {

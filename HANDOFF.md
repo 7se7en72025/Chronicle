@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- New O014 controlled subprocess runs require a consistent child-written sidecar for binding and saved comparison provenance. Missing/changed sidecars hide the summary; older records lacking the marker retain previous checks. Focused fixture passed; see [REVIEW.md](REVIEW.md).
 - O014 recovery now leaves a pending run unchanged when its child-written sidecar is invalid or conflicts with the journal. A sidecar-ahead run can only be marked failed after controller/child death checks; it is never promoted to success. Focused recovery fixture passed; see [REVIEW.md](REVIEW.md).
 - O014 now exposes `inspect-fixture-evidence <run-id>` for read-only, bounded comparison of child-written event metadata with the controller journal. A focused interrupted-journal fixture passed; it does not auto-repair or declare replay complete. See [REVIEW.md](REVIEW.md).
 - O014's controlled fixture child now fsyncs metadata-only event lines to a per-run sidecar before forwarding them to the controller journal. The subprocess fixture checks complete and rejected event bytes. Recovery does not yet reconcile or trust a sidecar after interruption; see [REVIEW.md](REVIEW.md).

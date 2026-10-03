@@ -24,6 +24,8 @@ For controlled fixture subprocess runs, binding replay evidence to a completed o
 
 The controlled fixture child also writes each metadata-only replay event to a private, fsynced JSONL file before emitting it on stderr for the controller journal. A controller interruption can therefore leave child-authored event bytes for manual inspection even when journal events are incomplete. `inspect-fixture-evidence` checks the bounded sidecar's schema, run/cassette identity, sequence, and journal prefix without changing either file. Recovery leaves a pending run untouched when that sidecar is invalid or conflicts with the journal; a consistent or sidecar-ahead record can still only be marked failed after the existing process-death checks. Neither inspection nor recovery turns a pending run into a completed replay. Child death before any durable write and concurrent file replacement remain unresolved.
 
+New subprocess runs declare `evidenceSidecar: true`. Binding and saved branch comparison require that sidecar to agree with the completed journal, as well as the existing cassette check. Missing or altered sidecars hide new-run provenance. Older records without the marker retain their earlier journal/cassette path; they do not gain retroactive child-written evidence.
+
 ## 1. What we are building first
 
 Chronicle is an open-source, local-first companion for coding agents. It records workspace changes, shows where they came from, and lets a developer keep selected changes without asking the model to generate them again.

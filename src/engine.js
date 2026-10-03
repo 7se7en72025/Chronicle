@@ -452,7 +452,7 @@ class Chronicle {
       fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
       source: { checkpoint: sourceCheckpointId, commit: source.head },
       events: [], outcome: null, candidateOperationId: null, binding: null,
-      controllerPid: process.pid, childPid: null, launchPhase: 'prepared'
+      controllerPid: process.pid, childPid: null, launchPhase: 'prepared', evidenceSidecar: true
     };
     this.exclusive(() => {
       fs.writeFileSync(cassetteFile, serialized, { flag: 'wx' });
@@ -545,6 +545,9 @@ class Chronicle {
         }
         if (!/^[a-f0-9]{64}$/.test(run.cassetteHash) || hash(cassetteBytes) !== run.cassetteHash) {
           throw new Error('Fixture cassette differs from the pinned run; binding refused');
+        }
+        if (run.evidenceSidecar === true && this.inspectFixtureEvidence(runId).status !== 'consistent') {
+          throw new Error('Fixture evidence sidecar is unavailable or differs from the run; binding refused');
         }
       }
       for (const name of fs.readdirSync(folder).filter(name => name.endsWith('.json'))) {
@@ -730,6 +733,10 @@ class Chronicle {
             if (!stat.isFile() || stat.size > 1024 * 1024 ||
                 hash(fs.readFileSync(cassetteFile)) !== run.cassetteHash) return null;
           } catch { return null; }
+          if (run.evidenceSidecar === true) {
+            try { if (this.inspectFixtureEvidence(run.id).status !== 'consistent') return null; }
+            catch { return null; }
+          }
         }
         if (entries.some(entry => entry.startsWith(name + '.') && /^[a-f0-9-]{36}\.tmp$/.test(entry.slice(name.length + 1))) ||
             run.id !== name.slice(0, -5) || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||

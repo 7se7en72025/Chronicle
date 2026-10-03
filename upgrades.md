@@ -60,6 +60,8 @@ Use these terms consistently:
 
 **Local durability step:** the controlled child now fsyncs a bounded metadata-only evidence sidecar before forwarding each event to the controller. `inspect-fixture-evidence` reports whether the sidecar and journal are consistent, the sidecar is ahead, or evidence is invalid/unavailable. Recovery refuses to change a pending journal when the sidecar is invalid or conflicting; consistent or sidecar-ahead records can only become failed after existing process-death checks. This does not establish tool provenance or prove host tool activity. Reconciliation of additional sidecar events remains unimplemented.
 
+New controlled subprocess runs require a consistent child-written sidecar before fixture evidence can be bound or displayed in branch comparison. Legacy records without a sidecar marker retain their earlier journal/cassette checks. This is local consistency evidence, not independent host-tool observation.
+
 **Exit:** repeated fixture runs start from the same verified state; a recorded response can be substituted without contacting its original service; unmatched inputs stop or are clearly shown; the original workspace and fixture data remain unchanged; and an actual host/orchestrator run is validated separately before claiming fresh agent retries.
 
 ### 4. Consider browser and richer environment snapshots

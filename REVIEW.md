@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 sidecar binding and comparison gate (2026-10-03)
+
+**P1 — a new bound fixture run could keep showing injection provenance after child evidence changed (fixed).** New subprocess records declare `evidenceSidecar: true`. `bindFixtureRun` now requires read-only inspection status `consistent`, and `compareOperations` hides the bound summary if the sidecar is missing, invalid, or ahead of the completed journal. Cassette and operation checks remain required. Older journals without this marker retain their earlier behavior rather than being silently invalidated; they provide no retroactive child-side evidence.
+
+**Verification and limit:** the focused subprocess regression passed and exercises binding refusal before a valid sidecar is restored, comparison disappearance/reappearance after sidecar corruption or removal, and synthetic legacy-record compatibility. `npm.cmd run check`, full `npm.cmd test` (75/75), changed Markdown links, and `git diff --check` pass. Second-pass review confirmed the guard only applies to marked subprocess runs and leaves the existing cassette and binding checks in place. It does not authenticate a mutable local store or close the concurrent path-swap window. No independent reviewer participated.
+
 ## O014 sidecar conflict recovery gate (2026-10-03)
 
 **P1 — recovery could overwrite a pending journal despite contradictory child evidence (fixed).** `recoverFixtureRuns` now checks the read-only sidecar assessment after the existing controller/child death gates. An invalid or conflicting sidecar leaves the journal and sidecar untouched for inspection. A consistent or sidecar-ahead record can still only be recorded as failed with `MCP_PROCESS_INTERRUPTED`; extra child events never establish completion or binding. An unavailable sidecar retains the prior conservative PID/witness rules for legacy and pre-write runs.
