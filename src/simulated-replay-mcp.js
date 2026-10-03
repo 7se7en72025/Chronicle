@@ -58,8 +58,13 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
   }
 
   function handle(message) {
+    const attemptedToolCall = isRecord(message) && message.method === 'tools/call';
     if (!isRecord(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string' ||
         (Object.hasOwn(message, 'id') && !(typeof message.id === 'string' || (typeof message.id === 'number' && Number.isFinite(message.id))))) {
+      if (attemptedToolCall) {
+        stopped = true;
+        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+      }
       return rpcError(null, -32600, 'Invalid JSON-RPC request.');
     }
 
@@ -72,7 +77,13 @@ function createSimulatedReplayMcp(cassette, { onEvidence = () => {} } = {}) {
       if (phase === 'awaiting-initialized') phase = 'ready';
       return null;
     }
-    if (!hasId) return null;
+    if (!hasId) {
+      if (attemptedToolCall) {
+        stopped = true;
+        stopCode = 'SIMULATED_REPLAY_INVALID_CALL';
+      }
+      return null;
+    }
 
     if (message.method === 'initialize') {
       if (phase !== 'new' || !isRecord(params) || typeof params.protocolVersion !== 'string' ||

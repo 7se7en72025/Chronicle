@@ -140,6 +140,36 @@ test('fixture MCP adapter stops after a malformed tool call and preserves the ne
   assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
 });
 
+test('fixture MCP adapter stops after a tool call with no or invalid request id', () => {
+  for (const invalidCall of [
+    { jsonrpc: '2.0', method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } },
+    request(null, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ]) {
+    const server = createSimulatedReplayMcp(cassette());
+    initialize(server);
+    const response = server.handle(invalidCall);
+    if (Object.hasOwn(invalidCall, 'id')) assert.equal(response.error.code, -32600);
+    else assert.equal(response, null);
+    assert.equal(server.position, 0);
+    assert.equal(server.stopped, true);
+    assert.equal(server.handle(request(3, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })).result.isError, true);
+    assert.throws(() => server.finish(), { code: 'SIMULATED_REPLAY_INVALID_CALL' });
+  }
+
+  const messages = [
+    request(1, 'initialize', { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: 'wire-test', version: '1' } }),
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    { jsonrpc: '2.0', method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } },
+    request(2, 'tools/call', { name: 'fixture.issue.lookup', arguments: { issueId: '42' } })
+  ].map(message => JSON.stringify(message)).join('\n') + '\n';
+  const result = runWire(messages);
+  assert.equal(result.status, 1);
+  const replies = result.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  assert.equal(replies.length, 2);
+  assert.equal(replies[1].result.isError, true);
+  assert.match(result.stderr, /SIMULATED_REPLAY_INVALID_CALL/);
+});
+
 test('stdio server reports incomplete cassette consumption and malformed requests clearly', () => {
   const messages = [
     '{bad json',

@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Closed an MCP fixture replay gap: a `tools/call` with a missing or invalid JSON-RPC ID now stops the cassette before a later valid call can consume it. Focused and full tests pass; host integration remains unverified. See [REVIEW.md](REVIEW.md).
 - Moved the overnight cycle's Git commit into the trusted supervisor because Codex's `workspace-write` sandbox keeps `.git` read-only. The supervisor accepts only unstaged tracked-file modifications, requires successful sandboxed test events, commits once, and guards the normal push. It does not execute model-edited code outside the sandbox. Fake CLI tests cover publication, changed push URL, untracked/protected files, and missing or failed check evidence; see [REVIEW.md](REVIEW.md).
 - Closed a push-destination freshness gap in the Windows runner. A fake Codex cycle that changes `remote.origin.pushurl` now leaves its edits local, writes `STOP`, and pushes to neither the approved nor alternate disposable remote; see [REVIEW.md](REVIEW.md).
 - The first real Codex cycle reached repository review and replay tests, then a patch-tool diagnostic on stderr terminated the PowerShell worker. The wrapper now treats native stderr as log data, checks the actual CLI exit code, and writes UTF-8 run logs. A fake CLI stderr regression passes; see [REVIEW.md](REVIEW.md).
@@ -46,7 +47,9 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-The replay and push-destination fixes passed their recorded full suites. The revised supervisor passes eleven focused Windows PowerShell tests, including missing/failed sandboxed check evidence and normal publication to a disposable bare remote. The full serial suite passes 57/57 and `npm.cmd run check` passes. A real post-fix cycle with automatic publication remains unverified. Codex hook behavior and editor interactions remain host-unvalidated.
+The latest MCP invalid-request regression passes 10/10 focused tests; the full `npm.cmd test` suite passes 58/58 and `npm.cmd run check` passes. The sandboxed model left six tracked edits unstaged as required. The supervisor stopped on a Git line-ending warning before committing; an authorized recovery review checked the diff and test events, then committed and pushed this change. O014 still needs supported-host discovery evidence.
+
+The replay and push-destination fixes passed their recorded full suites. The revised supervisor passes eleven focused Windows PowerShell tests, including missing/failed sandboxed check evidence and normal publication to a disposable bare remote. A real post-fix cycle with automatic publication remains unverified. Codex hook behavior and editor interactions remain host-unvalidated.
 
 Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
 
@@ -54,7 +57,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** synchronize the supervisor change to the registered checkout, clear the reviewed `STOP` marker, and retry a bounded Codex cycle. Keep the chat heartbeat paused. Real Codex/Claude hook and editor validation remains separate; use the no-prompt MCP discovery steps in [GETTING_STARTED.md](GETTING_STARTED.md) when a supported host is available.
+**Next:** O014 needs no-prompt MCP discovery in a supported host using [GETTING_STARTED.md](GETTING_STARTED.md); this sandbox cannot establish host compatibility. The registered runner's revised supervisor also needs a real bounded publication cycle, with its separate `STOP` marker reviewed before restart. Keep the chat heartbeat paused while that runner is active. Real Codex/Claude hook and editor validation remains separate under O004.
 
 ## Open choices
 
