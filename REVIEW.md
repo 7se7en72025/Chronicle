@@ -1,5 +1,11 @@
 # Latest development review
 
+## Final handoff claim audit (2026-10-03)
+
+**P2 — living status mixed historical and current host/runner claims (docs fixed).** `ORCHESTRATION.md:O004` still named Codex CLI 0.159.2 despite the installed 0.160.0 and a verified read-only MCP fixture call sequence. `HANDOFF.md` still said that fixture tool calls and a live stderr-capture cycle were pending after they had been observed, and implied that the earlier runner restart was still next. Current state now distinguishes those historical checks from the STOP-gated task and the remaining unverified hook/editor/agent-run paths. This is documentation reconciliation, not new host validation.
+
+**Verification:** `codex --version` returned 0.160.0 and `code --version` returned 1.139.1; `Get-Command` found no Claude CLI. Changed Markdown targets and `git diff --check` pass. Second-pass review kept dated historical checks intact while correcting current status. Application tests are not applicable to this documentation-only update.
+
 ## O014 sidecar recovery decision (2026-10-03)
 
 **P2 — the handoff implied automatic sidecar-to-journal merging was the next local task (resolved by D014).** The child sidecar can be ahead of a controller journal after interruption, but it does not prove the controller finished or that an interrupted journal replacement is safe to overwrite. [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-journals) keeps those bytes separate and inspectable, preserves failed-only recovery after process-death checks, and requires a durable completion contract plus real interruption evidence before considering a merge. This is a design boundary, not a new recovery implementation or independent review.
