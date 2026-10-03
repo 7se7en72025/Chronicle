@@ -1,5 +1,9 @@
 # Latest development review
 
+## Runner overlapping final checks (2026-10-03)
+
+**P1 — a prior test session completed after the purported final check pair (safely stopped).** Cycle `20261003-145957-263` started `npm test` as item 20, then started another `npm run check` and `npm test` pair as items 22 and 23 before item 20 completed. All reported exit codes were 0, but the overlapping completion made the final order ambiguous. `Test-RunEvidence` correctly wrote `STOP` and preserved six tracked edits. Independent syntax and 73/73 tests, diff, links, and destination checks passed; the cassette-binding change was normally published as `216f09c`. The worker prompt now tells Codex to poll any running command session to completion before starting another, especially a new final check pair. Focused runner parsing/publication fixtures pass 2/2 and `npm.cmd run check` passes; this low-impact prompt change does not alter the gate. The instruction is guidance, not a runtime guarantee; the strict event-order gate remains the enforcement. A live cycle with the revised prompt remains unverified. No independent reviewer participated.
+
 ## O014 pinned cassette binding (2026-10-03)
 
 **P1 — a completed fixture run could bind after its saved cassette changed (fixed at the local file boundary).** `src/engine.js:bindFixtureRun` checked journal events and output freshness but did not read the `.cassette.json` file saved before subprocess launch. A missing or edited cassette could therefore leave a binding that implied preserved replay inputs. Binding now requires a regular cassette file of at most 1 MiB whose bytes match the run's pinned SHA-256 hash. A missing, unreadable, oversized, redirected, or mismatched file refuses binding without modifying the run or operation.
