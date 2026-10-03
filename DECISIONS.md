@@ -85,3 +85,13 @@ The Windows task installer permits starts and continuation on battery. It leaves
 Reason: the user explicitly chose battery operation after the registered task stopped between a verified worker result and supervisor publication. The stopped edit was preserved and manually verified before normal publication.
 
 Revisit if the user wants AC-only operation or a charge threshold, or if unattended battery runtime proves unreliable.
+
+## D013 — Keep final sandboxed checks adjacent to publication
+
+Status: accepted for the Windows runner.
+
+The worker finishes edits, documentation, and diff review before running `npm run check` then `npm test` as its last two tool actions. The trusted supervisor refuses publication if those exact commands are missing, fail, occur out of order, or are followed by any other recorded tool event. It preserves the uncommitted result for inspection. This is an event-order guard, not a cryptographic attestation of worktree bytes or an independent review.
+
+Reason: accepting successful checks anywhere in a cycle could publish edits made after the checks. The runner cannot safely execute model-edited project code outside its sandbox.
+
+Revisit if a trusted sandboxed worktree digest can be bound to the checks without allowing model-edited verifier code to run in the supervisor.

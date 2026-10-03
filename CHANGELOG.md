@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse autonomous publication when recorded tool activity follows the final sandboxed syntax and test checks.
 - Preserve detectable interrupted fixture-run journal replacements for inspection and refuse evidence binding while a replacement candidate exists.
 - Record a pre-spawn fixture subprocess phase so recovery can fail a dead controller's run before spawn, while retaining uncertain launches for inspection.
 - Allow the optional Windows review task to start and continue on battery after the user's explicit choice; leave system power-plan behavior unchanged.

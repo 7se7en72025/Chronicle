@@ -1,5 +1,11 @@
 # Latest development review
 
+## Runner final-check freshness (2026-10-03)
+
+**P1 — a passing check could precede a later, untested edit (fixed for recorded tool order).** `scripts/run-autonomous.ps1:Test-RunEvidence` previously accepted the last successful `npm test` and `npm run check` events anywhere in the Codex JSONL. The 13:13 cycle had an initial failing test, later passes, and a final diff-review command; that run ended with passing checks and no observed later edit, but the gate would also have accepted an edit after the checks. The worker prompt now requires final edits, documentation, and diff review first, followed by separate `npm run check` and `npm test` commands as the last two tool actions. The supervisor accepts only those exact passing commands in order and invalidates evidence on any subsequent tool event or malformed JSONL line.
+
+**Verification and limit:** disposable runner fixtures still publish a normal verified edit and now refuse file-change or command events after final checks, compound check commands, and malformed JSONL, retaining the uncommitted result and writing `STOP`. The exact command matcher also recognizes the prior real Codex JSONL PowerShell command format. This guards recorded Codex tool order; it does not cryptographically bind test output to file bytes or detect an unobserved external writer. Full test, syntax, and second-pass diff results are in [HANDOFF.md](HANDOFF.md#verification). The scheduled supervisor was stopped while idle before this change; do not restart it until the verified commit is in its clean sibling checkout. No independent reviewer participated.
+
 ## O014 interrupted fixture journal replacement (2026-10-03)
 
 **P1 — Recovery could overwrite ambiguous fixture evidence (fixed for detectable replacement candidates).** `recoverFixtureRuns` previously read the published pending record and could mark it failed after both PIDs were absent, even if a `writeJson` replacement candidate remained beside it. That candidate might contain newer evidence or a final outcome. Recovery now reports `replacement-inspect` and leaves the published record, candidate, and cassette untouched. `bindFixtureRun` also refuses a completed run while such a candidate exists, preventing ambiguous provenance from being attached to an output operation.

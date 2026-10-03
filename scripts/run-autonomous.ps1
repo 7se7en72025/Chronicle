@@ -78,17 +78,40 @@ function Invoke-GitCommand([string[]]$GitArguments) {
 }
 
 function Test-RunEvidence([string]$RunLogPath) {
-    $testPassed = $false
     $syntaxPassed = $false
+    $testPassed = $false
     foreach ($line in [System.IO.File]::ReadLines($RunLogPath)) {
-        try { $event = $line | ConvertFrom-Json -ErrorAction Stop } catch { continue }
-        if ($event.type -ne 'item.completed' -or $event.item.type -ne 'command_execution') { continue }
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        try { $event = $line | ConvertFrom-Json -ErrorAction Stop } catch { return $false }
+        if ($event.type -notin @('item.started', 'item.completed')) { continue }
+        if ($event.item.type -eq 'agent_message') { continue }
+        if ($event.item.type -ne 'command_execution') {
+            $syntaxPassed = $false
+            $testPassed = $false
+            continue
+        }
         $command = [string]$event.item.command
+        $isSyntax = $command -match '(?i)(^npm(?:\.cmd)?\s+run\s+check\s*$|-Command\s+[''"]npm(?:\.cmd)?\s+run\s+check[''"]\s*$)'
+        $isTest = $command -match '(?i)(^npm(?:\.cmd)?\s+test\s*$|-Command\s+[''"]npm(?:\.cmd)?\s+test[''"]\s*$)'
+        if ($event.type -eq 'item.started') {
+            if ($syntaxPassed -and -not $testPassed -and $isTest) { continue }
+            $syntaxPassed = $false
+            $testPassed = $false
+            continue
+        }
         $passed = $event.item.status -eq 'completed' -and $event.item.exit_code -eq 0
-        if ($command -match '(?i)\bnpm(?:\.cmd)?\s+test(?:\s|["'']|$)') { $testPassed = $passed }
-        if ($command -match '(?i)\bnpm(?:\.cmd)?\s+run\s+check(?:\s|["'']|$)') { $syntaxPassed = $passed }
+        if ($isSyntax) {
+            $syntaxPassed = $passed
+            $testPassed = $false
+        } elseif ($isTest -and $syntaxPassed) {
+            $testPassed = $passed
+            $syntaxPassed = $false
+        } else {
+            $syntaxPassed = $false
+            $testPassed = $false
+        }
     }
-    return $testPassed -and $syntaxPassed
+    return $testPassed
 }
 
 function Get-RepositoryState {
@@ -125,7 +148,7 @@ function Invoke-CodexCycle {
     $runLogPath = Join-Path $stateRoot "$runId.jsonl"
     $summaryPath = Join-Path $stateRoot "$runId.summary.txt"
     $prompt = @'
-Run one focused Chronicle review-and-improve cycle in this repository. First read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md; inspect Git status and preserve existing work. Follow the highest-impact viable accepted queue item and current human instructions. Record evidence-based review findings, implement at most one meaningful queue task, run npm test and npm run check inside this sandbox after your final edits, inspect the final diff in a second pass, and update the living documents accurately. Distinguish implemented, proposed, and verified claims. Do not access the network, stage, commit, push, force-push, deploy, publish, or perform destructive cleanup. The Codex process has network disabled and Git metadata is read-only. Change tracked files only; leave no new, deleted, or staged files and do not edit runner scripts, AGENTS.md, ORCHESTRATION.md, or .gitattributes. If and only if all authorized queue work is complete or concretely blocked, make no speculative edits and make the final response's first line exactly CHRONICLE_RUNNER_STOP. Otherwise, after both project checks pass, final diff review, and documentation updates, leave your verified tracked-file edits unstaged and include a standalone line `CHRONICLE_RUNNER_READY <short commit subject>` in the final response. The trusted wrapper verifies the sandboxed check events and repository state, then stages tracked edits, commits once, and publishes only after its safety checks pass. Include a concise handoff and verification evidence.
+Run one focused Chronicle review-and-improve cycle in this repository. First read AGENTS.md, HANDOFF.md, PLAN.md, ORCHESTRATION.md, REVIEW.md, upgrades.md, and learnings.md; inspect Git status and preserve existing work. Follow the highest-impact viable accepted queue item and current human instructions. Record evidence-based review findings, implement at most one meaningful queue task, inspect the final diff in a second pass, and update the living documents accurately. Distinguish implemented, proposed, and verified claims. Do not access the network, stage, commit, push, force-push, deploy, publish, or perform destructive cleanup. The Codex process has network disabled and Git metadata is read-only. Change tracked files only; leave no new, deleted, or staged files and do not edit runner scripts, AGENTS.md, ORCHESTRATION.md, or .gitattributes. If and only if all authorized queue work is complete or concretely blocked, make no speculative edits and make the final response's first line exactly CHRONICLE_RUNNER_STOP. Otherwise, finish all edits, documentation, and diff review before the final checks. As your last two tool actions, run `npm run check` and then `npm test` inside this sandbox, separately and in that order. After those checks, make no further tool calls or edits; respond with a standalone line `CHRONICLE_RUNNER_READY <short commit subject>` only if both pass. The trusted wrapper requires those final sandboxed check events with no later tool activity, verifies repository state, then stages tracked edits, commits once, and publishes only after its safety checks pass. Include a concise handoff and verification evidence.
 '@
     [System.IO.File]::WriteAllText($promptPath, $prompt, (New-Object System.Text.UTF8Encoding($false)))
 
