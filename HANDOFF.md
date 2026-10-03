@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Two temporary Codex CLI 0.160.0 fixture runs now show host-reported rejection: an invalid first lookup produced `SIMULATED_REPLAY_UNMATCHED`; two valid calls followed by a third produced `SIMULATED_REPLAY_EXHAUSTED`. Codex exited zero despite the failed MCP item, so O014 must check per-tool outcomes and cassette completion before binding any host run. Raw logs stayed outside Git. See [REVIEW.md](REVIEW.md).
 - The fixture MCP launcher now bounds the cassette disk read before parsing; an oversized file refuses startup without accepting calls. See [REVIEW.md](REVIEW.md).
 - Output verification, reconciliation, and guarded undo now use bounded descriptor reads for mutable output files. A same-content replacement during a reconciliation read is reported as modified; see [REVIEW.md](REVIEW.md).
 - Capture now reads source files through the bounded descriptor path, closing a gap between the per-file size check and the read. A disposable-repo race fixture enlarges a file at that boundary; capture refuses without publishing a checkpoint or changing the source. See [REVIEW.md](REVIEW.md).
@@ -125,4 +126,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-O014's next acceptance step is a controlled host/orchestrator run that observes injected versus live/unmatched tool activity; the current fixture cannot supply that evidence. O004 still needs a trusted real editor/agent host delivery and UI check; the 2026-10-04 temporary Codex shell probe was policy-rejected before execution, and a no-prompt hook probe quit at the project-trust prompt. Neither showed a hook record. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. Keep D014's separate sidecar rule until a tested merge contract exists; see [REVIEW.md](REVIEW.md).
+O014's next acceptance step is a controlled host/orchestrator run that checks ordered per-tool outcomes and cassette completion while observing other host-tool activity before any agent-run binding. The temporary Codex runs now show host-reported injected responses and unmatched/exhausted failures, but cannot prove complete live-tool coverage or branch provenance. O004 still needs a trusted real editor/agent host delivery and UI check; the 2026-10-04 temporary Codex shell probe was policy-rejected before execution, and a no-prompt hook probe quit at the project-trust prompt. Neither showed a hook record. Pre-witness launch ambiguity and interrupted journal-replacement candidates still require manual inspection. Keep D014's separate sidecar rule until a tested merge contract exists; see [REVIEW.md](REVIEW.md).

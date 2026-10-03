@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Record real Codex fixture rejection evidence and require per-tool completion checks for future agent-run binding.
 - Correct stale runner and MCP setup instructions to match the current STOP gate and observed Codex fixture call coverage.
 - Refresh the host audit with Codex 0.160.0 fixture coverage and the separate project-trust gate for real hook validation.
 - Bound the fixture MCP launcher's cassette disk read before JSON parsing.

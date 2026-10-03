@@ -33,7 +33,7 @@ codex mcp add chronicle-replay -- node $server
 codex mcp list
 ```
 
-`codex mcp add` writes to the user's Codex configuration. Remove this test entry afterward with `codex mcp remove chronicle-replay`.
+`codex mcp add` writes to the user's Codex configuration. Remove this test entry afterward with `codex mcp remove chronicle-replay`. A zero Codex process exit or `turn.completed` does not prove all fixture calls succeeded: a temporary read-only turn exited zero after a failed MCP call. Inspect each tool item and cassette completion before treating a host run as replay evidence; see [REVIEW.md](REVIEW.md).
 
 For Claude Code:
 
