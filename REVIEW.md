@@ -1,5 +1,11 @@
 # Latest development review
 
+## Source file growth during capture (2026-10-04)
+
+**P2 — a source file could exceed the capture limit after its size check (fixed).** `src/engine.js:inventory` inspected a regular file and its 1 MiB limit, then used an unbounded path read. If it grew or was replaced before that read, a checkpoint could include bytes beyond the per-file limit. Inventory now reads through the existing bounded regular-file descriptor helper. The two-pass capture still rejects a changed inventory before publishing a checkpoint.
+
+**Verification and limit:** a disposable-repository regression enlarges `README.md` between the initial inspection and descriptor open. Capture refuses, publishes no checkpoint, and leaves the changed source file intact. The focused test passed 1/1; `npm run check` and the full `npm test` suite passed 80/80. Changed Markdown relative links and `git diff --check` passed. The second-pass diff review confirmed the bounded reader is used only after the existing source-file type/size check, and inventory mismatch still prevents checkpoint publication. This narrows growth and path-replacement races; it does not make the two-pass workspace snapshot atomic against concurrent same-size edits. No independent reviewer participated.
+
 ## Unresolved gap temp visibility (2026-10-04)
 
 **P2 — interrupted gap writes were invisible to storage recovery (fixed for inspection).** `src/engine.js:recordGap` writes atomic JSON outside `operation.lock` so a failed capture can report a gap even when another operation owns the lock. `recoverStorage` quarantined `.tmp` files from blobs, checkpoints, and operations but neither moved nor reported gap temps. It now returns `unresolvedGapTemps` with relative gap temp names, including through the CLI, while preserving their bytes. Recovery does not assume that a listed gap writer is dead or promote partial content into a published gap.

@@ -164,7 +164,7 @@ class Chronicle {
         const full = safePath(this.root, name), stat = fs.lstatSync(full);
         if (!stat.isFile()) throw new Error('Only regular files are supported');
         if (stat.size > MAX_FILE) throw new Error('File exceeds 1 MiB limit');
-        const bytes = fs.readFileSync(full); text(bytes);
+        const bytes = readRegularLimited(full, MAX_FILE); text(bytes);
         total += bytes.length;
         if (total > MAX_TOTAL) throw new Error('Snapshot exceeds 32 MiB limit');
         if (modes.get(name) && !['100644', '100755'].includes(modes.get(name))) throw new Error('Unsupported Git file mode');

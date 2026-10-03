@@ -807,6 +807,24 @@ test('oversized or non-regular saved blobs cannot be read or reused', t => {
   assert.equal(engine.bytes(entry).toString(), 'one\ntwo\nthree\n');
 });
 
+test('capture refuses a source file enlarged between inspection and read', t => {
+  const { engine, file } = fixture(t);
+  const originalOpen = fs.openSync;
+  let enlarged = false;
+  fs.openSync = (target, ...args) => {
+    if (target === file && !enlarged) {
+      enlarged = true;
+      fs.writeFileSync(file, Buffer.alloc(1024 * 1024 + 1, 65));
+    }
+    return originalOpen(target, ...args);
+  };
+  try { assert.throws(() => engine.capture(), /Workspace changed during capture/); }
+  finally { fs.openSync = originalOpen; }
+  assert.equal(enlarged, true);
+  assert.equal(engine.list().length, 0);
+  assert.equal(fs.statSync(file).size, 1024 * 1024 + 1);
+});
+
 test('blob publication verification refuses a target enlarged after linking', t => {
   const { engine } = fixture(t);
   const originalLink = fs.linkSync;
