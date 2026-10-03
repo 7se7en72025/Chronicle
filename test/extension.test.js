@@ -81,6 +81,12 @@ test('editor command flow requires preview and produces a separate selected work
   const comparisonHtml = exports.renderComparison({}, { first: { id: 'one', branch: injection, manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [{ label: injection, outcome: 'reported-fail', exitCode: 1, source: 'user-reported' }], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, second: { id: 'two', branch: 'chronicle/good', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, files: [{ path: injection, status: 'changed', first: { hash: 'a'.repeat(64), mode: '100644' }, second: { hash: 'b'.repeat(64), mode: '100644' } }] });
   assert.equal(comparisonHtml.includes(injection), false); assert.match(comparisonHtml, /&lt;script&gt;/); assert.match(comparisonHtml, /default-src 'none'/);
   assert.match(comparisonHtml, /Unpaired tool boundaries: Unavailable/);
+  const limitedManifest = gaps => ({ environment: { node: 'v1', platform: 'win32', architecture: 'x64' },
+    checks: [], reportedCost: null, captureCoverage: gaps, selectedChangeIds: [] });
+  const limited = exports.renderComparison({}, { first: { id: 'one', branch: 'limited',
+    manifest: limitedManifest({ gaps: 1000, gapHistoryLimitReached: true, excludedFiles: 0 }) },
+  second: { id: 'two', branch: 'other', manifest: limitedManifest({ gaps: 0, excludedFiles: 0 }) }, files: [] });
+  assert.match(limited, /Capture gaps: 1000 \(history limit reached; later gaps may be missing\)/);
   const boundHtml = exports.renderComparison({}, { first: { id: 'one', branch: 'first', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] }, fixtureEvidence: { runId: 'fixture-run', injectedFixtureCalls: 2, rejectedFixtureCalls: 0, liveToolCalls: null } }, second: { id: 'two', branch: 'second', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] }, fixtureEvidence: null }, files: [] });
   assert.match(boundHtml, /2 injected calls, 0 rejected calls\. Live tool activity: Unavailable/);
   assert.match(boundHtml, /Bound fixture evidence: Unavailable/);

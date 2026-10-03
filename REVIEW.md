@@ -1,5 +1,11 @@
 # Latest development review
 
+## Gap overflow in saved branch evidence (2026-10-04)
+
+**P2 — branch manifest counted an overflow marker as a captured gap (fixed for new operations).** `src/engine.js:Chronicle.createBranch` used `intervalGaps.length`, which includes the `capture-gap-limit` sentinel. At the 1000-record cap it reported 1001 capture gaps even though later failed captures were not recorded, and saved comparison showed no limit warning. New manifests count only `capture-gap` records and separately store `gapHistoryLimitReached`. The VS Code saved comparison presents the limit warning when that flag is present. Existing saved manifests remain unchanged.
+
+**Verification:** the disposable cap fixture recorded 1000 gaps plus the limit marker, created a selected output, and checked the manifest count of 1000 and limit flag. The mocked VS Code comparison displayed the warning. Focused engine and editor tests passed, as did `npm.cmd run check`; full `npm.cmd test` passed 91/91. This flag reports a global recording limit, not an exact number of missing events. No independent reviewer participated.
+
 ## Intermediate checkpoint coverage timestamps (2026-10-04)
 
 **P2 — corrupt intermediate time could hide an unpaired Codex tool boundary (fixed).** `src/engine.js:Chronicle.unpairedToolBoundaries` reads checkpoint records separately from endpoint lookup. It validated ID, schema, and root but not `createdAt`; an invalid timestamp on a pre-tool checkpoint failed its interval comparison and could turn a real warning into an empty list. The scan now rejects that record and returns its existing `null`/coverage-unavailable result.

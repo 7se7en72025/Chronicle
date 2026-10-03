@@ -1336,11 +1336,18 @@ test('CLI reconciliation reports interrupted output without changing it', t => {
 });
 
 test('gap history is capped and exposes the overflow state', t => {
-  const { engine } = fixture(t);
+  const { engine, file } = fixture(t);
+  const before = engine.capture('Before gaps');
   for (let i = 0; i < 1001; i++) engine.recordGap({ boundary: 'PostToolUse', tool: 'Bash' }, new Error('busy'));
   const gaps = engine.gaps();
   assert.equal(gaps.filter(g => g.kind === 'capture-gap').length, 1000);
   assert.equal(gaps.some(g => g.kind === 'capture-gap-limit'), true);
+  fs.writeFileSync(file, 'changed\n');
+  const after = engine.capture('After gaps');
+  const selected = [engine.compare(before.id, after.id).changes[0].hunks[0].id];
+  const operation = engine.createBranch(before.id, after.id, selected, 'chronicle/gap-limit');
+  assert.equal(operation.manifest.captureCoverage.gaps, 1000);
+  assert.equal(operation.manifest.captureCoverage.gapHistoryLimitReached, true);
 });
 
 test('concurrent operations stop rather than interleave mutations', t => {

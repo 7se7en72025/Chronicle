@@ -483,7 +483,8 @@ class Chronicle {
           host: { source: result.event?.source || 'unknown', attribution: result.event?.attribution || 'unknown' },
           captureCoverage: {
             excludedFiles: source.excluded.length + result.excluded.length,
-            gaps: intervalGaps.length,
+            gaps: intervalGaps.filter(gap => gap.kind === 'capture-gap').length,
+            gapHistoryLimitReached: intervalGaps.some(gap => gap.kind === 'capture-gap-limit'),
             unpairedToolBoundaries: this.unpairedToolBoundaries(from, to)?.length ?? null,
             boundaries: [source.event?.boundary, result.event?.boundary].filter(Boolean)
           },
