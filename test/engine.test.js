@@ -333,6 +333,39 @@ test('fixture recovery preserves conflicting sidecar evidence and never promotes
   assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
 });
 
+test('fixture recovery keeps damaged journals inspectable and continues other runs', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const damaged = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const recoverable = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const folder = path.join(engine.store, 'fixture-runs');
+  const damagedFile = path.join(folder, damaged.id + '.json');
+  const damagedRun = JSON.parse(fs.readFileSync(damagedFile, 'utf8'));
+  damagedRun.outcome = null;
+  damagedRun.controllerPid = damagedRun.childPid;
+  damagedRun.cassetteHash = 'invalid';
+  fs.writeFileSync(damagedFile, JSON.stringify(damagedRun));
+  const damagedBytes = fs.readFileSync(damagedFile);
+  const recoverableFile = path.join(folder, recoverable.id + '.json');
+  const recoverableRun = JSON.parse(fs.readFileSync(recoverableFile, 'utf8'));
+  recoverableRun.outcome = null;
+  recoverableRun.controllerPid = recoverableRun.childPid;
+  fs.writeFileSync(recoverableFile, JSON.stringify(recoverableRun));
+  const nullId = crypto.randomUUID();
+  const nullFile = path.join(folder, nullId + '.json');
+  fs.writeFileSync(nullFile, 'null');
+
+  const assessments = new Map(engine.recoverFixtureRuns().map(item => [item.id, item.assessment]));
+  assert.equal(assessments.get(damaged.id), 'pending-inspect');
+  assert.equal(assessments.get(recoverable.id), 'interrupted-recorded');
+  assert.equal(assessments.get(nullId), 'unreadable-record');
+  assert.deepEqual(fs.readFileSync(damagedFile), damagedBytes);
+  assert.equal(fs.readFileSync(nullFile, 'utf8'), 'null');
+  assert.deepEqual(JSON.parse(fs.readFileSync(recoverableFile, 'utf8')).outcome,
+    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+});
+
 test('fixture subprocess recovery fails closed only after both recorded processes are gone', async t => {
   const { engine } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));

@@ -16,6 +16,8 @@ Hook capture failures produce sanitized, bounded local gap records visible throu
 
 Saved branch comparison displays bound fixture-call evidence only when the run journals needed to establish a unique binding are readable. A damaged UUID-named journal hides that provenance rather than being silently skipped; unrelated non-run JSON files do not participate in the scan.
 
+Fixture-run recovery assesses journals individually. Invalid pending evidence stays `pending-inspect`; a non-object journal is `unreadable-record`. Neither is repaired or discarded while other interrupted runs are assessed under the existing controller/child death checks.
+
 The prototype uses CommonJS JavaScript and atomic JSON metadata to avoid build and native database dependencies. TypeScript, SQLite, and React below remain target choices, not installed dependencies. See [D007](DECISIONS.md#d007--dependency-free-first-slice) and [run instructions](GETTING_STARTED.md).
 
 Source files and saved snapshot blobs use bounded regular-file descriptor reads within the 1 MiB per-file capture limit. Selected output files use a 2 MiB read bound for verification and guarded undo, since a combination of two captured versions can exceed 1 MiB. The descriptor read checks pre-open and opened identity plus post-read size/timestamps; it narrows growth and path-replacement races without making the two-pass workspace capture atomic or the local store tamper-proof.

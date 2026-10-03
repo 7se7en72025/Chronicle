@@ -609,6 +609,10 @@ class Chronicle {
           results.push({ id: name.slice(0, -5), assessment: 'replacement-inspect' });
           continue;
         }
+        if (!run || typeof run !== 'object' || Array.isArray(run)) {
+          results.push({ id: name.slice(0, -5), assessment: 'unreadable-record' });
+          continue;
+        }
         if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
             run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
         let childPid = run.childPid;
@@ -634,7 +638,12 @@ class Chronicle {
           results.push({ id: run.id, assessment: 'pending-inspect' });
           continue;
         }
-        const evidence = this.inspectFixtureEvidence(run.id);
+        let evidence;
+        try { evidence = this.inspectFixtureEvidence(run.id); }
+        catch {
+          results.push({ id: run.id, assessment: 'pending-inspect' });
+          continue;
+        }
         if (evidence.status === 'invalid' || evidence.status === 'conflict') {
           results.push({ id: run.id, assessment: 'pending-inspect' });
           continue;

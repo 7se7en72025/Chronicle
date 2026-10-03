@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Keep damaged pending fixture-run journals inspectable while recovery continues assessing other runs.
 - Hide ambiguous fixture provenance in branch comparison when a UUID-named run journal is unreadable.
 - Verify real Codex CLI fixture MCP pre/post-tool checkpoint delivery with temporary inline hooks, preserving the shipped matcher and plugin validation limits.
 - Verify real Codex CLI `SessionStart` and `SessionEnd` checkpoint delivery with temporary inline hooks and an external recording store; keep shipped plugin and Bash/file-edit validation open.

@@ -1,5 +1,11 @@
 # Latest development review
 
+## Damaged pending fixture journal during recovery (2026-10-04)
+
+**P2 — one damaged run could abort recovery of other runs (fixed).** `src/engine.js:recoverFixtureRuns` parsed a UUID-named journal containing JSON `null`, then dereferenced it outside the parse guard. For a pending subprocess journal with invalid evidence fields, `inspectFixtureEvidence` could throw after the process-death checks. Either error aborted the whole recovery call, leaving unrelated runs unassessed. Recovery now reports a non-object journal as `unreadable-record` and catches per-run evidence inspection failure as `pending-inspect`, preserving that run's bytes while continuing the scan.
+
+**Verification and second pass:** a disposable-repository fixture creates a damaged pending journal, a separate recoverable interrupted run, and a `null` journal. The damaged run stays byte-identical and pending for inspection, the null entry remains intact and is reported unreadable, and the other run becomes `MCP_PROCESS_INTERRUPTED` only after the recorded processes are gone. Focused test passed 1/1; `npm.cmd run check` and full `npm.cmd test` passed 84/84. Changed Markdown links and `git diff --check` passed. The final diff adds only per-record failure handling and this regression; it does not repair damaged evidence or promote sidecar-ahead events to success. No independent reviewer participated.
+
 ## Unreadable fixture run journal during branch comparison (2026-10-04)
 
 **P2 — comparison could display ambiguous fixture provenance (fixed).** `src/engine.js:compareOperations` skipped an unreadable UUID-named run journal and could still display a single bound run as unique. The unreadable journal might contain another binding for that operation, so uniqueness was not established. `bindFixtureRun` already refused such journals. Comparison now hides fixture evidence when any UUID-named run journal cannot be read or parsed, without changing either journal or output workspace.
