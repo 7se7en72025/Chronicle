@@ -43,6 +43,11 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   const saved = JSON.parse(fs.readFileSync(fileName, 'utf8'));
   assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
   assert.ok(saved.events.every(event => event.runId === run.id && event.cassetteHash === saved.cassetteHash));
+  const replacement = fileName + '.' + crypto.randomUUID() + '.tmp';
+  fs.writeFileSync(replacement, JSON.stringify({ ...saved, outcome: null }));
+  assert.throws(() => engine.bindFixtureRun(run.id, op.id), /interrupted journal replacement/);
+  assert.equal(fs.existsSync(replacement), true);
+  fs.unlinkSync(replacement);
   assert.equal(engine.bindFixtureRun(run.id, op.id).operationId, op.id);
   assert.throws(() => engine.bindFixtureRun(run.id, op.id), /already bound/);
 
@@ -169,6 +174,31 @@ test('fixture recovery distinguishes pre-spawn from uncertain child launch', asy
   assert.deepEqual(fs.readFileSync(cassetteFile), cassetteBytes);
   assert.throws(() => engine.bindFixtureRun(run.id, crypto.randomUUID()), /incomplete/);
   assert.deepEqual(engine.recoverFixtureRuns(), []);
+});
+
+test('fixture recovery preserves interrupted journal replacements for inspection', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const folder = path.join(engine.store, 'fixture-runs');
+  const file = path.join(folder, run.id + '.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const cassetteFile = path.join(folder, run.id + '.cassette.json');
+  const cassetteBytes = fs.readFileSync(cassetteFile);
+  saved.outcome = null;
+  saved.controllerPid = saved.childPid;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  const recordBytes = fs.readFileSync(file);
+  const temp = file + '.' + crypto.randomUUID() + '.tmp';
+  fs.writeFileSync(temp, JSON.stringify({ ...saved, outcome: { status: 'complete', consumedCalls: 0 } }));
+  const tempBytes = fs.readFileSync(temp);
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'replacement-inspect' }]);
+  assert.deepEqual(fs.readFileSync(file), recordBytes);
+  assert.deepEqual(fs.readFileSync(temp), tempBytes);
+  assert.deepEqual(fs.readFileSync(cassetteFile), cassetteBytes);
+  assert.throws(() => engine.bindFixtureRun(run.id, crypto.randomUUID()), /interrupted journal replacement/);
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'replacement-inspect' }]);
 });
 
 test('fixture subprocess recovery preserves a real killed controller record', async t => {

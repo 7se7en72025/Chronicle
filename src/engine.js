@@ -519,6 +519,9 @@ class Chronicle {
       if (!/^[a-f0-9-]{36}$/.test(runId) || !/^[a-f0-9-]{36}$/.test(operationId)) throw new Error('Invalid fixture run or operation ID');
       const folder = path.join(this.store, 'fixture-runs');
       const file = path.join(folder, runId + '.json');
+      if (fs.readdirSync(folder).some(name => new RegExp('^' + runId + '\\.json\\.[a-f0-9-]{36}\\.tmp$').test(name))) {
+        throw new Error('Fixture run has an interrupted journal replacement; inspect it before binding');
+      }
       const run = JSON.parse(fs.readFileSync(file, 'utf8'));
       if (run.id !== runId || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
           run.outcome?.status !== 'complete' || run.binding || run.candidateOperationId !== operationId || !Array.isArray(run.events) ||
@@ -552,16 +555,23 @@ class Chronicle {
     return this.exclusive(() => {
       const folder = path.join(this.store, 'fixture-runs');
       const results = [];
+      const entries = fs.readdirSync(folder);
+      const replacements = new Set(entries.filter(name => /^[a-f0-9-]{36}\.json\.[a-f0-9-]{36}\.tmp$/.test(name))
+        .map(name => name.slice(0, 41)));
       const isDead = pid => {
         if (!Number.isSafeInteger(pid) || pid <= 0) return false;
         try { process.kill(pid, 0); return false; }
         catch (error) { return error.code === 'ESRCH'; }
       };
-      for (const name of fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
+      for (const name of entries.filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
         const file = path.join(folder, name);
         let run;
         try { run = JSON.parse(fs.readFileSync(file, 'utf8')); }
         catch { results.push({ id: name.slice(0, -5), assessment: 'unreadable-record' }); continue; }
+        if (replacements.delete(name)) {
+          results.push({ id: name.slice(0, -5), assessment: 'replacement-inspect' });
+          continue;
+        }
         if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
             run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
         const childAbsent = (run.launchPhase === 'prepared' && run.childPid === null) || isDead(run.childPid);
@@ -573,6 +583,7 @@ class Chronicle {
         writeJson(file, run);
         results.push({ id: run.id, assessment: 'interrupted-recorded' });
       }
+      for (const name of replacements) results.push({ id: name.slice(0, -5), assessment: 'replacement-inspect' });
       return results;
     });
   }

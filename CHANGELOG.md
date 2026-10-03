@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Preserve detectable interrupted fixture-run journal replacements for inspection and refuse evidence binding while a replacement candidate exists.
 - Record a pre-spawn fixture subprocess phase so recovery can fail a dead controller's run before spawn, while retaining uncertain launches for inspection.
 - Allow the optional Windows review task to start and continue on battery after the user's explicit choice; leave system power-plan behavior unchanged.
 - Exercise pending fixture-run recovery by terminating a real controller process after PID publication; retain the remaining crash-window limits.

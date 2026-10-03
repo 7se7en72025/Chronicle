@@ -10,7 +10,8 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
-- O014 records a pre-spawn `prepared` phase and a `spawning` phase for controlled fixture subprocesses. Recovery can fail a dead controller's `prepared` run with no child PID, while an uncertain launch remains pending. A fixture regression covers phase assessments and preserved cassette; see [REVIEW.md](REVIEW.md). Real interruption in this window and journal replacement remain open.
+- O014 fixture-run recovery now reports an interrupted atomic journal replacement for inspection and preserves both the published record and temporary candidate. Binding refuses that ambiguity. The regression simulates the replacement boundary; it does not kill a process during rename or provide an append-only log. See [REVIEW.md](REVIEW.md).
+- O014 records a pre-spawn `prepared` phase and a `spawning` phase for controlled fixture subprocesses. Recovery can fail a dead controller's `prepared` run with no child PID, while an uncertain launch remains pending. A fixture regression covers phase assessments and preserved cassette; see [REVIEW.md](REVIEW.md). Real interruption in this window and journal replacement remain untested.
 - O014 now has a real controller-termination regression: it kills a separate controller after the pending run has recorded both PIDs, then verifies live-process refusal, failed recovery after both processes die, preserved cassette/evidence, and idempotence. It does not cover a kill during JSON replacement or before the child PID is saved. See [REVIEW.md](REVIEW.md).
 - O014 pending subprocess recovery now records controller and child PIDs and marks a pending run failed only after both processes are confirmed absent. A simulated interruption regression verifies live-process refusal, preserved evidence/cassette, binding refusal, and idempotence. A real mid-write interruption and durable event log remain open; see [REVIEW.md](REVIEW.md).
 - O014 now owns a controlled local fixture MCP subprocess: it pins the cassette, sends bounded scripted JSON-RPC requests, records sequenced injected/rejected evidence and child exit, and gates candidate branch creation on successful completion. A disposable-repository test covers successful binding and rejection. This is not a coding-agent host run; crash-window recovery remains open. See [REVIEW.md](REVIEW.md).
@@ -60,6 +61,8 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
+The interrupted-replacement regression is described in [REVIEW.md](REVIEW.md). After correcting one test expectation, the focused regressions passed 2/2 and the full `npm test` suite passed 68/68. A prior full run had that expectation failure and a controller-start timing failure; both tests passed on the rerun. The change is local and unstaged; no host or model run was performed.
+
 For the pre-spawn recovery boundary, sandboxed `npm test` passed 67/67 and `npm run check` passed. The added regression simulates saved `spawning` and `prepared` records after a completed fixture subprocess, verifying conservative pending treatment, failed recovery only for the pre-spawn state, retained cassette bytes, binding refusal, and idempotence. It does not kill a controller in this narrow window or test an interrupted JSON replacement. The change is local and unstaged; see [REVIEW.md](REVIEW.md#o014-pre-spawn-recovery-boundary-2026-10-03).
 
 For the real controller-termination regression, the focused test passed in repeated runs and the full `npm.cmd test` suite passed 66/66. `npm.cmd run check` and `git diff --check` passed. The test kills only its disposable controller process and lets the fixture child exit; it does not exercise a write interrupted inside atomic replacement. The diff was reviewed again after the checks.
@@ -78,7 +81,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** Close or explicitly classify the uncertain window after spawn but before child PID publication and during journal replacement before exposing bound evidence in comparison views. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** Close or explicitly classify the uncertain window after spawn but before child PID publication, and design durable evidence recovery beyond the reported journal-replacement candidate. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 
@@ -86,4 +89,4 @@ Real Claude/VS Code and Codex host validation, configurable exclusions, retentio
 
 ## Next concrete task
 
-Continue O014 with the remaining uncertain-launch, journal-replacement, and durable evidence recovery work, following D011. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
+Continue O014 with the remaining uncertain-launch and durable evidence recovery work, following D011. Interrupted journal-replacement candidates are now preserved and flagged, but require manual inspection. O004 still needs real editor/agent host delivery and UI checks; see [REVIEW.md](REVIEW.md).
