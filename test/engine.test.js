@@ -233,6 +233,19 @@ test('fixture evidence inspection reports durable events without repairing an in
   assert.equal(engine.inspectFixtureEvidence(run.id).status, 'invalid');
   fs.writeFileSync(sidecar, Buffer.concat([sidecarBytes, Buffer.from('\n')]));
   assert.equal(engine.inspectFixtureEvidence(run.id).status, 'invalid');
+  fs.writeFileSync(sidecar, ' '.repeat(256 * 1024 + 1));
+  assert.equal(engine.inspectFixtureEvidence(run.id).status, 'invalid');
+  fs.unlinkSync(sidecar);
+  const outsideEvidence = path.join(path.dirname(engine.store), 'outside-evidence.jsonl');
+  fs.writeFileSync(outsideEvidence, sidecarBytes);
+  try {
+    fs.symlinkSync(outsideEvidence, sidecar, 'file');
+    assert.equal(engine.inspectFixtureEvidence(run.id).status, 'invalid');
+    fs.unlinkSync(sidecar);
+  } catch (error) {
+    if (error.code !== 'EPERM' && error.code !== 'EACCES' && error.code !== 'ENOTSUP') throw error;
+  }
+  assert.deepEqual(fs.readFileSync(outsideEvidence), sidecarBytes);
   fs.writeFileSync(sidecar, sidecarBytes);
   fs.unlinkSync(sidecar);
   assert.equal(engine.inspectFixtureEvidence(run.id).status, 'unavailable');
@@ -418,7 +431,7 @@ test('fixture subprocess recovery preserves a real killed controller record', as
   });
   await once(controller, 'spawn');
   const folder = path.join(engine.store, 'fixture-runs');
-  const deadline = Date.now() + 10000;
+  const deadline = Date.now() + 20000;
   let saved, file;
   while (Date.now() < deadline) {
     const names = fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name));

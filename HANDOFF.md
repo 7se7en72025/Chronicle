@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- O014 cassette and sidecar reads now compare pre/open/post file identity and size while reading through a bounded descriptor. Focused subprocess and inspection fixtures pass; concurrent same-size writes and launch-witness races remain outside this check. See [REVIEW.md](REVIEW.md).
 - New O014 controlled subprocess runs require a consistent child-written sidecar for binding and saved comparison provenance. Missing/changed sidecars hide the summary; older records lacking the marker retain previous checks. Focused fixture passed; see [REVIEW.md](REVIEW.md).
 - O014 recovery now leaves a pending run unchanged when its child-written sidecar is invalid or conflicts with the journal. A sidecar-ahead run can only be marked failed after controller/child death checks; it is never promoted to success. Focused recovery fixture passed; see [REVIEW.md](REVIEW.md).
 - O014 now exposes `inspect-fixture-evidence <run-id>` for read-only, bounded comparison of child-written event metadata with the controller journal. A focused interrupted-journal fixture passed; it does not auto-repair or declare replay complete. See [REVIEW.md](REVIEW.md).
@@ -102,7 +103,7 @@ The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes
 
 Scheduled development consumes model usage and requires an available runtime. The runner is an interactive Windows Scheduled Task, not a server or recorder service. Claude recording hooks remain separately event-driven during an enabled host session.
 
-**Next:** The sibling checkout is synced, but the scheduled runner remains STOP-gated: automatic approval review rejected clearing its exact STOP marker. Decide whether validated sidecar-ahead events should ever be copied into a failed journal; today the sidecar remains separate and the run stays failed after proven process death. Pre-witness child death remains ambiguous. Binding and comparison check saved cassette bytes, but concurrent path swaps remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
+**Next:** The sibling checkout is synced, but the scheduled runner remains STOP-gated: automatic approval review rejected clearing its exact STOP marker. Decide whether validated sidecar-ahead events should ever be copied into a failed journal; today the sidecar remains separate and the run stays failed after proven process death. Pre-witness child death remains ambiguous. Bounded reads narrow cassette/sidecar path-swap risk, but concurrent same-size writes and launch-witness races remain unverified. A live-tool label still needs host/orchestrator observation; the fixture MCP server only proves its own injected and rejected calls. Keep full fresh-agent replay, Claude host delivery, Codex hooks, and editor UI explicitly unverified.
 
 ## Open choices
 

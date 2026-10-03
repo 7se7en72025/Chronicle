@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 bounded evidence-file reads (2026-10-03)
+
+**P2 — path checks and file reads could refer to different evidence objects (partially closed).** Cassette binding/comparison and read-only sidecar inspection now use an opened regular-file descriptor, compare pre-open and opened file identity, and reject growth or metadata change during a bounded read. The helper caps journal/cassette reads at 1 MiB and sidecar reads at 256 KiB. It does not make the local store tamper-proof or guarantee detection of a same-size concurrent rewrite; launch-witness reads still have their earlier conservative rule.
+
+**Verification and limit:** focused subprocess/inspection fixtures passed 2/2, including oversized and redirected sidecar refusal. `npm.cmd run check`, changed Markdown links, and `git diff --check` passed. The first full suite passed 74/75: the existing real-controller test did not publish its child PID inside its 10-second startup window on this loaded laptop. The test passed focused after widening only that startup deadline to 20 seconds; the full rerun passed 75/75. Second-pass review checked descriptor closure, pre/open/post identity checks, bounded reads, and unchanged hash/binding rules. The test deadline change reduces a known timing flake; it does not add product coverage. No independent reviewer participated.
+
 ## O014 sidecar binding and comparison gate (2026-10-03)
 
 **P1 — a new bound fixture run could keep showing injection provenance after child evidence changed (fixed).** New subprocess records declare `evidenceSidecar: true`. `bindFixtureRun` now requires read-only inspection status `consistent`, and `compareOperations` hides the bound summary if the sidecar is missing, invalid, or ahead of the completed journal. Cassette and operation checks remain required. Older journals without this marker retain their earlier behavior rather than being silently invalidated; they provide no retroactive child-side evidence.

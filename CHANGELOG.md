@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Narrow cassette and sidecar path-swap/growth races with bounded open-file reads and identity checks during binding, inspection, and comparison.
 - Require a consistent child-written evidence sidecar before binding or displaying provenance for new controlled fixture subprocess runs; retain legacy record behavior.
 - Keep pending fixture runs unchanged for inspection when a child-written evidence sidecar is invalid or conflicts with the journal.
 - Add read-only, bounded fixture evidence inspection that reports when the child-written event sidecar is ahead of or conflicts with the controller journal.

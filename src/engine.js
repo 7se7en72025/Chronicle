@@ -83,6 +83,24 @@ function writeJson(file, value) {
   fs.renameSync(temp, file);
 }
 
+function readRegularLimited(file, maximumBytes) {
+  const before = fs.lstatSync(file, { bigint: true });
+  if (!before.isFile() || before.size > BigInt(maximumBytes)) throw new Error('Invalid evidence file');
+  const fd = fs.openSync(file, 'r');
+  try {
+    const opened = fs.fstatSync(fd, { bigint: true });
+    if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino ||
+        opened.ctimeNs !== before.ctimeNs || opened.size > BigInt(maximumBytes)) throw new Error('Evidence file changed before read');
+    const bytes = Buffer.alloc(maximumBytes + 1);
+    let count = 0, read;
+    while (count < bytes.length && (read = fs.readSync(fd, bytes, count, bytes.length - count, null)) > 0) count += read;
+    const after = fs.fstatSync(fd, { bigint: true });
+    if (count > maximumBytes || BigInt(count) !== opened.size || after.size !== opened.size ||
+        after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) throw new Error('Evidence file changed during read');
+    return bytes.subarray(0, count);
+  } finally { fs.closeSync(fd); }
+}
+
 class Chronicle {
   constructor(root, options = {}) {
     this.root = fs.realpathSync(git(root, ['rev-parse', '--show-toplevel']).trim());
@@ -536,11 +554,8 @@ class Chronicle {
       if (run.transport === 'stdio-subprocess') {
         const cassetteFile = path.join(folder, runId + '.cassette.json');
         let cassetteBytes;
-        try {
-          const stat = fs.lstatSync(cassetteFile);
-          if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error('Invalid cassette file');
-          cassetteBytes = fs.readFileSync(cassetteFile);
-        } catch {
+        try { cassetteBytes = readRegularLimited(cassetteFile, 1024 * 1024); }
+        catch {
           throw new Error('Fixture cassette is unavailable or invalid; binding refused');
         }
         if (!/^[a-f0-9]{64}$/.test(run.cassetteHash) || hash(cassetteBytes) !== run.cassetteHash) {
@@ -635,10 +650,9 @@ class Chronicle {
     if (typeof runId !== 'string' || !/^[a-f0-9-]{36}$/.test(runId)) throw new Error('Invalid fixture run ID');
     const folder = path.join(this.store, 'fixture-runs');
     const runFile = path.join(folder, runId + '.json');
-    const runStat = fs.lstatSync(runFile);
-    if (!runStat.isFile() || runStat.size > 1024 * 1024) throw new Error('Fixture run journal is unavailable or invalid');
-    const runBytes = fs.readFileSync(runFile);
-    if (runBytes.length > 1024 * 1024) throw new Error('Fixture run journal is unavailable or invalid');
+    let runBytes;
+    try { runBytes = readRegularLimited(runFile, 1024 * 1024); }
+    catch { throw new Error('Fixture run journal is unavailable or invalid'); }
     const run = JSON.parse(runBytes.toString('utf8'));
     if (run.id !== runId || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
         run.transport !== 'stdio-subprocess' || !Array.isArray(run.events) || run.events.length > 257 ||
@@ -646,9 +660,7 @@ class Chronicle {
     const sidecar = path.join(folder, runId + '.evidence.jsonl');
     let bytes;
     try {
-      const stat = fs.lstatSync(sidecar);
-      if (!stat.isFile() || stat.size > 256 * 1024) return { runId, status: 'invalid', journalEvents: run.events.length, durableEvents: null };
-      bytes = fs.readFileSync(sidecar);
+      bytes = readRegularLimited(sidecar, 256 * 1024);
     } catch (error) {
       return { runId, status: error.code === 'ENOENT' ? 'unavailable' : 'invalid', journalEvents: run.events.length, durableEvents: null };
     }
@@ -729,9 +741,7 @@ class Chronicle {
         if (run.transport === 'stdio-subprocess') {
           try {
             const cassetteFile = path.join(folder, name.slice(0, -5) + '.cassette.json');
-            const stat = fs.lstatSync(cassetteFile);
-            if (!stat.isFile() || stat.size > 1024 * 1024 ||
-                hash(fs.readFileSync(cassetteFile)) !== run.cassetteHash) return null;
+            if (hash(readRegularLimited(cassetteFile, 1024 * 1024)) !== run.cassetteHash) return null;
           } catch { return null; }
           if (run.evidenceSidecar === true) {
             try { if (this.inspectFixtureEvidence(run.id).status !== 'consistent') return null; }
