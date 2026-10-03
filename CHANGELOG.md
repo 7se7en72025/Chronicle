@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- End fixture MCP stdio replay with a failure when its input stream closes before EOF, avoiding a hung session after an abrupt host disconnect.
 - Stop fixture MCP replay after rejecting an unsupported JSON-RPC batch, so a later call cannot consume a response intended for a batched tool call.
 - Stop fixture MCP replay when a tool call arrives before initialization completes; a later call cannot consume its uncertain cassette response.
 - Stop fixture MCP stdio replay on a malformed JSON or UTF-8 frame so a later valid call cannot consume an uncertain cassette response.

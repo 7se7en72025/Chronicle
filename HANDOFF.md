@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Closed an MCP stdio shutdown gap: an input stream that closes without EOF now ends fixture replay unsuccessfully instead of leaving its promise pending. A stream regression passes; host behavior remains unverified. See [REVIEW.md](REVIEW.md).
 - Closed an unsupported-batch replay gap: a rejected JSON-RPC batch now stops the fixture cassette because it may contain a tool call whose response position is uncertain. Direct and subprocess regressions verify that a later valid call cannot consume the response; supported-host behavior remains unverified. See [REVIEW.md](REVIEW.md).
 - Closed an MCP fixture replay sequencing gap: a tool call before initialization completes now stops the cassette, so a later call cannot consume its uncertain response. Direct and subprocess regressions cover the boundary; host compatibility remains unverified. See [REVIEW.md](REVIEW.md).
 - Closed an MCP stdio framing gap: malformed JSON or UTF-8 now ends the fixture replay session before a later valid call can consume a cassette response. A subprocess regression confirms no injection evidence is emitted; host compatibility remains unverified. See [REVIEW.md](REVIEW.md).
@@ -50,7 +51,7 @@ The supplied [reference repository](https://github.com/medhu123/amzn_code) listi
 
 ## Verification
 
-The latest unsupported-batch MCP regression passes 12/12 focused tests; `npm test` passes 60/60 and `npm run check` passes. This cycle's changes are local and unstaged; supported-host MCP registration remains unverified.
+The latest abrupt-input-close MCP regression passes in the 13/13 focused suite; the full `npm test` suite passes 61/61. This cycle's changes are local and unstaged; supported-host MCP registration remains unverified.
 
 The earlier pre-initialization MCP regression covers calls before `initialize` and before `notifications/initialized`, including a stdio sequence with a later valid call. Its full `npm.cmd test` suite passed 59/59 and `npm.cmd run check` passed; see [REVIEW.md](REVIEW.md). That earlier change was subsequently reviewed and pushed as `9826ddd`.
 

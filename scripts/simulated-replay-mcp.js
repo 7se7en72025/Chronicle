@@ -115,7 +115,7 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
       inputEnded = true;
       processBuffered();
     });
-    input.on('close', () => { if (failed) finishRun(1); });
+    input.on('close', () => { if (failed || !inputEnded) finishRun(1); });
   });
 }
 

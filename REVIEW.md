@@ -2,6 +2,12 @@
 
 Status: first-release local audit completed; roadmap execution is active. Real host validation remains blocked. This is a single-agent review log, not evidence of independent approval.
 
+## MCP abrupt-input-close review (2026-10-03)
+
+**P2 — A closed input stream could leave replay pending (fixed locally).** `scripts/simulated-replay-mcp.js:runStdioReplay` settled its promise on normal EOF, transport failure, or failed input close, but not on a bare `close` before `end`. A host disconnect represented by that stream state left the MCP server pending indefinitely. The close handler now returns failure when EOF was not observed. A `PassThrough` regression writes a request and destroys input before EOF; the focused suite passes 13/13.
+
+**Scope and second pass:** this only changes the experimental fixture transport's abnormal shutdown. Normal `end` still waits for buffered replies to drain, and a close after EOF does not force an early failure. The focused suite passes 13/13; the full `npm test` suite passes 61/61. Supported-host discovery and client compatibility remain unverified under O014. No independent reviewer participated.
+
 ## MCP unsupported-batch review (2026-10-03)
 
 **P1 — A rejected batch left fixture replay usable (fixed locally).** `src/simulated-replay-mcp.js:handle` rejected a JSON-RPC array as an invalid request without stopping the cassette. The array could contain a `tools/call`; after rejection, a later single call could consume the response intended for that batched call. The handler now stops replay on any unsupported batch. A direct regression checks that position stays at zero and `finish()` fails; a subprocess regression sends a batched call followed by a valid call and checks that no injection evidence is emitted. This remains a narrow legacy MCP fixture subset, with no supported-host validation.

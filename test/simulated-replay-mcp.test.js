@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { Readable, Writable } = require('node:stream');
+const { Readable, Writable, PassThrough } = require('node:stream');
 const { createSimulatedReplayMcp, PROTOCOL_VERSION } = require('../src/simulated-replay-mcp');
 const { runStdioReplay } = require('../scripts/simulated-replay-mcp');
 
@@ -294,4 +294,14 @@ test('stdio server exits with a failure when the MCP client closes its output pi
 
   assert.equal(await runStdioReplay({ input, output, errorOutput, cassette: cassette() }), 1);
   assert.match(diagnostics, /MCP output failed \(EPIPE\)/);
+});
+
+test('stdio server exits with a failure when input closes before end', async () => {
+  const input = new PassThrough();
+  const output = new Writable({ write(chunk, encoding, callback) { callback(); } });
+  const errorOutput = new Writable({ write(chunk, encoding, callback) { callback(); } });
+  const result = runStdioReplay({ input, output, errorOutput, cassette: cassette() });
+  input.write(JSON.stringify(request(1, 'ping')) + '\n');
+  input.destroy();
+  assert.equal(await result, 1);
 });
