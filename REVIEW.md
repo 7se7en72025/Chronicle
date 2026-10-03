@@ -1,5 +1,11 @@
 # Latest development review
 
+## Blob publication read bound (2026-10-04)
+
+**P2 — final blob verification still read without a bound (fixed).** After `writeBlob` linked its temporary file into the store, it verified the target with unbounded `readFileSync`. A concurrent enlargement or replacement could bypass the bounded read used for existing blobs. Final publication verification now uses the same regular-file descriptor and 1 MiB limit. The previous content hash remains required.
+
+**Verification and limit:** a disposable-repository race fixture enlarged the target immediately after linking. The focused test passed 1/1: capture refused, the enlarged target remained for inspection, and no checkpoint was published. `npm run check` and the full `npm test` suite passed 79/79; changed Markdown links and `git diff --check` passed. Second-pass review confirmed the final verification shares the bounded read and still checks the pinned content hash; it did not change publication or failure cleanup. This simulated boundary does not cover all concurrent same-size mutations or make the local store tamper-proof. No independent reviewer participated.
+
 ## Bounded snapshot blob reads (2026-10-04)
 
 **P2 — persisted blobs bypassed the capture file limit on later reads (fixed).** `src/engine.js:bytes` and `writeBlob` used unbounded `readFileSync` on saved blob paths. A damaged, oversized, or redirected blob could be read during preview, capture, or undo despite the 1 MiB capture limit. Both paths now use the bounded regular-file descriptor helper, which checks object identity and size around the read, then retains the existing content-hash check. The helper allocates the observed size plus one growth-detection byte, capped at the configured limit, so reading many small blobs does not allocate 1 MiB per file.

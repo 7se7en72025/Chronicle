@@ -807,6 +807,21 @@ test('oversized or non-regular saved blobs cannot be read or reused', t => {
   assert.equal(engine.bytes(entry).toString(), 'one\ntwo\nthree\n');
 });
 
+test('blob publication verification refuses a target enlarged after linking', t => {
+  const { engine } = fixture(t);
+  const originalLink = fs.linkSync;
+  let published;
+  fs.linkSync = (source, target) => {
+    originalLink(source, target);
+    published = target;
+    fs.writeFileSync(target, Buffer.alloc(1024 * 1024 + 1));
+  };
+  try { assert.throws(() => engine.capture(), /Invalid evidence file/); }
+  finally { fs.linkSync = originalLink; }
+  assert.equal(fs.statSync(published).size, 1024 * 1024 + 1);
+  assert.equal(engine.list().length, 0);
+});
+
 test('interrupted blob publication leaves no poisoned content hash', t => {
   const { engine } = fixture(t);
   const originalLink = fs.linkSync;

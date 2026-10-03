@@ -268,7 +268,7 @@ class Chronicle {
     try { fs.linkSync(temp, target); }
     catch (error) { if (error.code !== 'EEXIST') throw error; }
     finally { try { fs.unlinkSync(temp); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
-    if (hash(fs.readFileSync(target)) !== digest) throw new Error('Snapshot integrity check failed after writing blob');
+    if (hash(readRegularLimited(target, MAX_FILE)) !== digest) throw new Error('Snapshot integrity check failed after writing blob');
   }
 
   compare(from, to) {
