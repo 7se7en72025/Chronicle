@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Preserve controlled fixture subprocess events in a child-written, fsynced sidecar before forwarding them to the controller; pending runs still require inspection.
 - Clarify that the autonomous worker's restricted PATH cannot establish host unavailability; require it to assess remaining local O014 recovery work before stopping the queue.
 - Recheck saved subprocess cassette bytes when comparing bound fixture outputs; hide the fixture summary if its pinned input is missing or changed.
 - Preserve bound fixture provenance in branch comparisons after append-only reported checks without accepting unrelated manifest edits.

@@ -446,6 +446,7 @@ class Chronicle {
     const file = path.join(folder, id + '.json');
     const cassetteFile = path.join(folder, id + '.cassette.json');
     const launchFile = path.join(folder, id + '.launch.json');
+    const evidenceFile = path.join(folder, id + '.evidence.jsonl');
     const run = {
       schema: 1, kind: 'chronicle.fixture-run', id, transport: 'stdio-subprocess',
       fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
@@ -461,7 +462,7 @@ class Chronicle {
       run.launchPhase = 'spawning';
       writeJson(file, run);
     });
-    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile, launchFile, id],
+    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile, launchFile, id, evidenceFile],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     if (Number.isSafeInteger(child.pid) && child.pid > 0) this.exclusive(() => {
       run.childPid = child.pid;

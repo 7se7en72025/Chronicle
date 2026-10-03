@@ -22,6 +22,8 @@ Completed operations also contain a schema-1 evidence manifest: source checkpoin
 
 For controlled fixture subprocess runs, binding replay evidence to a completed output checks that the saved cassette is a regular file within the 1 MiB limit and matches the hash pinned before launch. Saved branch comparison repeats that check before showing bound fixture evidence; unavailable or changed cassette bytes make the summary unavailable. Concurrent replacement of the file during either check remains outside the current contract. The fixture subprocess does not observe live tools used by a coding-agent host.
 
+The controlled fixture child also writes each metadata-only replay event to a private, fsynced JSONL file before emitting it on stderr for the controller journal. A controller interruption can therefore leave child-authored event bytes for manual inspection even when journal events are incomplete. Recovery does not yet reconcile or trust this sidecar, and it never turns a pending run into a completed replay based on that file alone. Child death before any durable write and concurrent file replacement remain unresolved.
+
 ## 1. What we are building first
 
 Chronicle is an open-source, local-first companion for coding agents. It records workspace changes, shows where they came from, and lets a developer keep selected changes without asking the model to generate them again.

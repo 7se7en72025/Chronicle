@@ -2,20 +2,25 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { TextDecoder } = require('node:util');
 const { createSimulatedReplayMcp, MAX_MESSAGE_BYTES } = require('../src/simulated-replay-mcp');
 
 const cassettePath = process.argv[2] || path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 const launchPath = process.argv[3];
 const launchRunId = process.argv[4];
+const evidencePath = process.argv[5];
 
 function writeMessage(output, message) {
   return message === null || output.write(JSON.stringify(message) + '\n');
 }
 
-function runStdioReplay({ input, output, errorOutput, cassette }) {
+function runStdioReplay({ input, output, errorOutput, cassette, onEvidence = () => {} }) {
   const server = createSimulatedReplayMcp(cassette, {
-    onEvidence: evidence => errorOutput.write(`Chronicle replay evidence ${JSON.stringify(evidence)}\n`)
+    onEvidence: evidence => {
+      onEvidence(evidence);
+      errorOutput.write(`Chronicle replay evidence ${JSON.stringify(evidence)}\n`);
+    }
   });
   const decoder = new TextDecoder('utf-8', { fatal: true });
   let buffer = Buffer.alloc(0);
@@ -122,15 +127,32 @@ function runStdioReplay({ input, output, errorOutput, cassette }) {
 }
 
 async function main() {
+  let evidenceFd;
   if (launchPath) {
     if (!/^[a-f0-9-]{36}$/.test(launchRunId || '')) throw new Error('INVALID_LAUNCH_ID');
+    if (!evidencePath) throw new Error('MISSING_EVIDENCE_PATH');
+    evidenceFd = fs.openSync(evidencePath, 'wx', 0o600);
     const fd = fs.openSync(launchPath, 'wx', 0o600);
     try { fs.writeFileSync(fd, JSON.stringify({ runId: launchRunId, pid: process.pid })); fs.fsyncSync(fd); }
     finally { fs.closeSync(fd); }
   }
-  const cassette = JSON.parse(fs.readFileSync(cassettePath, 'utf8'));
-  const exitCode = await runStdioReplay({ input: process.stdin, output: process.stdout, errorOutput: process.stderr, cassette });
-  process.exitCode = exitCode;
+  try {
+    const cassetteBytes = fs.readFileSync(cassettePath);
+    const cassette = JSON.parse(cassetteBytes.toString('utf8'));
+    const cassetteHash = crypto.createHash('sha256').update(cassetteBytes).digest('hex');
+    let sequence = 0;
+    const exitCode = await runStdioReplay({ input: process.stdin, output: process.stdout, errorOutput: process.stderr, cassette,
+      onEvidence: evidence => {
+        if (evidenceFd === undefined) return;
+        if (++sequence > 257) throw new Error('MCP_EVIDENCE_LIMIT');
+        fs.writeFileSync(evidenceFd, JSON.stringify({ ...evidence, runId: launchRunId, cassetteHash, sequence }) + '\n');
+        fs.fsyncSync(evidenceFd);
+      }
+    });
+    process.exitCode = exitCode;
+  } finally {
+    if (evidenceFd !== undefined) fs.closeSync(evidenceFd);
+  }
 }
 
 if (require.main === module) {

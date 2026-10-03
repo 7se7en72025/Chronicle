@@ -132,6 +132,9 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(engine.store, 'fixture-runs', run.id + '.launch.json'), 'utf8')),
     { runId: run.id, pid: saved.childPid });
   assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
+  const evidenceFile = path.join(engine.store, 'fixture-runs', run.id + '.evidence.jsonl');
+  const evidenceBytes = fs.readFileSync(evidenceFile);
+  assert.deepEqual(evidenceBytes.toString('utf8').trim().split('\n').map(line => JSON.parse(line)), saved.events);
   const operation = run.createBranch(after.id, selected, 'chronicle/process-bound');
   const cassetteFile = path.join(engine.store, 'fixture-runs', run.id + '.cassette.json');
   const cassetteBytes = fs.readFileSync(cassetteFile);
@@ -165,11 +168,21 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
   fs.writeFileSync(cassetteFile, cassetteBytes);
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
+  const runFile = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const boundBytes = fs.readFileSync(runFile);
+  const incompleteJournal = JSON.parse(boundBytes);
+  incompleteJournal.events = [];
+  fs.writeFileSync(runFile, JSON.stringify(incompleteJournal));
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
+  assert.deepEqual(fs.readFileSync(evidenceFile), evidenceBytes);
+  fs.writeFileSync(runFile, boundBytes);
 
   const rejected = await engine.runFixtureSubprocess(cassette, before.id, [initialize, ready, { ...lookup, params: {
     name: 'fixture.issue.lookup', arguments: { issueId: 'wrong' }
   } }]);
   assert.equal(rejected.outcome.status, 'failed');
+  const rejectedEvidence = fs.readFileSync(path.join(engine.store, 'fixture-runs', rejected.id + '.evidence.jsonl'), 'utf8');
+  assert.equal(JSON.parse(rejectedEvidence.trim()).kind, 'rejected-fixture');
   assert.throws(() => rejected.createBranch(after.id, selected, 'chronicle/process-rejected'), /incomplete/);
   assert.throws(() => engine.bindFixtureRun(rejected.id, operation.id), /incomplete/);
 });

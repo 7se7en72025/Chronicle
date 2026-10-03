@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 child-written fixture evidence (2026-10-03)
+
+**P1 — controller death could lose already emitted fixture evidence (partially closed).** `runFixtureSubprocess` previously persisted evidence only after receiving child stderr. The controlled child now writes and fsyncs each bounded metadata-only event to an exclusive per-run JSONL sidecar before forwarding it on stderr. Successful and rejected calls retain their journal behavior, and the child exits unsuccessfully if it cannot persist an event. The sidecar is inspection evidence only: recovery does not merge it into a pending journal, infer a completed run, or bind a branch. A child killed before the first durable write, a partial final line, concurrent replacement, and host tool activity remain outside this coverage.
+
+**Evidence:** a focused disposable-repository test passed 1/1 for complete and rejected subprocess runs. It compares child-written lines with the controller journal, removes journal events to simulate loss, confirms comparison refuses the incomplete record, and checks that the sidecar bytes remain. `npm.cmd run check`, full `npm.cmd test` (73/73), changed Markdown links, and `git diff --check` pass. The second-pass diff review covered the child write-before-stderr ordering and the unchanged binding gate. This does not kill a controller between child fsync and journal publication. No independent reviewer participated.
+
 ## Runner false queue stop (2026-10-03)
 
 **P1 — the worker stopped with viable local O014 work still queued (guidance fixed).** Cycle `20261003-171828-698` returned `CHRONICLE_RUNNER_STOP` because `Get-Command codex, claude` found neither command inside its restricted PATH, and it inferred that host validation blocked O014. The supervisor had launched that Codex worker, while [HANDOFF.md](HANDOFF.md) still queued independent pre-witness and durable-evidence recovery tasks. The worker made no edits. The runner prompt now explicitly separates worker PATH from host availability and directs it to assess those local tasks before declaring the queue blocked. This is guidance rather than an enforcement guarantee; the existing STOP gate still honors a later genuine blocker.
