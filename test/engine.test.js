@@ -931,6 +931,28 @@ test('Codex hook boundaries record local file changes without storing prompts or
   assert.equal(engine.gaps().length, 0);
 });
 
+test('hook stdin limit counts UTF-8 bytes before parsing or capturing', t => {
+  const { root, engine } = fixture(t);
+  const hook = path.join(__dirname, '..', 'src', 'hook.js');
+  const env = { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) };
+  const payload = { cwd: root, hook_event_name: 'PreToolUse', session_id: 'session', tool_name: 'Bash', tool_input: { command: '界'.repeat(400000) } };
+  const input = JSON.stringify(payload);
+  assert.ok(input.length < 1024 * 1024 && Buffer.byteLength(input, 'utf8') > 1024 * 1024);
+  const oversized = spawnSync(process.execPath, [hook, 'codex'], { cwd: root, env, input, encoding: 'utf8' });
+  assert.equal(oversized.status, 0, oversized.stderr);
+  assert.match(oversized.stderr, /Hook payload exceeds 1 MiB/);
+  assert.equal(engine.list().length, 0);
+  const malformed = Buffer.from(JSON.stringify({ ...payload, tool_input: { command: 'MALFORMED_HOOK_PAYLOAD' } }), 'utf8');
+  malformed[malformed.indexOf(Buffer.from('MALFORMED_HOOK_PAYLOAD'))] = 0xff;
+  const invalid = spawnSync(process.execPath, [hook, 'codex'], { cwd: root, env, input: malformed, encoding: 'utf8' });
+  assert.equal(invalid.status, 0, invalid.stderr);
+  assert.match(invalid.stderr, /Chronicle capture skipped/);
+  assert.equal(engine.list().length, 0);
+  const accepted = spawnSync(process.execPath, [hook, 'codex'], { cwd: root, env, input: JSON.stringify({ ...payload, tool_input: { command: 'read-only' } }), encoding: 'utf8' });
+  assert.equal(accepted.status, 0, accepted.stderr);
+  assert.equal(engine.list().length, 1);
+});
+
 test('Codex plugin config references only fixture-supported lifecycle hooks', () => {
   const plugin = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'plugin.json'), 'utf8'));
   const config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'hooks', 'codex-hooks.json'), 'utf8'));

@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- The hook's 1 MiB stdin limit now counts UTF-8 bytes. A subprocess regression verifies a multi-byte payload is skipped without a checkpoint while a small payload still records. Oversized input has no trustworthy repository root for a persistent gap; see [REVIEW.md](REVIEW.md).
 - Reconciliation now treats staged output index changes as later edits even when the working file has been restored to saved bytes. Fixture binding and reported-check attachment refuse that drift. A disposable-repo regression passed; final suite/check evidence is in [REVIEW.md](REVIEW.md). A temporary read-only Codex hook probe did not produce host validation because automatic policy rejected its shell call.
 - O014 binding, recovery, and saved comparison now read fixture-run journals through the same bounded descriptor helper as cassette/sidecar/witness evidence. Unreadable recovery records stay inspectable. See [REVIEW.md](REVIEW.md).
 - O014 launch-witness recovery now uses the same bounded descriptor read as cassette and sidecar inspection. It still leaves an observed but unreadable witness pending. Focused recovery fixtures passed; see [REVIEW.md](REVIEW.md).

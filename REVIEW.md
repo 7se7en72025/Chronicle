@@ -1,5 +1,11 @@
 # Latest development review
 
+## Hook stdin byte limit (2026-10-04)
+
+**P2 — multi-byte payloads bypassed the intended 1 MiB limit (fixed).** `src/hook.js` compared decoded JavaScript string lengths, so about 400,000 three-byte characters produced more than 1 MiB of UTF-8 input while passing the guard. The streaming guard now counts raw stdin bytes, stops accumulating input once the limit is exceeded, and strictly decodes UTF-8 before JSON parsing. It still drains stdin and exits without blocking the agent. Oversized or malformed raw input is not persisted; without a trustworthy parsed root, Chronicle cannot confidently attribute it to a repository gap record.
+
+**Verification and limit:** a subprocess fixture with less than 1 MiB of JavaScript characters but more than 1 MiB of UTF-8 bytes logged the skip and created no checkpoint; malformed UTF-8 was likewise rejected, while a small valid payload created one checkpoint. `npm run check` and the full `npm test` suite passed 77/77; changed Markdown relative links and `git diff --check` passed. Second-pass review checked that the stream continues draining after the cap, no rejected input reaches `JSON.parse`, and no raw input enters a checkpoint. This does not verify host delivery or create a persistent gap for an unparseable payload. No independent reviewer participated.
+
 ## Output index freshness during evidence attachment (2026-10-04)
 
 **P1 — staged output drift passed reconciliation (fixed).** `src/engine.js:reconcileOperations` compared the saved output's working-tree bytes and HEAD but ignored the Git index. Staging a different `README.md` version and restoring the working file to its saved bytes still produced `assessment: completed`, allowing `bindFixtureRun` to attach fixture evidence to a changed output state. Reconciliation now treats any staged output diff as modification. `recordCheck` also refuses to attach a reported check when reconciliation no longer verifies the saved output; this does not validate whether the named check ran.
