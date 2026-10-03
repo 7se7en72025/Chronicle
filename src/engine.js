@@ -668,6 +668,14 @@ class Chronicle {
         }
         catch { continue; }
         if (run.binding?.operationId !== operation.id) continue;
+        if (run.transport === 'stdio-subprocess') {
+          try {
+            const cassetteFile = path.join(folder, name.slice(0, -5) + '.cassette.json');
+            const stat = fs.lstatSync(cassetteFile);
+            if (!stat.isFile() || stat.size > 1024 * 1024 ||
+                hash(fs.readFileSync(cassetteFile)) !== run.cassetteHash) return null;
+          } catch { return null; }
+        }
         if (entries.some(entry => entry.startsWith(name + '.') && /^[a-f0-9-]{36}\.tmp$/.test(entry.slice(name.length + 1))) ||
             run.id !== name.slice(0, -5) || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||
             !manifestHashes.has(run.binding.manifestHash) || run.candidateOperationId !== operation.id ||

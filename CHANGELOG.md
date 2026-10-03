@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Recheck saved subprocess cassette bytes when comparing bound fixture outputs; hide the fixture summary if its pinned input is missing or changed.
 - Preserve bound fixture provenance in branch comparisons after append-only reported checks without accepting unrelated manifest edits.
 - Show uniquely bound fixture injection counts in saved branch comparisons, keeping unbound or ambiguous evidence and live-tool activity unavailable.
 - Tell the autonomous worker to finish running command sessions before beginning another final check pair; retain the strict gate that rejected overlapping checks.

@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 comparison rechecks saved cassette (2026-10-03)
+
+**P2 — a bound fixture summary survived loss of its replay input (fixed).** Binding checked the saved subprocess cassette once, but `compareOperations` later trusted the binding and showed injected call counts even if the cassette had changed or disappeared. Comparison now requires the cassette to remain a regular file of at most 1 MiB with the pinned SHA-256 hash before showing that summary. In-process fixture runs have no saved subprocess cassette and retain their existing path.
+
+**Evidence and limits:** a disposable-repository regression binds a completed two-call subprocess run, compares it with another operation, then changes and removes the cassette. Both states make fixture evidence unavailable; restoring the original bytes restores the summary. The focused test passed 1/1. This is a read-time integrity check, not an atomic defense against concurrent path swaps or evidence of live host tools. Final syntax and full-suite results are reported by this cycle's sandbox checks; no independent reviewer participated.
+
 ## O014 fixture evidence after reported checks (2026-10-03)
 
 **P2 — adding a reported check hid an otherwise valid fixture binding (fixed).** `recordCheck` appends to a completed operation's manifest. The new comparison matched the binding's hash against only the current full manifest, so a legitimate check report changed the hash and made fixture evidence appear unavailable. Comparison now accepts a binding hash for the current manifest or any prefix of its bounded append-only check list. The focused disposable-repository regression binds with an existing check, appends another, and retains the same fixture summary; changing a non-check environment field still hides it. This preserves the original binding hash without inferring that a reported check is tool-call evidence. Focused test passed 1/1; `npm.cmd run check` and the full 73/73 suite passed. Live runner resume is pending. No independent reviewer participated.

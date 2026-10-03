@@ -157,6 +157,14 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.deepEqual(fs.readFileSync(outsideCassette), cassetteBytes);
   fs.writeFileSync(cassetteFile, cassetteBytes);
   assert.equal(engine.bindFixtureRun(run.id, operation.id).operationId, operation.id);
+  const other = engine.createBranch(before.id, after.id, selected, 'chronicle/process-comparison');
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
+  fs.writeFileSync(cassetteFile, '{}');
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
+  fs.unlinkSync(cassetteFile);
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
+  fs.writeFileSync(cassetteFile, cassetteBytes);
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
 
   const rejected = await engine.runFixtureSubprocess(cassette, before.id, [initialize, ready, { ...lookup, params: {
     name: 'fixture.issue.lookup', arguments: { issueId: 'wrong' }
