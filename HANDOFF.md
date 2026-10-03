@@ -10,6 +10,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Checkpoint listing/lookup and gap review now reject invalid saved timestamps so an interval cannot silently lose coverage. Disposable tampering and restoration regression preserved source/index; see [REVIEW.md](REVIEW.md).
 - Gap review now validates each saved gap's filename, ID, kind, schema, and repository identity before counting it. A swapped local record makes review refuse the evidence while source and index remain unchanged; see [REVIEW.md](REVIEW.md).
 - Checkpoint and capture-gap storage now allowlist adapter event fields even for direct engine callers; raw extras and supplied references are dropped, while unsupported event contract versions refuse capture. A disposable regression checks persisted JSON and source/index preservation; see [REVIEW.md](REVIEW.md).
 - Bounded local checkpoint, gap, operation, and lock metadata reads and rejected swapped checkpoint/operation IDs. A disposable regression confirmed fail-closed review/undo/check/recovery behavior, preserved source/output/index, and sanitized malformed JSON errors; see [REVIEW.md](REVIEW.md).

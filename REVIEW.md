@@ -1,5 +1,11 @@
 # Latest development review
 
+## Invalid saved timestamps could hide coverage (2026-10-04)
+
+**P2 — gap interval filtering accepted unparseable timestamps (fixed).** `src/engine.js:Chronicle.gaps` used `Date.parse` directly. If a saved gap's `createdAt` was invalid, comparisons with the interval became false and silently omitted that gap from checkpoint review or a branch manifest. An invalid endpoint checkpoint time could similarly make the interval unusable. Gap reads now refuse invalid timestamps, and checkpoint list/lookup validates timestamps before comparison. This does not prove evidence authenticity against a writer with store access.
+
+**Verification:** a disposable Git regression changed a saved gap timestamp, then an endpoint checkpoint timestamp. Interval review and checkpoint listing refused invalid records; restoring original bytes restored the gap count. Source file and original index stayed unchanged. Focused test passed 1/1, `npm.cmd run check` passed, and full `npm.cmd test` passed 91/91. No independent reviewer participated.
+
 ## Saved capture-gap identity (2026-10-04)
 
 **P2 — gap review accepted swapped local records (fixed).** `src/engine.js:Chronicle.gaps` bounded each JSON read but did not check its ID against the filename or its repository hash against the current workspace. A same-shaped record in the wrong gap filename could be counted in review or branch coverage as though it belonged here. The reader now validates schema, kind, filename/ID, and repository identity for capture gaps, with a separate fixed-name check for the history-limit record. A mismatch refuses review instead of silently reattributing evidence.

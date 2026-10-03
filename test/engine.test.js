@@ -1285,8 +1285,18 @@ test('swapped gap identity refuses review without changing the source or index',
     assert.throws(() => engine.gaps(), /Capture-gap record identity is invalid/);
     assert.throws(() => engine.compare(before.id, after.id), /Capture-gap record identity is invalid/);
   }
+  fs.writeFileSync(gapFile, JSON.stringify({ ...gap, createdAt: 'invalid timestamp' }));
+  assert.throws(() => engine.gaps(before.id, after.id), /Capture-gap timestamp is invalid/);
+  assert.throws(() => engine.compare(before.id, after.id), /Capture-gap timestamp is invalid/);
   fs.writeFileSync(gapFile, originalGap);
   assert.equal(engine.gaps().length, 1);
+  const checkpointFile = path.join(engine.store, 'checkpoints', before.id + '.json');
+  const originalCheckpoint = fs.readFileSync(checkpointFile);
+  fs.writeFileSync(checkpointFile, JSON.stringify({ ...before, createdAt: 'invalid timestamp' }));
+  assert.throws(() => engine.gaps(before.id, after.id), /Checkpoint does not belong to this workspace/);
+  assert.throws(() => engine.list(), /Checkpoint record identity is invalid/);
+  fs.writeFileSync(checkpointFile, originalCheckpoint);
+  assert.equal(engine.gaps(before.id, after.id).length, 1);
   assert.equal(fs.readFileSync(file).equals(originalSource), true);
   assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);
 });

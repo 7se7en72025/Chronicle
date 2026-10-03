@@ -114,6 +114,10 @@ function readJsonLimited(file, maximumBytes) {
   catch { throw new Error('Stored JSON evidence is invalid'); }
 }
 
+function validTimestamp(value) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
 const adapterBoundaries = Object.freeze({
   'claude-code': new Set(['SessionStart', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure']),
   'codex-cli': new Set(['SessionStart', 'SessionEnd', 'Interrupt', 'PreToolUse', 'PostToolUse'])
@@ -250,7 +254,7 @@ class Chronicle {
   list() {
     return fs.readdirSync(path.join(this.store, 'checkpoints')).filter(n => n.endsWith('.json')).map(n => {
       const cp = readJsonLimited(path.join(this.store, 'checkpoints', n), MAX_TOTAL * 2);
-      if (!cp || cp.id + '.json' !== n || cp.root !== this.root || cp.schema !== 1) throw new Error('Checkpoint record identity is invalid');
+      if (!cp || cp.id + '.json' !== n || cp.root !== this.root || cp.schema !== 1 || !validTimestamp(cp.createdAt)) throw new Error('Checkpoint record identity is invalid');
       return cp;
     }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
@@ -266,6 +270,9 @@ class Chronicle {
       } else if (!/^[a-f0-9-]{36}\.json$/.test(name) || gap.schema !== 1 || gap.kind !== 'capture-gap' ||
                  gap.id + '.json' !== name || gap.repoId !== hash(this.root)) {
         throw new Error('Capture-gap record identity is invalid');
+      }
+      if (!validTimestamp(gap.createdAt)) {
+        throw new Error('Capture-gap timestamp is invalid');
       }
       return gap;
     }).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -333,7 +340,7 @@ class Chronicle {
   checkpoint(id) {
     if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid checkpoint ID');
     const cp = readJsonLimited(path.join(this.store, 'checkpoints', id + '.json'), MAX_TOTAL * 2);
-    if (cp.id !== id || cp.root !== this.root || cp.schema !== 1) throw new Error('Checkpoint does not belong to this workspace');
+    if (cp.id !== id || cp.root !== this.root || cp.schema !== 1 || !validTimestamp(cp.createdAt)) throw new Error('Checkpoint does not belong to this workspace');
     return cp;
   }
 
