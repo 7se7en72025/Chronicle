@@ -68,10 +68,10 @@ Revisit when: the stdio subset is validated with a real supported host, and a co
 
 ## D011 — Correlate replay evidence through a controller-owned run
 
-Status: accepted design; in-process fixture controller and checked binding implemented at fixture level. Process ownership and host observation remain unimplemented.
+Status: accepted design; in-process and controlled subprocess fixture runs can be checked and bound at fixture level. Host observation and interruption recovery remain unimplemented.
 
-Assign a random run ID before fixture tools start. The in-process controller pins the cassette hash and source state, sequences bounded local evidence, records session completion, and creates one candidate branch before checked binding. A future process controller must also observe process completion. Reused fixture IDs and independent MCP stderr records are insufficient to identify an operation. Reject stale or ambiguous bindings without rewriting the operation journal. Treat live-tool activity as unavailable unless the controller or host separately observes it; a rejected fixture call is not proof of a live fallback.
+Assign a random run ID before fixture tools start. The controllers pin the cassette hash and source state, sequence bounded local evidence, and create one candidate branch before checked binding. The in-process path records session completion; the controlled subprocess path also records process exit. Reused fixture IDs and independent MCP stderr records are insufficient to identify an operation. Reject stale or ambiguous bindings without rewriting the operation journal. Treat live-tool activity as unavailable unless the controller or host separately observes it; a rejected fixture call is not proof of a live fallback.
 
-Reason: direct `createBranch` has no shared identifier with the standalone fixture MCP process. Attaching its uncorrelated stderr events would make a branch manifest appear to prove tool provenance it cannot establish. The in-process controller creates its own candidate operation and stores the binding in the run record, not the branch manifest. The remaining process and recovery boundary is in [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract).
+Reason: direct `createBranch` has no shared identifier with an independently started fixture MCP process. Attaching uncorrelated stderr events would make a branch manifest appear to prove tool provenance it cannot establish. The controllers create their own candidate operation and store the binding in the run record, not the branch manifest. The remaining interruption and host boundary is in [architecture.md](architecture.md#proposed-fixture-run-and-branch-correlation-contract).
 
-Revisit when subprocess ownership, interruption recovery, or host event IDs and lifecycle guarantees are implemented.
+Revisit for durable subprocess interruption recovery or host event IDs and lifecycle guarantees.

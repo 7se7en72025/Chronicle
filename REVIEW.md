@@ -1,5 +1,13 @@
 # Latest development review
 
+## O014 fixture subprocess ownership (2026-10-03)
+
+**P1 — standalone MCP evidence could not be tied to an observed process outcome (fixed for a controlled local fixture).** `scripts/simulated-replay-mcp.js` previously loaded only the bundled cassette, and `Chronicle.beginFixtureRun` observed only calls made through its own in-process server. `Chronicle.runFixtureSubprocess` now pins a validated cassette under the local store, launches that script with a private cassette path, sends bounded JSON-RPC requests, records bounded sequenced stderr evidence and the child exit, and allows a candidate branch only after a zero exit and complete injected evidence. Existing `bindFixtureRun` then checks output freshness and one-to-one binding. A rejected fixture call exits unsuccessfully and cannot create a candidate branch.
+
+**Evidence and limit:** a disposable-repository test exercises complete and rejected subprocess sequences, saved exit/evidence, successful binding, and refusal after rejection. This process is owned by Chronicle, but it is a scripted fixture client, not a coding-agent host run. The child cassette remains in the local Chronicle store for inspection. A process killed before the final record can leave a pending run; durable event-log recovery and host-tool observation remain open. No real host, live-tool classification, or comparison UI is established by this test.
+
+**Second pass:** the final completion count now uses the serialized cassette supplied to the child, so caller mutation cannot change the expected count while the child runs. The process has a 10-second limit, and output/evidence are bounded. Binding still refuses missing, rejected, or stale evidence. Full checks and final diff review are recorded in [HANDOFF.md](HANDOFF.md#verification); no independent reviewer participated.
+
 ## In-process fixture-run binding review (2026-10-03)
 
 **P1 — fixture call evidence had no checked operation identity (fixed at fixture level).** `createBranch` recorded a completed operation without a run key, while `createSimulatedReplayMcp` emitted process-local evidence. Reused fixture IDs could not identify a particular branch. `Chronicle.beginFixtureRun` now owns an in-process MCP adapter, pins source checkpoint/commit and cassette hash, and persists bounded sequenced events. The controller creates one candidate branch from its pinned source; `bindFixtureRun` checks that candidate, complete injected-only evidence, one-to-one operation binding, manifest output hashes, and current output freshness before atomically recording the relationship in the run record. Rejection, incomplete sessions, unrelated operations, and stale output refuse without changing the operation journal.

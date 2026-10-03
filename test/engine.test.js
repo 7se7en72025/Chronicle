@@ -88,6 +88,36 @@ test('rejected or incomplete fixture runs remain unbound', t => {
   assert.throws(() => engine.bindFixtureRun(rejected.id, crypto.randomUUID()), /rejected/);
 });
 
+test('fixture subprocess exit and evidence gate branch binding', async t => {
+  const { engine, file } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After');
+  const selected = [engine.compare(before.id, after.id).changes[0].hunks[0].id];
+  const initialize = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+    protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture-test', version: '1' }
+  } };
+  const ready = { jsonrpc: '2.0', method: 'notifications/initialized' };
+  const lookup = { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'fixture.issue.lookup', arguments: { issueId: '42' } } };
+  const search = { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'fixture.issue.search', arguments: { query: 'README headings', limit: 2 } } };
+  const run = await engine.runFixtureSubprocess(cassette, before.id, [initialize, ready, lookup, search]);
+  assert.deepEqual(run.outcome, { status: 'complete', consumedCalls: 2 });
+  assert.equal(run.responses.filter(response => response.result?.isError === false).length, 2);
+  const saved = JSON.parse(fs.readFileSync(path.join(engine.store, 'fixture-runs', run.id + '.json'), 'utf8'));
+  assert.deepEqual(saved.processExit, { code: 0, signal: null });
+  assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
+  const operation = run.createBranch(after.id, selected, 'chronicle/process-bound');
+  assert.equal(engine.bindFixtureRun(run.id, operation.id).operationId, operation.id);
+
+  const rejected = await engine.runFixtureSubprocess(cassette, before.id, [initialize, ready, { ...lookup, params: {
+    name: 'fixture.issue.lookup', arguments: { issueId: 'wrong' }
+  } }]);
+  assert.equal(rejected.outcome.status, 'failed');
+  assert.throws(() => rejected.createBranch(after.id, selected, 'chronicle/process-rejected'), /incomplete/);
+  assert.throws(() => engine.bindFixtureRun(rejected.id, operation.id), /incomplete/);
+});
+
 test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => {
   const original = Array.from({ length: 120 }, (_, i) => `line ${i}\n`);
   const { root, engine, file } = fixture(t, original.join(''));

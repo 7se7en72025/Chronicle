@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const { TextDecoder } = require('node:util');
 const { createSimulatedReplayMcp } = require('./simulated-replay-mcp');
 
@@ -427,6 +427,80 @@ class Chronicle {
         writeJson(file, run);
         return run.outcome;
       })
+    });
+  }
+
+  async runFixtureSubprocess(cassette, sourceCheckpointId, messages) {
+    const source = this.checkpoint(sourceCheckpointId);
+    const serialized = JSON.stringify(cassette);
+    const pinned = JSON.parse(serialized);
+    createSimulatedReplayMcp(pinned);
+    if (!Array.isArray(messages) || messages.length > 260) throw new Error('Fixture request limit exceeded');
+    const input = messages.map(message => {
+      const line = JSON.stringify(message);
+      if (!line || Buffer.byteLength(line) > 64 * 1024) throw new Error('Fixture request exceeds MCP message limit');
+      return line + '\n';
+    }).join('');
+    const id = crypto.randomUUID();
+    const folder = path.join(this.store, 'fixture-runs');
+    const file = path.join(folder, id + '.json');
+    const cassetteFile = path.join(folder, id + '.cassette.json');
+    const run = {
+      schema: 1, kind: 'chronicle.fixture-run', id, transport: 'stdio-subprocess',
+      fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
+      source: { checkpoint: sourceCheckpointId, commit: source.head },
+      events: [], outcome: null, candidateOperationId: null, binding: null
+    };
+    this.exclusive(() => {
+      fs.writeFileSync(cassetteFile, serialized, { flag: 'wx' });
+      writeJson(file, run);
+    });
+    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile],
+      { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    let stderr = '', stdout = '', failure = null, timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; child.kill(); }, 10000);
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString('utf8');
+      if (Buffer.byteLength(stdout) > 1024 * 1024) { failure = 'MCP_OUTPUT_LIMIT'; child.kill(); }
+    });
+    child.stderr.on('data', chunk => {
+      stderr += chunk.toString('utf8');
+      if (Buffer.byteLength(stderr) > 64 * 1024) { failure = 'MCP_EVIDENCE_LIMIT'; child.kill(); return; }
+      let newline;
+      while ((newline = stderr.indexOf('\n')) !== -1) {
+        const line = stderr.slice(0, newline); stderr = stderr.slice(newline + 1);
+        if (!line.startsWith('Chronicle replay evidence ')) continue;
+        try {
+          const evidence = JSON.parse(line.slice('Chronicle replay evidence '.length));
+          this.exclusive(() => {
+            if (run.events.length >= 257) throw new Error('Fixture evidence limit reached');
+            run.events.push({ ...evidence, runId: id, cassetteHash: run.cassetteHash, sequence: run.events.length + 1 });
+            writeJson(file, run);
+          });
+        } catch { failure = 'MCP_EVIDENCE_INVALID'; child.kill(); }
+      }
+    });
+    child.on('error', () => { failure = 'MCP_PROCESS_ERROR'; });
+    child.stdin.on('error', () => { failure = 'MCP_INPUT_ERROR'; child.kill(); });
+    child.stdin.end(input);
+    const { code, signal } = await new Promise(resolve => child.on('close', (code, signal) => resolve({ code, signal })));
+    clearTimeout(timer);
+    this.exclusive(() => {
+      run.processExit = { code, signal };
+      run.outcome = !failure && !timedOut && code === 0 &&
+        run.events.length === pinned.calls.length && run.events.every(event => event.kind === 'injected-fixture')
+        ? { status: 'complete', consumedCalls: run.events.length }
+        : { status: 'failed', code: failure || (timedOut ? 'MCP_PROCESS_TIMEOUT' : 'MCP_PROCESS_INCOMPLETE') };
+      writeJson(file, run);
+    });
+    return Object.freeze({
+      id, outcome: run.outcome, responses: stdout.trim().split('\n').filter(Boolean).map(line => JSON.parse(line)),
+      createBranch: (to, selected, branch) => {
+        if (run.outcome.status !== 'complete' || run.candidateOperationId) throw new Error('Fixture process is incomplete or already has a candidate');
+        const operation = this.createBranch(sourceCheckpointId, to, selected, branch);
+        this.exclusive(() => { run.candidateOperationId = operation.id; writeJson(file, run); });
+        return operation;
+      }
     });
   }
 

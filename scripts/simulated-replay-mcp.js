@@ -5,7 +5,7 @@ const path = require('node:path');
 const { TextDecoder } = require('node:util');
 const { createSimulatedReplayMcp, MAX_MESSAGE_BYTES } = require('../src/simulated-replay-mcp');
 
-const cassettePath = path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
+const cassettePath = process.argv[2] || path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 
 function writeMessage(output, message) {
   return message === null || output.write(JSON.stringify(message) + '\n');

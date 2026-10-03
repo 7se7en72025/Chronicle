@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Own a controlled fixture MCP subprocess, record its bounded evidence and exit, and gate candidate branch binding on successful replay; interruption recovery remains open.
 - Add a fixture-level controller API with bounded sequenced MCP evidence, in-process completion, and checked binding to one fresh branch output; process and host provenance remain unimplemented.
 - Define the O014 controller-owned fixture-run/branch correlation contract, including stale-binding refusal and explicit unavailable live-tool provenance; the initial in-process slice is described above.
 - Emit bounded rejection evidence for the first stopped fixture MCP tool attempt, distinct from successful cassette injection.
