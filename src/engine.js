@@ -214,6 +214,40 @@ class Chronicle {
     return fs.readdirSync(path.join(this.store, 'gaps')).filter(name => name.endsWith('.json')).map(name => JSON.parse(fs.readFileSync(path.join(this.store, 'gaps', name), 'utf8'))).filter(item => item.kind === 'capture-gap' ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end : true).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
+  unpairedToolBoundaries(from, to) {
+    const endpoints = [this.checkpoint(from), this.checkpoint(to)];
+    const start = Math.min(...endpoints.map(cp => Date.parse(cp.createdAt)));
+    const end = Math.max(...endpoints.map(cp => Date.parse(cp.createdAt)));
+    let checkpoints;
+    try {
+      const folder = path.join(this.store, 'checkpoints');
+      checkpoints = fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name)).map(name => {
+        const cp = JSON.parse(readRegularLimited(path.join(folder, name), MAX_TOTAL * 2).toString('utf8'));
+        if (cp.id !== name.slice(0, -5) || cp.schema !== 1 || cp.root !== this.root) throw new Error('Invalid checkpoint');
+        return cp;
+      }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
+    catch { return null; }
+    const key = event => JSON.stringify([event.sessionId, event.toolUseId]);
+    const identifiable = event => event?.source === 'codex-cli' && typeof event.sessionId === 'string' &&
+      typeof event.toolUseId === 'string';
+    const post = new Set(checkpoints.map(cp => cp.event).filter(event => identifiable(event) && event.boundary === 'PostToolUse').map(key));
+    const seen = new Set();
+    return checkpoints.filter(cp => {
+      const event = cp.event;
+      if (!identifiable(event) || event.boundary !== 'PreToolUse' ||
+          Date.parse(cp.createdAt) < start || Date.parse(cp.createdAt) > end) return false;
+      const id = key(event);
+      if (post.has(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    }).map(cp => ({
+      kind: 'coverage-warning', reason: 'POST_BOUNDARY_UNOBSERVED', status: 'outcome-unknown',
+      createdAt: cp.createdAt, source: 'codex-cli', boundary: 'PreToolUse',
+      sessionId: cp.event.sessionId, toolUseId: cp.event.toolUseId, tool: cp.event.tool
+    }));
+  }
+
   recordGap(event, error) {
     const dir = path.join(this.store, 'gaps');
     const entries = fs.readdirSync(dir);
@@ -303,7 +337,8 @@ class Chronicle {
       }
       changes.push({ path: name, type: !a ? 'added' : !b ? 'deleted' : 'modified', hunks });
     }
-    return { from, to, changes, excluded: [...before.excluded, ...after.excluded], gaps: this.gaps(from, to), modelRequests: 0 };
+    return { from, to, changes, excluded: [...before.excluded, ...after.excluded], gaps: this.gaps(from, to),
+      coverageWarnings: this.unpairedToolBoundaries(from, to), modelRequests: 0 };
   }
 
   preview(from, to, selected) {
@@ -384,6 +419,7 @@ class Chronicle {
           captureCoverage: {
             excludedFiles: source.excluded.length + result.excluded.length,
             gaps: intervalGaps.length,
+            unpairedToolBoundaries: this.unpairedToolBoundaries(from, to)?.length ?? null,
             boundaries: [source.event?.boundary, result.event?.boundary].filter(Boolean)
           },
           environment: { node: process.version, platform: process.platform, architecture: process.arch },

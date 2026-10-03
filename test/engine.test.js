@@ -1137,6 +1137,36 @@ test('failed capture is recorded as a bounded gap and attached to its checkpoint
   assert.equal(engine.compare(before.id, after.id).gaps.length, 1);
 });
 
+test('unpaired Codex tool boundaries show an unknown-outcome warning in review and branch evidence', t => {
+  const { root, engine, file } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before tool');
+  const payload = { cwd: root, hook_event_name: 'PreToolUse', session_id: 'session-1', turn_id: 'turn-1',
+    tool_use_id: 'call-1', tool_name: 'mcp__chronicle_replay__fixture_issue_lookup',
+    tool_input: { issueId: 'SECRET_ISSUE' } };
+  recordHook(payload, options, 'codex-cli');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After tool');
+  const diff = engine.compare(before.id, after.id);
+  assert.deepEqual(diff.coverageWarnings.map(item => [item.reason, item.status, item.toolUseId]),
+    [['POST_BOUNDARY_UNOBSERVED', 'outcome-unknown', 'call-1']]);
+  assert.equal(JSON.stringify(diff.coverageWarnings).includes('SECRET_ISSUE'), false);
+  const selected = [diff.changes[0].hunks[0].id];
+  const output = engine.createBranch(before.id, after.id, selected, 'chronicle/unpaired-boundary');
+  assert.equal(output.manifest.captureCoverage.unpairedToolBoundaries, 1);
+  engine.exclusive(() => assert.throws(() => recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli'), /Chronicle is busy/));
+  assert.equal(engine.gaps().length, 1);
+  assert.equal(engine.compare(before.id, after.id).coverageWarnings.length, 1);
+  recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings, []);
+  const damagedCheckpoint = path.join(engine.store, 'checkpoints', crypto.randomUUID() + '.json');
+  fs.writeFileSync(damagedCheckpoint, '{');
+  assert.equal(engine.compare(before.id, after.id).coverageWarnings, null);
+  const fallback = engine.createBranch(before.id, after.id, selected, 'chronicle/coverage-unavailable');
+  assert.equal(fallback.manifest.captureCoverage.unpairedToolBoundaries, null);
+  fs.unlinkSync(damagedCheckpoint);
+});
+
 test('CLI can inspect gaps without invoking a model or exposing raw tool errors', t => {
   const { root, engine } = fixture(t);
   engine.recordGap({ boundary: 'PostToolUseFailure', sessionId: 'session-safe', tool: 'Bash' }, new Error('busy during SECRET_COMMAND at private/path'));

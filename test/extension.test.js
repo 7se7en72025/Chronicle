@@ -70,10 +70,17 @@ test('editor command flow requires preview and produces a separate selected work
   assert.equal(hostile.includes(injection), false); assert.match(hostile, /&lt;script&gt;/);
   const gapHtml = exports.render({}, { changes: [], excluded: [], gaps: [{ kind: 'capture-gap', createdAt: 'now', boundary: 'PostToolUseFailure', tool: 'Bash', reason: 'RECORDER_BUSY', sessionId: 'session-1' }] }, { label: 'from' }, { label: 'to' });
   assert.match(gapHtml, /Capture gaps \(1\)/); assert.match(gapHtml, /RECORDER_BUSY/);
+  const warningHtml = exports.render({}, { changes: [], excluded: [], coverageWarnings: [{ createdAt: 'now', tool: injection, reason: 'POST_BOUNDARY_UNOBSERVED', sessionId: 'session-1' }] }, { label: 'from' }, { label: 'to' });
+  assert.match(warningHtml, /Unpaired tool boundaries \(1\)/);
+  assert.match(warningHtml, /outcome unknown/);
+  assert.equal(warningHtml.includes(injection), false);
+  const unavailableHtml = exports.render({}, { changes: [], excluded: [], coverageWarnings: null }, { label: 'from' }, { label: 'to' });
+  assert.match(unavailableHtml, /Tool-boundary coverage unavailable/);
   const groupsHtml = exports.render({}, { changes: [{ path: 'README.md', type: 'modified', hunks: [{ id: 'h', patch: 'diff', groups: [{ id: 'h:g0', patch: '-old\n+new' }, { id: 'h:g1', patch: '-later\n+kept' }] }] }], excluded: [] }, { label: 'from' }, { label: 'to' });
   assert.match(groupsHtml, /Keep this hunk \(2 change groups\)/); assert.match(groupsHtml, /Keep change group 1 \(linked replacement lines stay together\)/); assert.match(groupsHtml, /data-parent="h"/);
   const comparisonHtml = exports.renderComparison({}, { first: { id: 'one', branch: injection, manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [{ label: injection, outcome: 'reported-fail', exitCode: 1, source: 'user-reported' }], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, second: { id: 'two', branch: 'chronicle/good', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] } }, files: [{ path: injection, status: 'changed', first: { hash: 'a'.repeat(64), mode: '100644' }, second: { hash: 'b'.repeat(64), mode: '100644' } }] });
   assert.equal(comparisonHtml.includes(injection), false); assert.match(comparisonHtml, /&lt;script&gt;/); assert.match(comparisonHtml, /default-src 'none'/);
+  assert.match(comparisonHtml, /Unpaired tool boundaries: Unavailable/);
   const boundHtml = exports.renderComparison({}, { first: { id: 'one', branch: 'first', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] }, fixtureEvidence: { runId: 'fixture-run', injectedFixtureCalls: 2, rejectedFixtureCalls: 0, liveToolCalls: null } }, second: { id: 'two', branch: 'second', manifest: { environment: { node: 'v1', platform: 'win32', architecture: 'x64' }, checks: [], reportedCost: null, captureCoverage: { gaps: 0, excludedFiles: 0 }, selectedChangeIds: [] }, fixtureEvidence: null }, files: [] });
   assert.match(boundHtml, /2 injected calls, 0 rejected calls\. Live tool activity: Unavailable/);
   assert.match(boundHtml, /Bound fixture evidence: Unavailable/);

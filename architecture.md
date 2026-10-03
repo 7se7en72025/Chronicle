@@ -14,6 +14,8 @@ The optional overnight development runner is separate from Chronicle's product r
 
 Hook capture failures produce sanitized, bounded local gap records visible through the CLI and checkpoint comparison. Raw prompts, commands, tool errors, and repository paths are not stored in these records. A 1,000-event cap produces an explicit limit marker.
 
+Checkpoint comparison also derives an outcome-unknown warning when an identifiable Codex `PreToolUse` checkpoint has no `PostToolUse` checkpoint with the same session and tool-use ID. It searches bounded, regular saved checkpoint journals beyond the selected interval for a matching post event and keeps any actual capture-gap record separate. If a checkpoint journal cannot be trusted, warning analysis is unavailable while the selected diff remains usable. New branch manifests pin the warning count or `null` at creation time; legacy manifests have no count. An unpaired boundary can mean a failed tool, skipped hook, or incomplete recording, so it is not a host-reported failure.
+
 Saved branch comparison displays bound fixture-call evidence only when the run journals needed to establish a unique binding are readable. A damaged UUID-named journal hides that provenance rather than being silently skipped; unrelated non-run JSON files do not participate in the scan.
 
 Fixture-run recovery assesses journals individually. Invalid pending evidence stays `pending-inspect`; a non-object journal is `unreadable-record`. Neither is repaired or discarded while other interrupted runs are assessed under the existing controller/child death checks.

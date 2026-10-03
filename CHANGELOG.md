@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Show unpaired Codex pre-tool checkpoints as outcome-unknown coverage warnings in review and new branch evidence; keep actual capture gaps separate.
 - Keep damaged pending fixture-run journals inspectable while recovery continues assessing other runs.
 - Hide ambiguous fixture provenance in branch comparison when a UUID-named run journal is unreadable.
 - Verify real Codex CLI fixture MCP pre/post-tool checkpoint delivery with temporary inline hooks, preserving the shipped matcher and plugin validation limits.
