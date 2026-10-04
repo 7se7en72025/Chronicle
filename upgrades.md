@@ -24,6 +24,8 @@ Use these terms consistently:
 
 **Current local prerequisite (2026-10-04):** Codex CLI 0.160.0 is installed and signed in. The initial `codex doctor --summary` failed its disk check with about 146 MiB free on C:, but a later check passes with about 11.6 GiB free. A byte-matched Chronicle package was installed/enabled from a disposable local marketplace. Its hook has not been trusted or executed; user review of the exact hook definition is still pending. The scheduled runner remains STOP-gated and its marker is preserved. Do not bypass hook-trust or tool-policy checks. These steps verify package discovery/install only, not hook delivery; see [REVIEW.md](REVIEW.md).
 
+**Current package audit (2026-10-05):** the installed plugin is still enabled but its source copy has drifted from current `main`: the manifest and hook JSON match, while `src/hook.js` and `src/engine.js` do not. The installed hook still logs raw exception messages. The user authorized a disposable test, but no hook ran because this stale package cannot validate current code. Rebuild into a distinct test package, verify all copied files, and use Codex's normal `/hooks` trust review for the exact command definition before a host run; do not alter the current enabled package in place. See [REVIEW.md](REVIEW.md).
+
 **Exit:** documented matrix of events actually observed in that host, successful review and branch flow, and demonstrated preservation of source/index. Until this passes, label host support experimental.
 
 ### 1. Make evidence comparable — partially implemented

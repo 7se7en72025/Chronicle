@@ -1,5 +1,13 @@
 # Latest development review
 
+## Installed Codex test package is stale (host test deferred, 2026-10-05)
+
+**P2 — the installed/enabled disposable Chronicle plugin no longer matches the reviewed repository source.** Codex CLI 0.160.0 reports `chronicle@chronicle-host-validation-22078b52` installed and enabled. In the installed package, `plugin.json` and `hooks/codex-hooks.json` match the current repository byte-for-byte, but two of seven copied package files differ: `src/hook.js` and `src/engine.js`. The installed `src/hook.js` still prints `error.message` to stderr, while current `main` emits a fixed diagnostic; its engine source also differs from the current hardening baseline. Current hashes: repository `src/hook.js` `9F219A84A226C8BFEAAAC53E7DE6CE0868CE9FB4236183D02D51C39774DE4757`, installed `E54BC5B0AB041E38CE86663574D5F87D611CADE2EC6DEF1AF9E0445A3F8F9441`; repository `src/engine.js` `82A506884E9691A01CD8FD56C8D1EAD7DD1E2223C83EFE12B6F3EE35D06C5B50`, installed `4EBA62F8CD0AE4196A402788C79992D48BE34FBF5D97B41DB4FF2B708CE33AC8`.
+
+The user authorized a disposable host test, but this installed copy is not safe evidence for the current implementation. No hook was invoked, no package files or trust settings were changed, and the STOP marker remains untouched. Current OpenAI guidance says plugin enablement does not trust bundled hooks and directs users to inspect/review/trust the current definition with `/hooks`; the one-off bypass flag is explicitly separate. Do not refresh an enabled installed plugin in place or run it until a current package and normal user review/trust path are established. Next: prepare a separately versioned disposable package from a pinned commit, verify every installed file, then have the user review/trust its changed hook definition in Codex before running the text-only fixture. See the [Codex hook trust documentation](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks) and [plugin hook packaging documentation](https://developers.openai.com/plugins/build/plugins#bundled-mcp-servers-and-lifecycle-hooks).
+
+**Verification:** read-only plugin inventory, exact manifest/hook/source inspection, and SHA-256 comparison across the seven installed files. No model call, hook invocation, host-setting mutation, trust bypass, or runner start occurred. Same-agent review only; no independent reviewer participated.
+
 ## Hook failure diagnostics disclose local paths (fixed, 2026-10-04)
 
 **P2 — `src/hook.js` printed `error.message` directly to host stderr.** Engine initialization and capture errors can embed the Chronicle storage directory or repository-relative path, allowing host logs to retain local filesystem details even though event payloads are excluded from evidence.
