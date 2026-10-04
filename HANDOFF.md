@@ -16,6 +16,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- D008 now distinguishes observed temporary Codex inline-hook boundaries from unverified shipped-plugin and other host integration paths; no persistent hook trust or install is implied.
 - The Codex setup guide now records the observed temporary inline-hook boundaries and explicitly leaves shipped plugin trust/loading and Bash/file-edit capture unverified. This matches the O004 audit evidence; see [RELEASE_AUDIT.md](RELEASE_AUDIT.md).
 - Recovery coverage now explicitly verifies that an orphan fixture-journal replacement temp is surfaced and left byte-for-byte intact when no main journal exists. Existing-journal and orphan replacement tests pass 2/2 with `npm.cmd run check`; this exercises existing conservative recovery behavior rather than changing it. See [REVIEW.md](REVIEW.md).
 - `recover-fixture-runs` now surfaces UUID-named journals whose saved ID, schema, or kind does not match as `unreadable-record` and leaves their bytes untouched. The focused recovery group passed 8/8, including identity/schema/kind mismatches, and `npm.cmd run check` passed; the complete project suite remains deferred under the current disk limit. See [REVIEW.md](REVIEW.md).

@@ -42,7 +42,7 @@ Revisit when: integration behavior is verified and history volume needs querying
 
 Status: accepted for the prototype.
 
-Use manual host-neutral checkpoints, Claude CLI hooks, and a Codex CLI plugin-hook adapter with VS Code review. The Codex adapter records supported local lifecycle/tool boundaries; real Codex and Claude sessions remain unverified. Reject output from checkpoints with reported exclusions rather than construct a misleading partial baseline. Failed worktrees remain inspectable; automatic operation resumption is deferred. Guarded undo is scoped separately in D009.
+Use manual host-neutral checkpoints, Claude CLI hooks, and a Codex CLI plugin-hook adapter with VS Code review. The original decision was fixture-only; later, temporary inline hooks observed Codex CLI session lifecycle and fixture MCP pre/post-tool boundaries. The shipped plugin trust/loading path, Bash/file-edit coverage, real editor flow, and Claude session delivery remain unverified. Reject output from checkpoints with reported exclusions rather than construct a misleading partial baseline. Failed worktrees remain inspectable; automatic operation resumption is deferred. Guarded undo is scoped separately in D009.
 
 Revisit when: real-host validation and explicit partial-restoration policies are implemented.
 

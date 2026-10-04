@@ -1,5 +1,11 @@
 # Latest development review
 
+## D008 Codex host-status wording (2026-10-04)
+
+**P2 — D008 understated later narrow Codex CLI evidence (documentation corrected).** `DECISIONS.md` still said both real Codex and Claude sessions were unverified. That matched the initial decision point but not later recorded temporary inline-hook probes for Codex session lifecycle and fixture MCP pre/post-tool checkpoints. Updated D008 to state the timeline and preserve the remaining gaps: shipped plugin trust/loading, Bash/file-edit coverage, editor flow, and Claude delivery. No installation or trust setting changed.
+
+**Verification:** cross-checked the revised language against [RELEASE_AUDIT.md](RELEASE_AUDIT.md) and the host records cited in [REVIEW.md](REVIEW.md). Relative links and whitespace pass; no application behavior changed.
+
 ## Codex host setup wording (2026-10-04)
 
 **P2 — The user guide understated narrow real Codex hook evidence (documentation corrected).** `GETTING_STARTED.md` said a real Codex session remained unverified without distinguishing the shipped plugin path from temporary inline-hook probes. [RELEASE_AUDIT.md](RELEASE_AUDIT.md) and earlier O004 evidence document actual Codex CLI session lifecycle and fixture MCP pre/post-tool checkpoints delivered through temporary hooks. The setup guide now states those observed boundaries while keeping shipped plugin trust/loading and Bash/file-edit matching explicitly unverified. No host setting or project trust was changed.
