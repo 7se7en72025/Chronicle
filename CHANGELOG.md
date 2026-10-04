@@ -4,7 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
-- Preserve a sanitized capture-gap record when checkpoint capture rejects an unsupported adapter-event contract, without storing the rejected event object.
+- Preserve a sanitized capture-gap record when checkpoint capture rejects an unsupported adapter-event contract; retain unknown sources as `unknown` rather than attributing them to Claude.
 - Compare Codex trace start/completion arguments by canonical JSON value so object-key ordering does not create a false mismatch.
 - Specify proposed fail-closed host-coverage criteria for O014, explicitly distinguishing partial observation from controlled replay completeness.
 - Reconcile D008's Codex host status with the narrow temporary-inline-hook evidence while retaining the shipped-plugin, editor, and Claude verification gaps.

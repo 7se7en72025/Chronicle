@@ -1316,6 +1316,9 @@ test('checkpoint and gap storage project adapter metadata without raw caller fie
   assert.equal(rejectedGap.boundary, 'PostToolUse');
   assert.equal(Object.hasOwn(rejectedGap, 'event'), false);
   assert.equal(JSON.stringify(rejectedGap).includes('SECRET_'), false);
+  const unattributed = engine.recordGap({ source: 'future-host', boundary: 'PreToolUse' }, new Error('busy'));
+  assert.equal(unattributed.source, 'unknown');
+  assert.equal(Object.hasOwn(unattributed, 'boundary'), false);
   assert.equal(engine.list().length, 2);
   assert.equal(fs.readFileSync(file, 'utf8'), 'one\ntwo\nthree\n');
   assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);

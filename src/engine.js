@@ -325,7 +325,7 @@ class Chronicle {
     const detail = String(error?.message || '');
     const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /unsupported adapter event metadata/i.test(detail) ? 'CAPTURE_FAILED' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
     const gapId = crypto.randomUUID();
-    const source = event?.source === 'codex-cli' ? 'codex-cli' : 'claude-code';
+    const source = ['claude-code', 'codex-cli'].includes(event?.source) ? event.source : 'unknown';
     let gapEvent;
     if (event?.contract) {
       try { gapEvent = storedEvent(event, { snapshotId: null, gapId }); }
@@ -334,7 +334,7 @@ class Chronicle {
     const gap = {
       schema: 1, kind: 'capture-gap', id: gapId, repoId: hash(this.root), createdAt: new Date().toISOString(),
       status: 'skipped', reason, source,
-      boundary: adapterBoundaries[source].has(event?.boundary) ? event.boundary : undefined,
+      ...(adapterBoundaries[source]?.has(event?.boundary) ? { boundary: event.boundary } : {}),
       sessionId: safeIdentifier(event?.sessionId), toolUseId: safeIdentifier(event?.toolUseId),
       tool: safeIdentifier(event?.tool, 80),
       ...(gapEvent ? { event: gapEvent } : {})
