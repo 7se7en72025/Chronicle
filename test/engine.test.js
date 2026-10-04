@@ -1305,7 +1305,17 @@ test('checkpoint and gap storage project adapter metadata without raw caller fie
   assert.equal(fs.readFileSync(path.join(engine.store, 'gaps', gap.id + '.json'), 'utf8').includes('SECRET_'), false);
   const legacy = engine.capture('Legacy', { source: 'manual', tool_input: 'SECRET_LEGACY' });
   assert.deepEqual(legacy.event, { source: 'manual', attribution: 'unknown' });
-  assert.throws(() => engine.capture('Invalid', { ...event, contractVersion: 2 }), /Unsupported adapter event metadata/);
+  const unsupported = { ...event, contractVersion: 2 };
+  assert.throws(() => {
+    try { engine.capture('Invalid', unsupported); }
+    catch (error) { engine.recordGap(unsupported, error); throw error; }
+  }, /Unsupported adapter event metadata/);
+  const rejectedGap = engine.gaps().find(item => item.reason === 'CAPTURE_FAILED');
+  assert.ok(rejectedGap);
+  assert.equal(rejectedGap.source, 'codex-cli');
+  assert.equal(rejectedGap.boundary, 'PostToolUse');
+  assert.equal(Object.hasOwn(rejectedGap, 'event'), false);
+  assert.equal(JSON.stringify(rejectedGap).includes('SECRET_'), false);
   assert.equal(engine.list().length, 2);
   assert.equal(fs.readFileSync(file, 'utf8'), 'one\ntwo\nthree\n');
   assert.equal(git(root, ['ls-files', '--stage', '-z']), originalIndex);

@@ -323,10 +323,14 @@ class Chronicle {
       return;
     }
     const detail = String(error?.message || '');
-    const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
+    const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /unsupported adapter event metadata/i.test(detail) ? 'CAPTURE_FAILED' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
     const gapId = crypto.randomUUID();
     const source = event?.source === 'codex-cli' ? 'codex-cli' : 'claude-code';
-    const gapEvent = event?.contract ? storedEvent(event, { snapshotId: null, gapId }) : undefined;
+    let gapEvent;
+    if (event?.contract) {
+      try { gapEvent = storedEvent(event, { snapshotId: null, gapId }); }
+      catch { /* Keep the sanitized gap fields even when the rejected event contract cannot be stored. */ }
+    }
     const gap = {
       schema: 1, kind: 'capture-gap', id: gapId, repoId: hash(this.root), createdAt: new Date().toISOString(),
       status: 'skipped', reason, source,
