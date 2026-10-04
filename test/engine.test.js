@@ -1364,10 +1364,12 @@ test('hook stderr omits local paths when recorder initialization fails', t => {
   assert.equal(result.stderr.includes(pathSecret), false);
 });
 
-test('Codex plugin config references only fixture-supported lifecycle hooks', () => {
-  const plugin = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'plugin.json'), 'utf8'));
+test('Codex compatibility manifest references only fixture-supported lifecycle hooks', () => {
+  const plugin = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.codex-plugin', 'plugin.json'), 'utf8'));
   const config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'hooks', 'codex-hooks.json'), 'utf8'));
-  assert.equal(plugin.extensions['com.openai'].hooks, './hooks/codex-hooks.json');
+  assert.equal(plugin.hooks, './hooks/codex-hooks.json');
+  assert.equal(plugin.version, '0.1.1');
+  assert.equal(fs.existsSync(path.join(__dirname, '..', 'plugin.json')), false);
   assert.deepEqual(Object.keys(config.hooks).sort(), ['Interrupt', 'PostToolUse', 'PreToolUse', 'SessionEnd', 'SessionStart'].sort());
   for (const name of ['PreToolUse', 'PostToolUse']) assert.equal(config.hooks[name][0].matcher, 'Bash|apply_patch|Edit|Write');
   for (const name of Object.keys(config.hooks)) for (const group of config.hooks[name]) for (const hook of group.hooks) assert.match(hook.command, /src\/hook\.js.*codex/);

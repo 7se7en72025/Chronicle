@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Package Codex lifecycle hooks through `.codex-plugin/plugin.json` after Codex CLI 0.160.0 loaded zero hooks from Chronicle's Agent Plugins v1 root manifest; the compatibility layout recorded two session-end checkpoints in a disposable host fixture.
 - Keep hook stderr diagnostics fixed and omit exception text that could disclose local workspace or storage paths.
 - Refuse case-only output path collisions on Windows and verify every branch file again after all writes before marking an operation complete.
 - Keep branch-comparable usage unavailable until host token counters have a verified per-run boundary; document that token counts are not billed-dollar cost.

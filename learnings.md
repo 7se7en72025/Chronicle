@@ -1,6 +1,6 @@
 # Research learnings for Chronicle
 
-Reviewed: 2026-10-02. This is a short engineering synthesis, not a systematic literature review. It focuses on primary papers relevant to recording, debugging, replay, and evaluating tool-using coding agents. Each paper's result is separated from the product implication we infer from it.
+Reviewed: 2026-10-05. This is a short engineering synthesis, not a systematic literature review. It focuses on primary papers relevant to recording, debugging, replay, and evaluating tool-using coding agents. Each paper's result is separated from the product implication we infer from it.
 
 ## Host usage evidence audit (2026-10-04)
 
@@ -69,3 +69,11 @@ The current official MCP specification revision is `2026-07-28`. It uses per-req
 - Yang et al. (2024), [“SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering”](https://arxiv.org/abs/2405.15793), arXiv:2405.15793.
 - Le Sellier De Chezelles et al. (2024), [“The BrowserGym Ecosystem for Web Agent Research”](https://arxiv.org/abs/2412.05467), arXiv:2412.05467.
 - Suh et al. (2026), [“AgentSuite: Toward More Reliable Agent Evaluation with a Component-Based Benchmark Auditing Pipeline”](https://proceedings.mlr.press/v306/suh26a.html), ICML 2026 / PMLR 306.
+
+## Codex plugin manifest compatibility check (2026-10-05)
+
+The official [plugin packaging guide](https://developers.openai.com/plugins/build/plugins#bundled-mcp-servers-and-lifecycle-hooks) documents hooks under `extensions.com.openai.hooks` in a root Agent Plugins v1 manifest and also documents `.codex-plugin/plugin.json` as a Codex compatibility manifest. On Codex CLI 0.160.0, Chronicle's root-manifest package showed zero installed hooks in `/hooks`; a second package with the same sources and only the compatibility manifest exposed five definitions. After the exact command and matcher were reviewed/trusted for the disposable fixture, two TUI exits recorded local `SessionEnd` checkpoints. No agent prompt/tool call was sent, so `SessionStart` and tool-boundary callback delivery were not tested. The matching [open Codex issue #47925](https://github.com/openai/codex/issues/47925) independently reports that Agent Plugins v1 root manifests bypass plugin hook loading.
+
+**Chronicle implication (engineering decision):** ship `.codex-plugin/plugin.json` for current Codex compatibility. This is a host-specific workaround based on one CLI version and one Windows environment, not a general incompatibility result; keep the limitation visible and re-test later versions. The test established `SessionEnd` delivery only and did not validate Bash/Edit/Write coverage or model-mediated operation. The five test trust hashes were removed and the package disabled after the test.
+
+- [Codex CLI issue #47925: Hooks from Agent Plugins 1.0 plugins are never loaded](https://github.com/openai/codex/issues/47925)

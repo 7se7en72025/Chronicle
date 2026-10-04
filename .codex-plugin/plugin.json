@@ -1,0 +1,12 @@
+{
+  "name": "chronicle",
+  "version": "0.1.1",
+  "description": "Local file checkpoints for reviewing and selecting coding-agent edits.",
+  "interface": {
+    "displayName": "Chronicle",
+    "shortDescription": "Review and select local coding-agent changes.",
+    "longDescription": "Chronicle records supported local file checkpoints and lets you select edits to apply in a separate Git worktree.",
+    "developerName": "Chronicle"
+  },
+  "hooks": "./hooks/codex-hooks.json"
+}

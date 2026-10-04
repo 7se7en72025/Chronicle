@@ -119,3 +119,13 @@ Keep local evidence until the user explicitly requests removal. Do not expire, p
 For a future JSON-to-SQLite migration, keep checkpoint IDs, content hashes, event versions, and operation relationships stable. Build the new store separately, verify readable counts and referenced blob hashes, then switch readers only after successful validation. Retain the old store for explicit user-controlled removal rather than deleting it as part of migration. Do not claim that either action exists until it is implemented and recovery-tested.
 
 Reason: locally stored snapshots can contain sensitive project text, while checkpoints and operation journals are needed for review, provenance, and guarded undo. Automatic cleanup or an in-place migration could erase the only recoverable evidence.
+
+## D016 — Use Codex's compatibility manifest while root-manifest hooks are ignored
+
+Status: accepted for Codex CLI 0.160.0; re-check against later supported versions.
+
+Package Codex lifecycle hooks through `.codex-plugin/plugin.json` and do not include a competing root Agent Plugins v1 `plugin.json` in the Codex package. In a disposable Windows fixture, Codex CLI 0.160.0 listed and ran `SessionEnd` hooks from the compatibility manifest, but showed zero hooks from the portable root manifest even when its `extensions.com.openai.hooks` path was valid. The portable manifest and current official packaging guide claim hook support that the tested CLI did not provide; see [Codex issue #47925](https://github.com/openai/codex/issues/47925). This choice limits the package to Codex's compatibility layout until a later host version is tested.
+
+Reason: a correctly installed but inert plugin is misleading; observed callbacks and host evidence take precedence over an unverified compatibility claim.
+
+Revisit when an updated Codex CLI lists and runs hooks from the root manifest in a disposable test, without a trust bypass, while preserving the compatibility and portability requirements.
