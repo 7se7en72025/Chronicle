@@ -489,6 +489,22 @@ test('fixture recovery preserves interrupted journal replacements for inspection
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'replacement-inspect' }]);
 });
 
+test('fixture recovery lists an orphan journal replacement and preserves its bytes', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const replacement = file + '.' + crypto.randomUUID() + '.tmp';
+  fs.writeFileSync(replacement, fs.readFileSync(file));
+  fs.unlinkSync(file);
+  const bytes = fs.readFileSync(replacement);
+
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'replacement-inspect' }]);
+  assert.equal(fs.existsSync(file), false);
+  assert.deepEqual(fs.readFileSync(replacement), bytes);
+});
+
 test('fixture recovery reports mismatched journal identity without rewriting it', async t => {
   const { engine } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));

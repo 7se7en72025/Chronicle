@@ -16,6 +16,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
+- Recovery coverage now explicitly verifies that an orphan fixture-journal replacement temp is surfaced and left byte-for-byte intact when no main journal exists. Existing-journal and orphan replacement tests pass 2/2 with `npm.cmd run check`; this exercises existing conservative recovery behavior rather than changing it. See [REVIEW.md](REVIEW.md).
 - `recover-fixture-runs` now surfaces UUID-named journals whose saved ID, schema, or kind does not match as `unreadable-record` and leaves their bytes untouched. The focused recovery group passed 7/7 and `npm.cmd run check` passed; the complete project suite remains deferred under the current disk limit. See [REVIEW.md](REVIEW.md).
 - D015 now defines a proposed retention/deletion and JSON-to-SQLite migration contract. No delete command, automatic pruning, migration, or store mutation was added; see [DECISIONS.md](DECISIONS.md#d015--retain-local-evidence-until-explicit-dependency-aware-removal).
 - Gap recording now ignores interrupted `.tmp` files when enforcing the 1000-record cap, while leaving those files untouched for recovery inspection. The cap fixture includes a partial file and still records 1000 gaps; see [REVIEW.md](REVIEW.md).

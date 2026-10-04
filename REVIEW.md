@@ -1,5 +1,11 @@
 # Latest development review
 
+## Orphan fixture-journal replacement evidence (2026-10-04)
+
+**P2 — Interrupted initial fixture-journal publication lacked a direct preservation regression and user-facing recovery note (coverage/documentation added).** `src/engine.js:recoverFixtureRuns` already retained and reported replacement temps left without a base journal, but the focused tests covered only a temp alongside an existing journal and `GETTING_STARTED.md` did not explain the orphan case. Added a disposable test that simulates a temp surviving without the main journal and verifies recovery reports its run ID while preserving the exact temp bytes and not recreating the main file. Updated [GETTING_STARTED.md](GETTING_STARTED.md) and [architecture.md](architecture.md) to describe this conservative outcome. No recovery mutation was added.
+
+**Verification:** the existing-journal and orphan replacement tests pass 2/2. The orphan case confirms the temp bytes are unchanged and the absent main journal is not recreated. `npm.cmd run check`, changed Markdown relative links, and `git diff --check` pass. The complete suite remains deferred because C: has about 68 MiB free. This is verification of existing code, not an independent review.
+
 ## Fixture-run recovery identity visibility (2026-10-04)
 
 **P2 — UUID-named fixture journals with a mismatched internal identity were silently omitted from recovery results (fixed).** `src/engine.js:recoverFixtureRuns` previously combined identity/schema checks with a `continue`, so a parseable JSON object whose `id` disagreed with its UUID filename vanished from `recover-fixture-runs` output. Recovery now reports identity, schema, and kind mismatches as `unreadable-record` without rewriting the journal. Recognized completed and non-subprocess records continue to be skipped according to the command's subprocess-recovery scope.

@@ -240,7 +240,7 @@ In-process and controlled subprocess correlation are implemented and fixture-tes
 
 For a pending run with a recorded child PID, recovery also checks any existing launch witness. It reads only regular witness files up to 512 bytes; a non-regular or oversized entry, unreadable witness, or PID that conflicts with the journal leaves the run pending for inspection. This path check does not make inspection and read atomic against a concurrent replacement. If the child died before creating a witness, the recorded child PID still governs recovery; this does not resolve PID reuse.
 
-Recovery also lists a UUID-named fixture journal as unreadable when its saved ID, schema, or kind disagrees with the filename contract. It reports the filename ID and leaves that record unchanged for manual inspection.
+Recovery also lists a UUID-named fixture journal as unreadable when its saved ID, schema, or kind disagrees with the filename contract. It reports the filename ID and leaves that record unchanged for manual inspection. Atomic replacement temps are listed for inspection whether the matching journal exists or the temp is an orphan from an interrupted initial write; recovery leaves the temp and any related journal unchanged.
 
 ### Host hook interception boundary
 

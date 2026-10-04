@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Add a recovery fixture proving an orphan atomic fixture-journal temp is listed and preserved when no main journal was published.
 - List fixture-run journals with mismatched saved IDs or unsupported schema/kind for inspection instead of silently skipping them during recovery.
 - Stop the Windows autonomous runner before a model call when workspace, runner-state, Codex-home, or system temp storage is below the configurable 2 GiB safety threshold; add a regression fixture for the stop gate.
 
