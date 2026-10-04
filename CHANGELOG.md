@@ -4,7 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
-- Stop the Windows autonomous runner before a model call when repository, runner-state, or Codex-home storage is below the configurable 2 GiB safety threshold; add a regression fixture for the stop gate.
+- Stop the Windows autonomous runner before a model call when workspace, runner-state, Codex-home, or system temp storage is below the configurable 2 GiB safety threshold; add a regression fixture for the stop gate.
 
 - Record the low-disk Codex host prerequisite and absent local Chronicle plugin without claiming host validation.
 - Carry the low-disk prerequisite into the release and runner handoffs before new host or scheduled work.

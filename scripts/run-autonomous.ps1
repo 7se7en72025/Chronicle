@@ -263,14 +263,14 @@ try {
             }
 
             $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
-            $lowSpaceVolumes = @(Get-LowSpaceVolumes -Paths @($repoRoot, $stateRoot, $codexHome) -MinimumBytes $MinimumFreeBytes)
+            $lowSpaceVolumes = @(Get-LowSpaceVolumes -Paths @($repoRoot, $stateRoot, $codexHome, $env:TEMP, $env:TMP) -MinimumBytes $MinimumFreeBytes)
             if ($lowSpaceVolumes.Count -gt 0) {
                 foreach ($volume in $lowSpaceVolumes) {
                     $freeMiB = [Math]::Floor($volume.FreeBytes / 1MB)
                     $minimumMiB = [Math]::Ceiling($MinimumFreeBytes / 1MB)
                     Write-RunnerLog "Available disk space on $($volume.Root) is ${freeMiB} MiB; require at least ${minimumMiB} MiB before a Codex cycle."
                 }
-                [System.IO.File]::WriteAllText($stopPath, "Insufficient disk space; free at least $([Math]::Ceiling($MinimumFreeBytes / 1MB)) MiB on each runner, state, and Codex volume, then review and remove STOP to resume.`n")
+                [System.IO.File]::WriteAllText($stopPath, "Insufficient disk space; free at least $([Math]::Ceiling($MinimumFreeBytes / 1MB)) MiB on each workspace, state, Codex, and temp volume, then review and remove STOP to resume.`n")
                 break
             }
 
