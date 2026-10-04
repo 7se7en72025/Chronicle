@@ -1,5 +1,13 @@
 # Latest development review
 
+## Reject symlinked selected-path workspace roots — 2026-10-05
+
+**P2 — `safePath` did not validate the root directory itself (fixed).** The resolver rejected linked components beneath a workspace root but began checking at the first relative path component. If a caller passed a symlink/junction as the root, its target directory was traversed without the resolver flagging that root. This matters to operations such as guarded undo and reconciliation that resolve paths against a recorded worktree root. The helper now requires the root to be an existing real directory before resolving any relative path.
+
+Added a disposable regression using a directory symlink (junction on Windows), asserting `safePath` refuses the root and leaves the target file unchanged.
+
+**Verification:** the focused root-link test passes; guarded-undo tests pass 4/5 with one Linux-only skip; `npm.cmd run check` passes; full Windows suite passes 102/105 with three Linux-only skips. No host settings or source index were changed. Concurrent mutation after the root check remains outside this change's guarantee. No independent reviewer participated.
+
 ## Read-only Codex package and UI inventory — 2026-10-05
 
 **P2 — The current host inventory differs from the prior disabled-package handoff and must not be mistaken for trusted host coverage.** Read-only `codex plugin list` on CLI 0.160.0 reports an older `chronicle` 0.1.0 package and a `chronicle` 0.1.1 portable-root-manifest package as installed/enabled; the separate `chronicle-codex-compat` fixture package is installed/disabled. The enabled 0.1.1 package points to `%TEMP%\ChronicleHostValidation-current-0b55358\plugins\chronicle`. Its root `plugin.json` is an Agent Plugins v1 manifest, and its hook command is `node "${PLUGIN_ROOT}/src/hook.js" codex --host-test-build=0b55358` for SessionStart/SessionEnd/Interrupt plus Bash/apply_patch/Edit/Write pre/post matchers. Its hook config and `src/engine.js` hashes differ from current `main`; the sampled `src/hook.js`, event contract, and replay sources match. Previous CLI testing showed zero hooks loaded for the root manifest, but this does not establish current trust state or prove absence of all side effects.

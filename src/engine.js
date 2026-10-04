@@ -74,9 +74,12 @@ function safePath(root, relative) {
   if (typeof relative !== 'string' || !relative || relative.includes('\\') || relative.includes(':') || relative.includes('\0') || path.isAbsolute(relative) || relative.split('/').some(p => p === '..' || p === '.' || p.toLowerCase() === '.git')) {
     throw new Error('Unsafe repository path');
   }
-  const resolved = path.resolve(root, relative);
-  if (!resolved.startsWith(path.resolve(root) + path.sep)) throw new Error('Path escapes workspace');
-  let cursor = root;
+  const workspaceRoot = path.resolve(root);
+  const rootStat = fs.lstatSync(workspaceRoot);
+  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) throw new Error('Workspace root must be a real directory');
+  const resolved = path.resolve(workspaceRoot, relative);
+  if (!resolved.startsWith(workspaceRoot + path.sep)) throw new Error('Path escapes workspace');
+  let cursor = workspaceRoot;
   for (const part of relative.split('/')) {
     cursor = path.join(cursor, part);
     try { if (fs.lstatSync(cursor).isSymbolicLink()) throw new Error('Symlink paths are unsupported: ' + relative); }

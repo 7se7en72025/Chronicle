@@ -877,6 +877,14 @@ test('invalid selections, branch names, and escaping paths are rejected', t => {
   for (const name of ['../outside', '/absolute', '.git/config', 'C:/outside', 'bad\\name']) assert.throws(() => safePath(root, name), /Unsafe/);
 });
 
+test('safePath refuses a symlinked workspace root', t => {
+  const { root } = fixture(t);
+  const alias = path.join(path.dirname(root), 'workspace-alias');
+  fs.symlinkSync(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.throws(() => safePath(alias, 'README.md'), /Workspace root must be a real directory/);
+  assert.equal(fs.readFileSync(path.join(root, 'README.md'), 'utf8'), 'one\ntwo\nthree\n');
+});
+
 test('storage symlinks cannot redirect snapshots into the recorded repository', t => {
   const { root } = fixture(t);
   const base = path.dirname(root);

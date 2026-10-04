@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse selected-path resolution when the workspace root itself is a symlink or junction, not only when an individual path component is linked.
 - Use exact BigInt device/file identities when verifying selected output files so Windows' rounded 64-bit `Stats.ino` values cannot falsely classify distinct paths as aliases.
 - Package Codex lifecycle hooks through `.codex-plugin/plugin.json` after Codex CLI 0.160.0 loaded zero hooks from Chronicle's Agent Plugins v1 root manifest; the compatibility layout recorded two session-end checkpoints in a disposable host fixture.
 - Keep hook stderr diagnostics fixed and omit exception text that could disclose local workspace or storage paths.
