@@ -126,6 +126,24 @@ function writeJson(file, value) {
   fs.renameSync(temp, file);
 }
 
+function writeJsonCreateOnly(file, value) {
+  const temp = file + '.' + crypto.randomUUID() + '.tmp';
+  let fd;
+  try {
+    fd = fs.openSync(temp, 'wx', 0o600);
+    fs.writeFileSync(fd, JSON.stringify(value, null, 2));
+    fs.fsyncSync(fd);
+    fs.closeSync(fd); fd = undefined;
+    try { fs.linkSync(temp, file); return true; }
+    catch (error) { if (error.code === 'EEXIST') return false; throw error; }
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+    try { fs.unlinkSync(temp); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
+
+const gapRecordName = name => /^[a-f0-9-]{36}\.json$/.test(name) || /^slot-\d{4}-[a-f0-9-]{36}\.json$/.test(name);
+
 function readRegularLimited(file, maximumBytes) {
   const before = fs.lstatSync(file, { bigint: true });
   if (!before.isFile() || before.size > BigInt(maximumBytes)) throw new Error('Invalid evidence file');
@@ -309,8 +327,12 @@ class Chronicle {
       const gap = readJsonLimited(path.join(this.store, 'gaps', name), MAX_FILE);
       if (name === 'limit-reached.json') {
         if (gap.schema !== 1 || gap.kind !== 'capture-gap-limit') throw new Error('Capture-gap limit record identity is invalid');
-      } else if (!/^[a-f0-9-]{36}\.json$/.test(name) || gap.schema !== 1 || gap.kind !== 'capture-gap' ||
-                 gap.id + '.json' !== name || gap.repoId !== hash(this.root)) {
+      } else if ((!/^[a-f0-9-]{36}\.json$/.test(name) && !/^slot-(\d{4})-([a-f0-9-]{36})\.json$/.test(name)) ||
+                 (name.startsWith('slot-') && Number(name.slice(5, 9)) >= 1000) ||
+                 gap.schema !== 1 || gap.kind !== 'capture-gap' || !/^[a-f0-9-]{36}$/.test(gap.id) ||
+                 (name.endsWith('.json') && /^[a-f0-9-]{36}\.json$/.test(name) && gap.id + '.json' !== name) ||
+                 (name.startsWith('slot-') && name !== 'slot-' + name.slice(5, 9) + '-' + gap.id + '.json') ||
+                 gap.repoId !== hash(this.root)) {
         throw new Error('Capture-gap record identity is invalid');
       }
       if (!validTimestamp(gap.createdAt)) {
@@ -358,12 +380,13 @@ class Chronicle {
 
   recordGap(event, error) {
     const dir = path.join(this.store, 'gaps');
-    const entries = fs.readdirSync(dir);
-    if (entries.includes('limit-reached.json') || entries.filter(name => /^[a-f0-9-]{36}\.json$/.test(name)).length >= 1000) {
-      const limit = path.join(dir, 'limit-reached.json');
-      if (!fs.existsSync(limit)) writeJson(limit, { schema: 1, kind: 'capture-gap-limit', createdAt: new Date().toISOString(), message: 'Capture-gap history reached its 1000-event limit; later gaps may not be recorded.' });
-      return;
-    }
+    let entries = fs.readdirSync(dir);
+    const writeLimitMarker = () => writeJsonCreateOnly(path.join(dir, 'limit-reached.json'), {
+      schema: 1, kind: 'capture-gap-limit', createdAt: new Date().toISOString(),
+      message: 'Capture-gap history reached its 1000-event limit; later gaps may not be recorded.'
+    });
+    if (entries.includes('limit-reached.json')) return;
+    if (entries.filter(gapRecordName).length >= 1000) { writeLimitMarker(); return; }
     const detail = String(error?.message || '');
     const reason = /busy|operation\.lock/i.test(detail) ? 'RECORDER_BUSY' : /workspace changed/i.test(detail) ? 'WORKSPACE_CHANGED' : /exceed/i.test(detail) ? 'CAPTURE_LIMIT' : /unsupported adapter event metadata/i.test(detail) ? 'CAPTURE_FAILED' : /excluded|unsupported|binary|symlink/i.test(detail) ? 'UNSUPPORTED_FILE' : /not a git|repository|rev-parse/i.test(detail) ? 'REPOSITORY_ERROR' : 'CAPTURE_FAILED';
     const gapId = crypto.randomUUID();
@@ -381,8 +404,25 @@ class Chronicle {
       tool: safeIdentifier(event?.tool, 80),
       ...(gapEvent ? { event: gapEvent } : {})
     };
-    writeJson(path.join(dir, gap.id + '.json'), gap);
-    return gap;
+    while (true) {
+      if (entries.includes('limit-reached.json')) return;
+      if (entries.filter(gapRecordName).length >= 1000) { writeLimitMarker(); return; }
+      const occupied = new Set(entries.map(name => /^slot-(\d{4})(?:-[a-f0-9-]{36}\.json|\.claim)$/.exec(name)?.[1]).filter(Boolean));
+      let slot = -1;
+      for (let index = 0; index < 1000; index++) if (!occupied.has(String(index).padStart(4, '0'))) { slot = index; break; }
+      if (slot < 0) { writeLimitMarker(); return; }
+      const slotName = 'slot-' + String(slot).padStart(4, '0');
+      const claim = path.join(dir, slotName + '.claim');
+      if (!writeJsonCreateOnly(claim, { schema: 1, kind: 'capture-gap-slot', id: gap.id })) {
+        entries = fs.readdirSync(dir);
+        continue;
+      }
+      const target = path.join(dir, slotName + '-' + gap.id + '.json');
+      if (writeJsonCreateOnly(target, gap)) return gap;
+      // Another process published this slot after our directory read. Refresh
+      // the count and contend for a different slot or publish the limit marker.
+      entries = fs.readdirSync(dir);
+    }
   }
 
   checkpoint(id) {

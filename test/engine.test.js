@@ -23,6 +23,15 @@ function fixture(t, content = 'one\ntwo\nthree\n') {
   return { root, engine, file: path.join(root, 'README.md') };
 }
 
+function storedGapPath(engine, id) {
+  const directory = path.join(engine.store, 'gaps');
+  for (const name of fs.readdirSync(directory).filter(name => name.endsWith('.json') && name !== 'limit-reached.json')) {
+    const file = path.join(directory, name);
+    try { if (JSON.parse(fs.readFileSync(file, 'utf8')).id === id) return file; } catch { /* Leave damaged evidence for the caller's assertion. */ }
+  }
+  throw new Error('Stored gap not found: ' + id);
+}
+
 test('fixture run evidence binds only a complete run to a fresh matching output', t => {
   const { engine, file } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
@@ -1068,7 +1077,7 @@ test('oversized local metadata refuses review and mutations without changing wor
   fs.writeFileSync(checkpointFile, 'null');
   try { assert.throws(() => engine.checkpoint(before.id), /Stored JSON evidence is invalid/); }
   finally { fs.writeFileSync(checkpointFile, originalCheckpoint); }
-  const gapFile = path.join(engine.store, 'gaps', gap.id + '.json');
+  const gapFile = storedGapPath(engine, gap.id);
   oversized(gapFile, 1024 * 1024 + 1, () => {
     assert.throws(() => engine.gaps(), /Invalid evidence file/);
   });
@@ -1466,7 +1475,7 @@ test('checkpoint and gap storage project adapter metadata without raw caller fie
   assert.equal(gap.reason, 'RECORDER_BUSY');
   assert.equal(JSON.stringify([checkpoint, gap]).includes('SECRET_'), false);
   assert.equal(fs.readFileSync(path.join(engine.store, 'checkpoints', checkpoint.id + '.json'), 'utf8').includes('SECRET_'), false);
-  assert.equal(fs.readFileSync(path.join(engine.store, 'gaps', gap.id + '.json'), 'utf8').includes('SECRET_'), false);
+  assert.equal(fs.readFileSync(storedGapPath(engine, gap.id), 'utf8').includes('SECRET_'), false);
   const legacy = engine.capture('Legacy', { source: 'manual', tool_input: 'SECRET_LEGACY' });
   assert.deepEqual(legacy.event, { source: 'manual', attribution: 'unknown' });
   const unsupported = { ...event, contractVersion: 2 };
@@ -1496,7 +1505,7 @@ test('swapped gap identity refuses review without changing the source or index',
   const after = engine.capture('After');
   const originalSource = fs.readFileSync(file);
   const originalIndex = git(root, ['ls-files', '--stage', '-z']);
-  const gapFile = path.join(engine.store, 'gaps', gap.id + '.json');
+  const gapFile = storedGapPath(engine, gap.id);
   const originalGap = fs.readFileSync(gapFile);
   for (const changed of [{ ...gap, id: crypto.randomUUID() }, { ...gap, repoId: 'another-repository' }]) {
     fs.writeFileSync(gapFile, JSON.stringify(changed));
@@ -1566,6 +1575,37 @@ test('gap history is capped and exposes the overflow state', t => {
   const operation = engine.createBranch(before.id, after.id, selected, 'chronicle/gap-limit');
   assert.equal(operation.manifest.captureCoverage.gaps, 1000);
   assert.equal(operation.manifest.captureCoverage.gapHistoryLimitReached, true);
+});
+
+test('concurrent gap writers cannot exceed the atomic history cap', t => {
+  const { engine } = fixture(t);
+  const directory = path.join(engine.store, 'gaps');
+  const createdAt = new Date().toISOString();
+  for (let i = 0; i < 999; i++) {
+    const id = crypto.randomUUID();
+    fs.writeFileSync(path.join(directory, id + '.json'), JSON.stringify({
+      schema: 1, kind: 'capture-gap', id, repoId: hash(engine.root), createdAt,
+      status: 'skipped', reason: 'CAPTURE_FAILED', source: 'unknown'
+    }));
+  }
+  const originalReadDir = fs.readdirSync;
+  let staleSnapshot, initialReads = 0;
+  fs.readdirSync = function(directoryPath, ...args) {
+    if (path.resolve(directoryPath) === path.resolve(directory) && initialReads < 2) {
+      initialReads++;
+      if (!staleSnapshot) staleSnapshot = originalReadDir.call(fs, directoryPath, ...args);
+      return [...staleSnapshot];
+    }
+    return originalReadDir.call(fs, directoryPath, ...args);
+  };
+  try {
+    engine.recordGap({ source: 'codex-cli', boundary: 'PostToolUse' }, new Error('busy'));
+    engine.recordGap({ source: 'codex-cli', boundary: 'PostToolUse' }, new Error('busy'));
+  } finally { fs.readdirSync = originalReadDir; }
+
+  const records = engine.gaps();
+  assert.equal(records.filter(gap => gap.kind === 'capture-gap').length, 1000);
+  assert.equal(records.some(gap => gap.kind === 'capture-gap-limit'), true);
 });
 
 test('concurrent operations stop rather than interleave mutations', t => {
