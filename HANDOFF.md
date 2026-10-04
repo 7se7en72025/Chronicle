@@ -16,7 +16,7 @@ The current direction is a local companion for Codex or Claude Code: record supp
 
 ## Latest work
 
-- Added a proposed O014 host-coverage gate: partial observation, unknown outcomes, controlled complete coverage, and replay-complete evidence now have distinct criteria and negative acceptance cases. No host binding is implemented; current Codex probes remain partial. See [architecture.md](architecture.md#proposed-o014-host-run-coverage-gate-not-implemented).
+- Added a proposed O014 host-coverage gate: partial observation, unknown outcomes, controlled complete coverage, and replay-complete evidence now have distinct criteria and negative acceptance cases. Codex trace fixtures pass 2/2 and the unpaired-tool recovery warning passes 1/1. These fixture results do not prove host completeness; no host binding is implemented, and current Codex probes remain partial. See [architecture.md](architecture.md#proposed-o014-host-run-coverage-gate-not-implemented).
 - D008 now distinguishes observed temporary Codex inline-hook boundaries from unverified shipped-plugin and other host integration paths; no persistent hook trust or install is implied.
 - The Codex setup guide now records the observed temporary inline-hook boundaries and explicitly leaves shipped plugin trust/loading and Bash/file-edit capture unverified. This matches the O004 audit evidence; see [RELEASE_AUDIT.md](RELEASE_AUDIT.md).
 - Recovery coverage now explicitly verifies that an orphan fixture-journal replacement temp is surfaced and left byte-for-byte intact when no main journal exists. Existing-journal and orphan replacement tests pass 2/2 with `npm.cmd run check`; this exercises existing conservative recovery behavior rather than changing it. See [REVIEW.md](REVIEW.md).
