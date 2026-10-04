@@ -4,7 +4,7 @@
 
 **P2 — UUID-named fixture journals with a mismatched internal identity were silently omitted from recovery results (fixed).** `src/engine.js:recoverFixtureRuns` previously combined identity/schema checks with a `continue`, so a parseable JSON object whose `id` disagreed with its UUID filename vanished from `recover-fixture-runs` output. Recovery now reports identity, schema, and kind mismatches as `unreadable-record` without rewriting the journal. Recognized completed and non-subprocess records continue to be skipped according to the command's subprocess-recovery scope.
 
-**Verification:** a disposable fixture changes a completed subprocess journal's saved ID and outcome to pending, then verifies it is listed using the filename ID and remains byte-for-byte unchanged. The focused test passes 1/1 and `npm.cmd run check` passes. Full suite is deferred because C: has about 65 MiB free. This was a sequential self-review, not independent review.
+**Verification:** a disposable fixture changes a completed subprocess journal's saved ID and outcome to pending, then verifies it is listed using the filename ID and remains byte-for-byte unchanged. The focused recovery group passes 7/7, including the new case, damaged-journal handling, sidecar conflicts, pre-spawn states, replacement candidates, and real controller termination. `npm.cmd run check` passes. The complete project suite is deferred because C: has about 61 MiB free. This was a sequential self-review, not independent review.
 
 ## Codex host prerequisite audit (2026-10-04)
 
