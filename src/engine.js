@@ -63,7 +63,7 @@ function git(root, args, accepted = [0], rawOutput = false) {
 function decodeGitPathOutput(bytes) {
   // Git filenames are data; a leading U+FEFF is not a stream signature here.
   try { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
-  catch { throw new Error('Git path output is not valid UTF-8; Chronicle capture refused'); }
+  catch { throw new Error('Git path output is not valid UTF-8; path processing refused'); }
 }
 
 function gitPathOutput(root, args, accepted = [0]) {

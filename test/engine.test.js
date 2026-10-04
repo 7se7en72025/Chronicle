@@ -546,9 +546,11 @@ test('fixture subprocess recovery preserves a real killed controller record', as
   });
   await once(controller, 'spawn');
   const folder = path.join(engine.store, 'fixture-runs');
-  const deadline = Date.now() + 20000;
+  // This real child-process test also runs near the end of the serial project
+  // suite, where Windows scheduling can delay controller startup substantially.
+  const deadline = Date.now() + 60000;
   let saved, file;
-  while (Date.now() < deadline) {
+  while (Date.now() < deadline && controller.exitCode === null) {
     const names = fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name));
     if (names.length === 1) {
       file = path.join(folder, names[0]);
@@ -796,6 +798,24 @@ test('guarded undo refuses later edits, staged selected paths, and committed out
   }
 });
 
+test('guarded undo refuses undecodable staged paths before changing files or journal', { skip: process.platform !== 'linux' }, t => {
+  const { root, engine, file } = fixture(t);
+  const before = engine.capture(); fs.writeFileSync(file, 'changed\n'); const after = engine.capture();
+  const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const op = engine.createBranch(before.id, after.id, ids, 'chronicle/undo-undecodable-path');
+  const rawPath = Buffer.concat([Buffer.from(op.target + path.sep), Buffer.from([0xff, 0x2e, 0x74, 0x78, 0x74])]);
+  fs.writeFileSync(rawPath, 'staged raw-byte path\n');
+  git(op.target, ['add', '-A']);
+  const journal = path.join(engine.store, 'operations', op.id + '.json');
+  const savedJournal = fs.readFileSync(journal);
+  const savedOutput = fs.readFileSync(path.join(op.target, 'README.md'));
+  assert.throws(() => engine.undoOperation(op.id), /Git path output is not valid UTF-8/);
+  assert.deepEqual(fs.readFileSync(journal), savedJournal);
+  assert.equal(JSON.parse(fs.readFileSync(journal, 'utf8')).state, 'completed');
+  assert.deepEqual(fs.readFileSync(path.join(op.target, 'README.md')), savedOutput);
+  assert.equal(git(root, ['rev-parse', 'HEAD']).trim(), before.commit);
+});
+
 test('guarded undo resumes a partially restored multi-file operation', t => {
   const { root, engine, file } = fixture(t);
   fs.writeFileSync(path.join(root, 'second.txt'), 'old\n');
@@ -912,7 +932,7 @@ test('case-insensitive path collision detection checks every path segment', () =
 test('Git path output rejects invalid UTF-8 instead of decoding a replacement pathname', () => {
   assert.equal(decodeGitPathOutput(Buffer.from('src/valid-name.js\0', 'utf8')), 'src/valid-name.js\0');
   assert.equal(decodeGitPathOutput(Buffer.from('\uFEFFleading-bom.txt\0', 'utf8')), '\uFEFFleading-bom.txt\0');
-  assert.throws(() => decodeGitPathOutput(Buffer.from([0x66, 0x6f, 0x80, 0x00])), /not valid UTF-8; Chronicle capture refused/);
+  assert.throws(() => decodeGitPathOutput(Buffer.from([0x66, 0x6f, 0x80, 0x00])), /not valid UTF-8; path processing refused/);
 });
 
 test('capture retains valid Unicode filenames with strict Git path decoding', t => {
@@ -930,7 +950,7 @@ test('capture refuses a raw-byte Linux pathname that Git cannot represent as UTF
   fs.writeFileSync(rawPath, 'unsupported raw-byte name\n');
   const source = fs.readFileSync(file);
   const index = git(root, ['ls-files', '--stage', '-z']);
-  assert.throws(() => engine.capture('Reject unsupported pathname'), /not valid UTF-8; Chronicle capture refused/);
+  assert.throws(() => engine.capture('Reject unsupported pathname'), /not valid UTF-8; path processing refused/);
   assert.equal(engine.list().length, 0);
   assert.equal(fs.readFileSync(file).equals(source), true);
   assert.equal(git(root, ['ls-files', '--stage', '-z']), index);
