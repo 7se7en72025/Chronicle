@@ -4,7 +4,7 @@
 
 **P2 — Real editor validation remains unobserved despite the VS Code CLI being present.** `code.cmd --version` reports VS Code 1.139.1 and `code.cmd --list-extensions` completes successfully. The supported Windows computer-use helper failed `sky.list_apps()` on three attempts: the initial call, a same-call retry after two seconds, and one retry after kernel reset/reinitialization. Each returned `Computer Use native pipe is unavailable`. No VS Code window was launched or manipulated. This proves CLI inventory only, not Extension Development Host startup, panel rendering, or editor integration.
 
-**Next step:** when the native UI helper is available, use its returned VS Code app/window objects to launch and inspect the Chronicle Extension Development Host, then verify capture, selection, preview, apply, and guarded undo in the disposable fixture. Do not substitute `--list-extensions` for a live UI test. O004 and PLAN milestones remain incomplete. No independent reviewer participated.
+**Next step:** when the native UI helper is available, use its returned VS Code app/window objects to launch and inspect the Chronicle Extension Development Host, then verify capture, selection, preview, apply, and guarded undo in the disposable fixture. Do not substitute `--list-extensions` for a live UI test. Split the integration checklist in [PLAN.md](PLAN.md) into the observed temporary Codex/package evidence and still-pending shipped-hook, editor, and second-host checks. O004 and PLAN milestones remain incomplete. This is documentation-only; no live editor behavior changed. No independent reviewer participated.
 
 ## Disposable Codex plugin installation check (2026-10-04)
 

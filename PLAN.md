@@ -5,7 +5,10 @@ Status: first local slice implemented and audited in [RELEASE_AUDIT.md](RELEASE_
 ## 0. Integration feasibility
 
 - [x] Choose an initial path: Claude CLI hooks with VS Code review; manual checkpoints for other agents.
-- [ ] Verify lifecycle events, failures, installation, trust, and review surface.
+- [x] Observe Codex lifecycle and read-only fixture-MCP tool boundaries through temporary inline hooks; discover and install the byte-matched local Codex plugin package from a disposable marketplace. This is narrow host/package evidence only; it does not verify shipped-plugin hook execution.
+- [ ] Verify the user-reviewed/trusted shipped Codex hook, including successful and partial-write failure boundaries, checkpoint/gap privacy, and source/index preservation.
+- [ ] Validate the real VS Code Extension Development Host: open the Chronicle panel, review/select, preview and apply to a separate worktree, and exercise guarded undo and refusal cases. `code --list-extensions` is not UI validation.
+- [ ] Verify delivery in a second supported host; Claude Code CLI remains unavailable in the current environment.
 - [x] Demonstrate direct local selection and output through the CLI/demo and mocked editor integration.
 
 Exit condition: verified capability matrix and a minimal integration validated inside its real supported host.
