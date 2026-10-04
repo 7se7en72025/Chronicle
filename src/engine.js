@@ -976,7 +976,7 @@ class Chronicle {
       if (!Array.isArray(op.files) || !Array.isArray(op.deletedPaths)) throw new Error('Operation has no verified output manifest; undo refused');
       const manifest = new Map(op.files.map(file => [file.path, file.hash]));
       if (manifest.size !== op.files.length || preview.files.some(file => file.content !== null && manifest.get(file.path) !== hash(Buffer.from(file.content, 'utf8')))) throw new Error('Operation manifest does not match its selection; undo refused');
-      const staged = new Set(git(target, ['diff', '--cached', '--name-only', '-z']).split('\0').filter(Boolean));
+      const staged = new Set(gitPathOutput(target, ['diff', '--cached', '--name-only', '-z']).split('\0').filter(Boolean));
       const baseline = this.checkpoint(op.from);
       const plan = preview.files.map(file => {
         if (staged.has(file.path)) throw new Error('Selected output path has staged changes; undo refused: ' + file.path);
@@ -999,7 +999,7 @@ class Chronicle {
       if (op.state === 'completed') { op.state = 'undoing'; op.undoStartedAt = new Date().toISOString(); writeJson(journal, op); }
       for (const item of plan) {
         if (git(target, ['rev-parse', 'HEAD']).trim() !== op.head) throw new Error('Output branch gained a commit during undo; recovery journal retained');
-        if (git(target, ['diff', '--cached', '--name-only', '-z']).split('\0').includes(item.file.path)) throw new Error('Selected output path was staged during undo; recovery journal retained: ' + item.file.path);
+        if (gitPathOutput(target, ['diff', '--cached', '--name-only', '-z']).split('\0').includes(item.file.path)) throw new Error('Selected output path was staged during undo; recovery journal retained: ' + item.file.path);
         let current = null;
         try {
           const stat = fs.lstatSync(item.full);
@@ -1058,7 +1058,8 @@ class Chronicle {
             modifiedSinceCompletion = git(expectedTarget, ['rev-parse', 'HEAD']).trim() !== operation.head;
             // The intended output is unstaged. A staged variant can differ even when
             // working-tree bytes have been restored to the saved output.
-            if (git(expectedTarget, ['diff', '--cached', '--name-only', '-z']).length > 0) modifiedSinceCompletion = true;
+            try { if (gitPathOutput(expectedTarget, ['diff', '--cached', '--name-only', '-z']).length > 0) modifiedSinceCompletion = true; }
+            catch { modifiedSinceCompletion = true; }
             for (const [name, digest] of expected) {
               try {
                 const full = safePath(expectedTarget, name);
@@ -1069,9 +1070,11 @@ class Chronicle {
               try { if (fs.lstatSync(safePath(expectedTarget, name))) modifiedSinceCompletion = true; }
               catch (error) { if (error.code !== 'ENOENT') modifiedSinceCompletion = true; }
             }
-            const present = git(expectedTarget, ['ls-files', '-z']).split('\0').filter(Boolean);
-            for (const name of git(expectedTarget, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) present.push(name);
-            if (present.some(name => !expected.has(name) && !absent.has(name))) modifiedSinceCompletion = true;
+            try {
+              const present = gitPathOutput(expectedTarget, ['ls-files', '-z']).split('\0').filter(Boolean);
+              for (const name of gitPathOutput(expectedTarget, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) present.push(name);
+              if (present.some(name => !expected.has(name) && !absent.has(name))) modifiedSinceCompletion = true;
+            } catch { modifiedSinceCompletion = true; }
           }
         }
       }

@@ -937,6 +937,24 @@ test('capture refuses a raw-byte Linux pathname that Git cannot represent as UTF
   assert.equal(fs.readFileSync(rawPath, 'utf8'), 'unsupported raw-byte name\n');
 });
 
+test('reconciliation marks a raw-byte Linux filename modified instead of aliasing U+FFFD', { skip: process.platform !== 'linux' }, t => {
+  const { root, engine, file } = fixture(t);
+  const replacementName = '\uFFFD.txt';
+  fs.writeFileSync(path.join(root, replacementName), 'expected Unicode path\n');
+  git(root, ['add', '.']); git(root, ['commit', '-m', 'Replacement character path']);
+  const before = engine.capture('Before alias');
+  fs.writeFileSync(file, 'changed\n');
+  const after = engine.capture('After alias');
+  const change = engine.compare(before.id, after.id).changes.find(item => item.path === 'README.md');
+  const operation = engine.createBranch(before.id, after.id, [change.hunks[0].id], 'chronicle/raw-path-alias');
+  const rawPath = Buffer.concat([Buffer.from(operation.target + path.sep), Buffer.from([0xff, 0x2e, 0x74, 0x78, 0x74])]);
+  fs.writeFileSync(rawPath, 'unexpected raw-byte path\n');
+  const result = engine.reconcileOperations().find(item => item.id === operation.id);
+  assert.equal(result.assessment, 'completed-worktree-modified');
+  assert.equal(result.modifiedSinceCompletion, true);
+  assert.equal(fs.readFileSync(path.join(operation.target, replacementName), 'utf8'), 'expected Unicode path\n');
+});
+
 test('Windows branch creation refuses case-only Git path collisions before mutation', { skip: process.platform !== 'win32' }, t => {
   const { root, engine, file } = fixture(t, 'baseline\n');
   const caseFile = path.join(root, 'Case.txt');
