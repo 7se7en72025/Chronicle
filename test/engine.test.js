@@ -911,6 +911,7 @@ test('case-insensitive path collision detection checks every path segment', () =
 
 test('Git path output rejects invalid UTF-8 instead of decoding a replacement pathname', () => {
   assert.equal(decodeGitPathOutput(Buffer.from('src/valid-name.js\0', 'utf8')), 'src/valid-name.js\0');
+  assert.equal(decodeGitPathOutput(Buffer.from('\uFEFFleading-bom.txt\0', 'utf8')), '\uFEFFleading-bom.txt\0');
   assert.throws(() => decodeGitPathOutput(Buffer.from([0x66, 0x6f, 0x80, 0x00])), /not valid UTF-8; Chronicle capture refused/);
 });
 
