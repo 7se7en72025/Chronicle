@@ -1,5 +1,11 @@
 # Latest development review
 
+## VS Code CLI available; native UI helper unavailable (2026-10-04)
+
+**P2 — Real editor validation remains unobserved despite the VS Code CLI being present.** `code.cmd --version` reports VS Code 1.139.1 and `code.cmd --list-extensions` completes successfully. The supported Windows computer-use helper failed `sky.list_apps()` on three attempts: the initial call, a same-call retry after two seconds, and one retry after kernel reset/reinitialization. Each returned `Computer Use native pipe is unavailable`. No VS Code window was launched or manipulated. This proves CLI inventory only, not Extension Development Host startup, panel rendering, or editor integration.
+
+**Next step:** when the native UI helper is available, use its returned VS Code app/window objects to launch and inspect the Chronicle Extension Development Host, then verify capture, selection, preview, apply, and guarded undo in the disposable fixture. Do not substitute `--list-extensions` for a live UI test. O004 and PLAN milestones remain incomplete. No independent reviewer participated.
+
 ## Disposable Codex plugin installation check (2026-10-04)
 
 **P2 — The remaining disk precondition had recovered, but package installation alone could be mistaken for shipped-hook validation.** The previously reported 146 MiB low-space state is historical: C: now reports about 11.6 GiB free and `codex doctor --summary --no-color` passes. Codex CLI 0.160.0 discovered a disposable local marketplace entry and installed/enabled `chronicle@chronicle-host-validation-22078b52`. SHA-256 checks matched `plugin.json`, `hooks/codex-hooks.json`, and the five copied adapter/replay source files against the current checkout. The package is installed from a temporary validation path; no marketplace publication occurred. The hook definition's exact trust review remains pending with the user, so no callback was executed and no host-delivery result is claimed. Task Scheduler remains `Ready`, but `%LOCALAPPDATA%\Chronicle\runner\STOP` is still present and unchanged.

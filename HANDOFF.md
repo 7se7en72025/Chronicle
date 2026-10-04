@@ -145,7 +145,7 @@ The latest MCP abrupt-input-close regression passed in the 13/13 focused suite, 
 
 The replay and push-destination fixes passed their recorded full suites. The revised supervisor passes eleven focused Windows PowerShell tests and has now published four real verified cycles. Codex hook behavior and editor interactions remain host-unvalidated.
 
-Local Markdown targets and whitespace checked. A real editor session and Claude/Codex session remain untested. Claude CLI is not installed; VS Code CLI 1.139.1 is installed, but the current computer-use runtime exposes no app windows or native launch/input API, so the editor UI cannot be exercised in this activation.
+Local Markdown targets and whitespace checked. A real editor session remains untested. Claude CLI is not installed. VS Code CLI 1.139.1 is present and `code.cmd --list-extensions` succeeds, but each `sky.list_apps()` retry failed because the computer-use native pipe was unavailable; no VS Code window was launched. Record this as UI-helper unavailability, not as an editor test result; see [REVIEW.md](REVIEW.md).
 
 The chat heartbeat `chronicle-review-and-improve` is configured every 30 minutes and is paused per the user. The optional local Windows runner uses a sibling checkout; its battery setting must be verified after registration. Do not resume the heartbeat while using the runner. Follow [ORCHESTRATION.md](ORCHESTRATION.md) and store findings in [REVIEW.md](REVIEW.md). O013 is verified at fixture level only; consult Git history for publication status.
 
