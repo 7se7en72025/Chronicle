@@ -1,5 +1,11 @@
 # Latest development review
 
+## Fixture-run recovery identity visibility (2026-10-04)
+
+**P2 — UUID-named fixture journals with a mismatched internal identity were silently omitted from recovery results (fixed).** `src/engine.js:recoverFixtureRuns` previously combined identity/schema checks with a `continue`, so a parseable JSON object whose `id` disagreed with its UUID filename vanished from `recover-fixture-runs` output. Recovery now reports identity, schema, and kind mismatches as `unreadable-record` without rewriting the journal. Recognized completed and non-subprocess records continue to be skipped according to the command's subprocess-recovery scope.
+
+**Verification:** a disposable fixture changes a completed subprocess journal's saved ID and outcome to pending, then verifies it is listed using the filename ID and remains byte-for-byte unchanged. The focused test passes 1/1 and `npm.cmd run check` passes. Full suite is deferred because C: has about 65 MiB free. This was a sequential self-review, not independent review.
+
 ## Codex host prerequisite audit (2026-10-04)
 
 **P1 — disk capacity blocks safe real-host validation (external prerequisite).** Read-only `codex --version` reported 0.160.0. `codex plugin list --json` showed no installed Chronicle plugin. `codex doctor --summary --no-color` exited 1 because both `CODEX_HOME` and the worktree had insufficient disk space; `Get-PSDrive C` reported 152,592,384 bytes free (about 146 MiB) at inspection. This prevents a responsible new model/host probe, plugin installation, or heavy test run until space is restored. No global Codex configuration, plugin list, hook trust, scheduler state, or user files were changed.

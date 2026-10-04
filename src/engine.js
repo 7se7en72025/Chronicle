@@ -721,8 +721,12 @@ class Chronicle {
           results.push({ id: name.slice(0, -5), assessment: 'unreadable-record' });
           continue;
         }
-        if (run.id !== name.slice(0, -5) || run.schema !== 1 || run.kind !== 'chronicle.fixture-run' ||
-            run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
+        const expectedRunId = name.slice(0, -5);
+        if (run.id !== expectedRunId || run.schema !== 1 || run.kind !== 'chronicle.fixture-run') {
+          results.push({ id: expectedRunId, assessment: 'unreadable-record' });
+          continue;
+        }
+        if (run.transport !== 'stdio-subprocess' || run.outcome !== null) continue;
         let childPid = run.childPid;
         const launchFile = path.join(folder, run.id + '.launch.json');
         let launchWitness = false;

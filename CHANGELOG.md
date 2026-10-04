@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- List fixture-run journals with mismatched saved IDs or unsupported schema/kind for inspection instead of silently skipping them during recovery.
 - Stop the Windows autonomous runner before a model call when workspace, runner-state, Codex-home, or system temp storage is below the configurable 2 GiB safety threshold; add a regression fixture for the stop gate.
 
 - Record the low-disk Codex host prerequisite and absent local Chronicle plugin without claiming host validation.

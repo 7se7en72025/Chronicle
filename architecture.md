@@ -240,6 +240,8 @@ In-process and controlled subprocess correlation are implemented and fixture-tes
 
 For a pending run with a recorded child PID, recovery also checks any existing launch witness. It reads only regular witness files up to 512 bytes; a non-regular or oversized entry, unreadable witness, or PID that conflicts with the journal leaves the run pending for inspection. This path check does not make inspection and read atomic against a concurrent replacement. If the child died before creating a witness, the recorded child PID still governs recovery; this does not resolve PID reuse.
 
+Recovery also lists a UUID-named fixture journal as unreadable when its saved ID, schema, or kind disagrees with the filename contract. It reports the filename ID and leaves that record unchanged for manual inspection.
+
 ### Host hook interception boundary
 
 The host hook APIs offer limited input/output rewriting, but a post-tool output rewrite occurs after execution and cannot undo tool side effects. Claude Code documents `PreToolUse.updatedInput` and `PostToolUse.updatedToolOutput`; it explicitly states that the tool has already run before the latter replaces what Claude sees. Codex documents `PreToolUse.updatedInput`; a blocking `PostToolUse` can replace the model-visible result with hook feedback, also after the tool runs. These hooks do not provide a generally safe way to substitute a cassette response instead of executing an arbitrary real tool. See [Claude Code hook output controls](https://code.claude.com/docs/en/hooks#posttooluse-decision-control) and [Codex hook output controls](https://developers.openai.com/docs/guides/hooks).

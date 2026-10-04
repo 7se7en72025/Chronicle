@@ -489,6 +489,22 @@ test('fixture recovery preserves interrupted journal replacements for inspection
   assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'replacement-inspect' }]);
 });
 
+test('fixture recovery reports mismatched journal identity without rewriting it', async t => {
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  saved.id = crypto.randomUUID();
+  saved.outcome = null;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  const bytes = fs.readFileSync(file);
+
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'unreadable-record' }]);
+  assert.deepEqual(fs.readFileSync(file), bytes);
+});
+
 test('fixture subprocess recovery preserves a real killed controller record', async t => {
   const { root, engine } = fixture(t);
   const before = engine.capture('Before');
