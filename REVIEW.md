@@ -1,5 +1,13 @@
 # Latest development review
 
+## Non-UTF-8 Git path output could be silently omitted (fixed)
+
+**P1 — `src/engine.js:git` and `Chronicle.inventory` decoded NUL-delimited Git pathname bytes with replacement semantics (fixed).** Git documents that `-z` emits paths verbatim, while Git pathnames can be byte sequences that are not UTF-8. Passing those bytes through Node's permissive `encoding: 'utf8'` can turn an invalid byte into U+FFFD; the resulting JavaScript path no longer names the original file, and the inventory's missing-file path could silently omit it. That could make capture or selected output appear complete while omitting a path. See the primary [Git `ls-files` documentation](https://git-scm.com/docs/git-ls-files) and [Git pathname encoding notes](https://git-scm.com/docs/git-show#_discussion).
+
+Path-list subprocess output is now retained as bytes and decoded with a fatal UTF-8 decoder at tracked, staged-index, untracked, and output-tree path boundaries used by capture/branch creation. Invalid data fails with a bounded, generic error before checkpoint publication; valid Unicode paths remain supported. Tests cover byte-level decoder rejection, valid Unicode filenames on this Windows host, and a Linux-only end-to-end raw-byte path fixture. The integration is skipped on Windows because NTFS filenames do not admit the same raw-byte name representation; it is also skipped on macOS because filesystem path encoding differs there.
+
+**Verification:** focused decoder and Unicode filename tests pass 2/2 on Windows; the Linux-only raw-byte integration is correctly platform-skipped here. The full suite passes 99/99 with one platform-specific test skipped; `npm.cmd run check`, controlled replay, relative Markdown links across all 16 root files, and `git diff --check` pass. Final diff review confirms strict decoding occurs before checkpoint publication for the source index/inventory and before operation completion for branch tree paths. No source file contents or index entries were mutated by Chronicle. Same-agent review only; no independent reviewer participated.
+
 ## Guarded-undo rename interruption coverage (verified existing recovery; 2026-10-04)
 
 **P2 — The write-ahead temporary-file boundary in guarded undo lacked a failure-injection regression (coverage added).** `src/engine.js:Chronicle.undoOperation` fsyncs `<selected-path>.chronicle-undo-<uuid>.tmp` before renaming it over the selected output. Existing recovery tests simulated interruption after a selected file was already restored, but not after the temporary bytes were durable and before rename.

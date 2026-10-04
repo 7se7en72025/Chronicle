@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions } = require('../src/engine');
+const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput } = require('../src/engine');
 const { recordHook } = require('../src/hook');
 const { normalizeAdapterEvent } = require('../src/event-contract');
 const { spawnSync } = require('node:child_process');
@@ -907,6 +907,33 @@ test('case-insensitive path collision detection checks every path segment', () =
   assert.deepEqual(caseInsensitivePathCollisions(['Assets/icon.svg', 'assets/logo.svg']), ['Assets', 'assets']);
   assert.deepEqual(caseInsensitivePathCollisions(['src/A.js', 'src/B.js']), []);
   assert.deepEqual(caseInsensitivePathCollisions(['src/A.js', 'test/a.js']), []);
+});
+
+test('Git path output rejects invalid UTF-8 instead of decoding a replacement pathname', () => {
+  assert.equal(decodeGitPathOutput(Buffer.from('src/valid-name.js\0', 'utf8')), 'src/valid-name.js\0');
+  assert.throws(() => decodeGitPathOutput(Buffer.from([0x66, 0x6f, 0x80, 0x00])), /not valid UTF-8; Chronicle capture refused/);
+});
+
+test('capture retains valid Unicode filenames with strict Git path decoding', t => {
+  const { root, engine } = fixture(t);
+  const name = 'café-日本語.txt';
+  fs.writeFileSync(path.join(root, name), 'supported Unicode filename\n');
+  const checkpoint = engine.capture('Unicode path');
+  assert.ok(checkpoint.files[name]);
+  assert.equal(engine.bytes(checkpoint.files[name]).toString(), 'supported Unicode filename\n');
+});
+
+test('capture refuses a raw-byte Linux pathname that Git cannot represent as UTF-8', { skip: process.platform !== 'linux' }, t => {
+  const { root, engine, file } = fixture(t);
+  const rawPath = Buffer.concat([Buffer.from(root + path.sep), Buffer.from([0xff])]);
+  fs.writeFileSync(rawPath, 'unsupported raw-byte name\n');
+  const source = fs.readFileSync(file);
+  const index = git(root, ['ls-files', '--stage', '-z']);
+  assert.throws(() => engine.capture('Reject unsupported pathname'), /not valid UTF-8; Chronicle capture refused/);
+  assert.equal(engine.list().length, 0);
+  assert.equal(fs.readFileSync(file).equals(source), true);
+  assert.equal(git(root, ['ls-files', '--stage', '-z']), index);
+  assert.equal(fs.readFileSync(rawPath, 'utf8'), 'unsupported raw-byte name\n');
 });
 
 test('Windows branch creation refuses case-only Git path collisions before mutation', { skip: process.platform !== 'win32' }, t => {

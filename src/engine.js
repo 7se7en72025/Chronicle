@@ -43,17 +43,30 @@ function changeGroups(hunk) {
   return groups.map((group, index) => ({ ...group, id: hunk.id + ':g' + index }));
 }
 
-function git(root, args, accepted = [0]) {
+function git(root, args, accepted = [0], rawOutput = false) {
   // Inherited Git overrides can redirect commands to a different repository/index.
   const env = { ...process.env };
   for (const name of Object.keys(env)) if (name.startsWith('GIT_')) delete env[name];
   const result = spawnSync('git', ['-c', 'core.hooksPath=' + path.join(os.tmpdir(), 'chronicle-no-hooks'), ...args], {
-    cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 30000,
+    cwd: root, encoding: rawOutput ? null : 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 30000,
     env: { ...env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' }, windowsHide: true
   });
   if (result.error) throw result.error;
-  if (!accepted.includes(result.status)) throw new Error((result.stderr || result.stdout || 'Git failed').trim());
+  if (!accepted.includes(result.status)) {
+    const stderr = rawOutput && Buffer.isBuffer(result.stderr) ? result.stderr.toString('utf8') : result.stderr;
+    const stdout = rawOutput && Buffer.isBuffer(result.stdout) ? result.stdout.toString('utf8') : result.stdout;
+    throw new Error((stderr || stdout || 'Git failed').trim());
+  }
   return result.stdout;
+}
+
+function decodeGitPathOutput(bytes) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+  catch { throw new Error('Git path output is not valid UTF-8; Chronicle capture refused'); }
+}
+
+function gitPathOutput(root, args, accepted = [0]) {
+  return decodeGitPathOutput(git(root, args, accepted, true));
 }
 
 function safePath(root, relative) {
@@ -220,11 +233,11 @@ class Chronicle {
   }
 
   inventory() {
-    const tracked = git(this.root, ['ls-files', '-z']).split('\0').filter(Boolean);
-    const modes = new Map(git(this.root, ['ls-files', '--stage', '-z']).split('\0').filter(Boolean).map(record => {
+    const tracked = gitPathOutput(this.root, ['ls-files', '-z']).split('\0').filter(Boolean);
+    const modes = new Map(gitPathOutput(this.root, ['ls-files', '--stage', '-z']).split('\0').filter(Boolean).map(record => {
       const tab = record.indexOf('\t'); return [record.slice(tab + 1), record.slice(0, 6)];
     }));
-    const candidates = [...new Set([...tracked, ...git(this.root, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)])].sort();
+    const candidates = [...new Set([...tracked, ...gitPathOutput(this.root, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)])].sort();
     const files = Object.create(null), excluded = [];
     let total = 0;
     for (const name of candidates) {
@@ -252,10 +265,10 @@ class Chronicle {
       const checkpointId = crypto.randomUUID();
       const capturedEvent = storedEvent(event, { snapshotId: checkpointId, gapId: null });
       const head = git(this.root, ['rev-parse', 'HEAD']).trim();
-      const index = git(this.root, ['ls-files', '--stage', '-z']);
+      const index = gitPathOutput(this.root, ['ls-files', '--stage', '-z']);
       const first = this.inventory(), second = this.inventory();
       const fingerprint = inv => JSON.stringify({ files: Object.entries(inv.files).map(([p, f]) => [p, f.hash, f.mode]), excluded: inv.excluded, tracked: inv.tracked });
-      if (fingerprint(first) !== fingerprint(second) || git(this.root, ['rev-parse', 'HEAD']).trim() !== head || git(this.root, ['ls-files', '--stage', '-z']) !== index) throw new Error('Workspace changed during capture. Retry after writes finish.');
+      if (fingerprint(first) !== fingerprint(second) || git(this.root, ['rev-parse', 'HEAD']).trim() !== head || gitPathOutput(this.root, ['ls-files', '--stage', '-z']) !== index) throw new Error('Workspace changed during capture. Retry after writes finish.');
       const files = Object.create(null);
       for (const [name, file] of Object.entries(first.files)) {
         this.writeBlob(file.bytes, file.hash);
@@ -482,7 +495,7 @@ class Chronicle {
       try {
         git(this.root, ['worktree', 'add', '-b', branch, '--', target, baseline.head]);
         op.state = 'applying'; writeJson(journal, op);
-        const headFiles = git(target, ['ls-files', '-z']).split('\0').filter(Boolean);
+        const headFiles = gitPathOutput(target, ['ls-files', '-z']).split('\0').filter(Boolean);
         // Baseline includes untracked additions and tracked deletions, not only HEAD.
         for (const name of headFiles) if (!Object.hasOwn(baseline.files, name)) {
           const full = safePath(target, name);
@@ -1125,4 +1138,4 @@ class Chronicle {
   }
 }
 
-module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions };
+module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput };
