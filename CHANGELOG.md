@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Stop the Windows autonomous runner before a model call when repository, runner-state, or Codex-home storage is below the configurable 2 GiB safety threshold; add a regression fixture for the stop gate.
+
 - Record the low-disk Codex host prerequisite and absent local Chronicle plugin without claiming host validation.
 - Carry the low-disk prerequisite into the release and runner handoffs before new host or scheduled work.
 - Document a dependency-aware local-history retention and future JSON-to-SQLite migration contract without enabling deletion or migration.

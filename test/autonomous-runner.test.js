@@ -57,10 +57,12 @@ function makeFixture(t) {
 }
 
 function runRunner(fixture) {
-  return execFileSync(powershell, [
+  const args = [
     '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
     path.join(fixture.repo, 'scripts', 'run-autonomous.ps1'), '-Once', '-CodexCommand', fixture.fakeCodex, '-ExpectedOrigin', fixture.remote,
-  ], {
+    '-MinimumFreeBytes', String(fixture.minimumFreeBytes ?? 1),
+  ];
+  return execFileSync(powershell, args, {
     cwd: fixture.repo,
     encoding: 'utf8',
     env: {
@@ -103,6 +105,7 @@ test('autonomous runner invokes one isolated cycle and honors the stop marker', 
   const fixture = makeFixture(t);
   runRunner(fixture);
 
+  assert.ok(fs.existsSync(path.join(fixture.tempRoot, 'called.txt')), fs.readFileSync(path.join(fixture.state, 'runner.log'), 'utf8'));
   const marker = fs.readFileSync(path.join(fixture.tempRoot, 'called.txt'), 'utf8');
   assert.match(marker, /network_access=false/);
   assert.match(marker, /--config approval_policy=never/);
@@ -178,6 +181,18 @@ test('autonomous runner publishes passing checks despite native stderr diagnosti
   const stderrLogs = fs.readdirSync(fixture.state).filter((name) => name.endsWith('.stderr.log'));
   assert.equal(stderrLogs.length, 1);
   assert.match(fs.readFileSync(path.join(fixture.state, stderrLogs[0]), 'utf16le'), /harmless diagnostics/);
+});
+
+test('autonomous runner stops before invoking Codex when required storage is unavailable', (t) => {
+  if (process.platform !== 'win32' || !fs.existsSync(powershell)) return t.skip('Requires Windows PowerShell.');
+  const fixture = makeFixture(t);
+  fixture.minimumFreeBytes = '9223372036854775807';
+  runRunner(fixture);
+
+  assert.equal(fs.existsSync(path.join(fixture.tempRoot, 'called.txt')), false);
+  assert.match(fs.readFileSync(path.join(fixture.state, 'STOP'), 'utf8'), /Insufficient disk space/);
+  assert.match(fs.readFileSync(path.join(fixture.state, 'runner.log'), 'utf8'), /Available disk space/);
+  assert.equal(git(fixture.repo, 'status', '--porcelain'), '');
 });
 
 test('autonomous runner preserves edits when the push destination changes during the cycle', (t) => {

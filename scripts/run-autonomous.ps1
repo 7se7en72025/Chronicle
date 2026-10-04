@@ -9,7 +9,8 @@ param(
     [string]$StderrLogPath,
     [string]$SummaryPath,
     [int]$IntervalMinutes = 30,
-    [int]$MaxRunMinutes = 25
+    [int]$MaxRunMinutes = 25,
+    [long]$MinimumFreeBytes = 2GB
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,8 +44,8 @@ if ($Worker) {
     }
 }
 
-if ($IntervalMinutes -lt 1 -or $MaxRunMinutes -lt 1 -or $MaxRunMinutes -ge $IntervalMinutes) {
-    throw 'Use positive intervals, with MaxRunMinutes shorter than IntervalMinutes.'
+if ($IntervalMinutes -lt 1 -or $MaxRunMinutes -lt 1 -or $MaxRunMinutes -ge $IntervalMinutes -or $MinimumFreeBytes -lt 1) {
+    throw 'Use positive intervals and storage threshold, with MaxRunMinutes shorter than IntervalMinutes.'
 }
 
 $stateRoot = if ($env:CHRONICLE_RUNNER_STATE) {
@@ -63,6 +64,23 @@ $mutex = New-Object System.Threading.Mutex($false, "Local\ChronicleRunner-$mutex
 function Write-RunnerLog([string]$Message) {
     $line = '{0} {1}{2}' -f [DateTime]::UtcNow.ToString('s'), $Message, [Environment]::NewLine
     [System.IO.File]::AppendAllText($runnerLogPath, $line, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+function Get-LowSpaceVolumes([string[]]$Paths, [long]$MinimumBytes) {
+    $checkedRoots = @{}
+    $lowSpace = @()
+    foreach ($path in $Paths) {
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+        $root = [System.IO.Path]::GetPathRoot([System.IO.Path]::GetFullPath($path))
+        if ([string]::IsNullOrWhiteSpace($root) -or $checkedRoots.ContainsKey($root)) { continue }
+        $checkedRoots[$root] = $true
+        $drive = New-Object System.IO.DriveInfo($root)
+        if (-not $drive.IsReady) { throw "Cannot verify available storage on $root." }
+        if ($drive.AvailableFreeSpace -lt $MinimumBytes) {
+            $lowSpace += [pscustomobject]@{ Root = $root; FreeBytes = $drive.AvailableFreeSpace }
+        }
+    }
+    return $lowSpace
 }
 
 function Invoke-GitCommand([string[]]$GitArguments) {
@@ -241,6 +259,18 @@ try {
             if ($state.Status.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace([string]$state.Status[0])) {
                 Write-RunnerLog 'Working tree or index is not clean; stopping and preserving user changes.'
                 [System.IO.File]::WriteAllText($stopPath, "Dirty repository at $([DateTime]::UtcNow.ToString('s'))Z; review it, then remove this marker to resume.`n")
+                break
+            }
+
+            $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
+            $lowSpaceVolumes = @(Get-LowSpaceVolumes -Paths @($repoRoot, $stateRoot, $codexHome) -MinimumBytes $MinimumFreeBytes)
+            if ($lowSpaceVolumes.Count -gt 0) {
+                foreach ($volume in $lowSpaceVolumes) {
+                    $freeMiB = [Math]::Floor($volume.FreeBytes / 1MB)
+                    $minimumMiB = [Math]::Ceiling($MinimumFreeBytes / 1MB)
+                    Write-RunnerLog "Available disk space on $($volume.Root) is ${freeMiB} MiB; require at least ${minimumMiB} MiB before a Codex cycle."
+                }
+                [System.IO.File]::WriteAllText($stopPath, "Insufficient disk space; free at least $([Math]::Ceiling($MinimumFreeBytes / 1MB)) MiB on each runner, state, and Codex volume, then review and remove STOP to resume.`n")
                 break
             }
 
