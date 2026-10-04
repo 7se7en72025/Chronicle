@@ -1,5 +1,11 @@
 # Latest development review
 
+## Read-only Codex package and UI inventory — 2026-10-05
+
+**P2 — The current host inventory differs from the prior disabled-package handoff and must not be mistaken for trusted host coverage.** Read-only `codex plugin list` on CLI 0.160.0 reports an older `chronicle` 0.1.0 package and a `chronicle` 0.1.1 portable-root-manifest package as installed/enabled; the separate `chronicle-codex-compat` fixture package is installed/disabled. The enabled 0.1.1 package points to `%TEMP%\ChronicleHostValidation-current-0b55358\plugins\chronicle`. Its root `plugin.json` is an Agent Plugins v1 manifest, and its hook command is `node "${PLUGIN_ROOT}/src/hook.js" codex --host-test-build=0b55358` for SessionStart/SessionEnd/Interrupt plus Bash/apply_patch/Edit/Write pre/post matchers. Its hook config and `src/engine.js` hashes differ from current `main`; the sampled `src/hook.js`, event contract, and replay sources match. Previous CLI testing showed zero hooks loaded for the root manifest, but this does not establish current trust state or prove absence of all side effects.
+
+The documented UI-helper inventory returned `{ apps: [], browsers: [] }`. VS Code CLI 1.140.0 is present, but no Chronicle extension is listed. No Codex session was launched, `/hooks` was not opened, no trust decision or package enablement was changed, and no callback was run. This resolves the stale documentation status only; shipped-hook trust/loading, Bash/file-edit, and real-editor acceptance remain open. The STOP marker hash/content and user `BOLPREP.md` were preserved.
+
 ## Windows branch-output file identity precision — 2026-10-05
 
 **P2 — Valid Windows output paths could be rejected as aliases (fixed).** `Chronicle.createBranch` compared `${stat.dev}:${stat.ino}` using default Node `Stats`, whose `ino` is a JavaScript Number. Windows file identifiers are 64-bit and may exceed Number's exact integer range; distinct IDs then round to the same value. The failure reproduced in the saved-output manifest test after four passes, with two different path pairs reported. It is a false positive in the defensive verification gate, not evidence that the files were actually aliases.

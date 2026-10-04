@@ -6,7 +6,7 @@ Status: first local slice implemented and audited in [RELEASE_AUDIT.md](RELEASE_
 
 - [x] Choose an initial path: Claude CLI hooks with VS Code review; manual checkpoints for other agents.
 - [x] Observe Codex lifecycle and read-only fixture-MCP tool boundaries through temporary inline hooks; test the Codex compatibility manifest in a disposable marketplace. Codex CLI 0.160.0 exposed its five hooks and recorded two SessionEnd checkpoints in the fixture; Bash/file-edit delivery, plugin SessionStart, and full shipped-plugin verification remain open.
-- [ ] Verify the user-reviewed/trusted shipped Codex hook, including successful and partial-write failure boundaries, checkpoint/gap privacy, and source/index preservation.
+- [ ] Verify the user-reviewed/trusted shipped Codex hook, including successful and partial-write failure boundaries, checkpoint/gap privacy, and source/index preservation. Current CLI inventory lists enabled 0.1.0 and root-manifest 0.1.1 packages; package enablement does not prove trust or delivery. The compatibility-manifest test package is disabled. No current hook trust review or callback was performed; see [HANDOFF.md](HANDOFF.md) and [REVIEW.md](REVIEW.md).
 - [ ] Validate the real VS Code Extension Development Host: open the Chronicle panel, review/select, preview and apply to a separate worktree, and exercise guarded undo and refusal cases. `code --list-extensions` is not UI validation.
 - [ ] Verify delivery in a second supported host; Claude Code CLI remains unavailable in the current environment.
 - [x] Demonstrate direct local selection and output through the CLI/demo and mocked editor integration.
