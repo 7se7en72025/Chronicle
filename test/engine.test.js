@@ -505,20 +505,22 @@ test('fixture recovery lists an orphan journal replacement and preserves its byt
   assert.deepEqual(fs.readFileSync(replacement), bytes);
 });
 
-test('fixture recovery reports mismatched journal identity without rewriting it', async t => {
+test('fixture recovery reports identity schema and kind mismatches without rewriting journals', async t => {
   const { engine } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
   const before = engine.capture('Before');
   const run = await engine.runFixtureSubprocess(cassette, before.id, []);
   const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
-  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
-  saved.id = crypto.randomUUID();
+  const originalBytes = fs.readFileSync(file);
+  const saved = JSON.parse(originalBytes.toString('utf8'));
   saved.outcome = null;
-  fs.writeFileSync(file, JSON.stringify(saved));
-  const bytes = fs.readFileSync(file);
-
-  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'unreadable-record' }]);
-  assert.deepEqual(fs.readFileSync(file), bytes);
+  for (const [field, value] of [['id', crypto.randomUUID()], ['schema', 2], ['kind', 'other-record']]) {
+    fs.writeFileSync(file, JSON.stringify({ ...saved, [field]: value }));
+    const invalidBytes = fs.readFileSync(file);
+    assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'unreadable-record' }], field);
+    assert.deepEqual(fs.readFileSync(file), invalidBytes, field);
+  }
+  fs.writeFileSync(file, originalBytes);
 });
 
 test('fixture subprocess recovery preserves a real killed controller record', async t => {
