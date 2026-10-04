@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Record a disposable Codex CLI host attempt that edited its fixture but produced no Chronicle checkpoints; separately verify the installed hook script with synthetic events while leaving persistent hook trust and plugin settings unchanged.
 - Publish capture-gap records through atomically claimed slots so concurrent hook processes cannot exceed the 1000-record history cap; retain record IDs in slot filenames for tamper checks and keep legacy UUID filenames readable.
 - Refuse selected-path resolution when the workspace root itself is a symlink or junction, not only when an individual path component is linked.
 - Use exact BigInt device/file identities when verifying selected output files so Windows' rounded 64-bit `Stats.ino` values cannot falsely classify distinct paths as aliases.
