@@ -1,6 +1,6 @@
 # Chronicle upgrade roadmap
 
-Updated: 2026-10-03. This is a proposed, research-informed sequence, not a claim that the features exist or a promise that every item will ship. The first-release audit remains the implementation baseline; see [RELEASE_AUDIT.md](RELEASE_AUDIT.md), [PLAN.md](PLAN.md), and [learnings.md](learnings.md).
+Updated: 2026-10-04. This is a proposed, research-informed sequence, not a claim that the features exist or a promise that every item will ship. The first-release audit remains the implementation baseline; see [RELEASE_AUDIT.md](RELEASE_AUDIT.md), [PLAN.md](PLAN.md), and [learnings.md](learnings.md).
 
 ## Product target
 
