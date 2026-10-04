@@ -1,5 +1,13 @@
 # Latest development review
 
+## Codex usage counters are not yet branch-cost evidence (roadmap gate clarified, 2026-10-04)
+
+**P2 — `turn.completed.usage` cannot currently be treated as the cost of one selected branch (documented; no accounting code added).** The official Codex SDK event type exposes token counters. A recent [Codex CLI issue](https://github.com/openai/codex/issues/49574) reports that resumed-thread totals in 0.159.2 include earlier turns even though the SDK describes the fields as turn usage. The issue is version-specific and does not prove 0.160.0 behaves identically, but it makes an unvalidated sum unsafe. Token counts also do not independently establish dollar charges or subscription quota consumption. `src/engine.js:createBranch` correctly writes `reportedCost: null`, and `src/extension.js:renderComparison` displays it as unavailable.
+
+**Action:** revised `upgrades.md`, `architecture.md`, and [learnings.md](learnings.md) to require a validated fresh-run baseline/delta before attaching comparable usage to an operation. Do not infer dollars from token counts or branch cost from resumed cumulative counters. No host call, trace disclosure, manifest mutation, or model request was made.
+
+**Verification:** checked Chronicle's existing manifest/UI behavior and the Codex SDK event schema plus the versioned issue report. The implementation continues to preserve `null` cost; the full suite and syntax checks were run for the previous code change, while this entry documents the new roadmap gate. Relative links and whitespace checks are recorded in the final review. Same-agent review only; no independent reviewer participated.
+
 ## Case-insensitive Git path collision in branch output (2026-10-04)
 
 **P1 — Distinct Git paths could alias on Windows and leave a completed operation inconsistent with its manifest (fixed).** In `src/engine.js:Chronicle.createBranch`, expected files were written and verified one at a time. On a case-insensitive filesystem, a later `case.txt` write can replace `Case.txt`; the earlier verification had already passed, so the operation could be marked completed with one incorrect output hash. A disposable Windows repo reproduced the failure before the fix using two case-distinct Git index paths.

@@ -4,7 +4,7 @@ Updated: 2026-10-04.
 
 ## Latest verified local change
 
-The Windows branch writer now refuses case-only Git path collisions before creating an operation and verifies all written output files again before declaring completion. The disposable Windows regression reproduces colliding Git index paths and confirms the refusal leaves the source file, index, operation journal, and output worktrees unchanged. Pure tests cover filename and directory-segment collisions. The full suite passes 96/96, `npm.cmd run check` passes, and `npm.cmd run demo:replay` succeeds. This change is locally verified but not yet committed or pushed; see the latest [REVIEW.md](REVIEW.md) entry. Untracked `BOLPREP.md` remains untouched.
+The Windows branch writer now refuses case-only Git path collisions before creating an operation and verifies all written output files again before declaring completion. The disposable Windows regression reproduces colliding Git index paths and confirms the refusal leaves the source file, index, operation journal, and output worktrees unchanged. Pure tests cover filename and directory-segment collisions. The full suite passes 96/96, `npm.cmd run check` passes, and `npm.cmd run demo:replay` succeeds. Commit `3115fd9` is pushed to `origin/main`, and the clean runner checkout is fast-forwarded to it. Untracked `BOLPREP.md` remains untouched. A review of optional Codex usage evidence also found that token counters are neither dollar cost nor yet verified as per-operation totals; Chronicle continues to show branch cost as unavailable. See the latest [REVIEW.md](REVIEW.md) entry.
 
 ## State
 

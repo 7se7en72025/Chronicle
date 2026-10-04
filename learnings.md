@@ -2,6 +2,12 @@
 
 Reviewed: 2026-10-02. This is a short engineering synthesis, not a systematic literature review. It focuses on primary papers relevant to recording, debugging, replay, and evaluating tool-using coding agents. Each paper's result is separated from the product implication we infer from it.
 
+## Host usage evidence audit (2026-10-04)
+
+Codex's published [`turn.completed` event type](https://github.com/openai/codex/blob/main/sdk/typescript/src/events.ts) exposes input, cached-input, cache-write, output, and reasoning-output token counters. Those are token usage fields, not billed-dollar values. A [recent Codex CLI report](https://github.com/openai/codex/issues/49574) documents `turn.completed.usage` on resumed threads including earlier turns' totals in CLI/SDK 0.159.2, despite the SDK type describing per-turn usage. This issue report is version-specific evidence, not proof that every Codex release or host behaves the same.
+
+**Chronicle implication (inference):** do not sum these values or attach them to a branch as a per-run cost unless the adapter can establish a fresh-run baseline or authoritative delta and validate it on the supported host version. Keep cost and branch-comparable usage unavailable. Even an accurate token total would not establish dollar spend without a provider billing/rate contract, and product-plan quota is not a price. A bounded trace inspector can later expose raw host-reported counters with explicit scope while preserving this distinction.
+
 ## What the research says
 
 ### Reproduce the failure with the state that caused it
