@@ -1,5 +1,11 @@
 # Latest development review
 
+## Codex host setup wording (2026-10-04)
+
+**P2 — The user guide understated narrow real Codex hook evidence (documentation corrected).** `GETTING_STARTED.md` said a real Codex session remained unverified without distinguishing the shipped plugin path from temporary inline-hook probes. [RELEASE_AUDIT.md](RELEASE_AUDIT.md) and earlier O004 evidence document actual Codex CLI session lifecycle and fixture MCP pre/post-tool checkpoints delivered through temporary hooks. The setup guide now states those observed boundaries while keeping shipped plugin trust/loading and Bash/file-edit matching explicitly unverified. No host setting or project trust was changed.
+
+**Verification:** cross-checked the wording against the audit's Codex row and recorded temporary-inline-hook evidence in this review. Relative Markdown targets and `git diff --check` pass; application tests do not apply to this documentation-only correction. This was a same-agent second pass, not independent review.
+
 ## Orphan fixture-journal replacement evidence (2026-10-04)
 
 **P2 — Interrupted initial fixture-journal publication lacked a direct preservation regression and user-facing recovery note (coverage/documentation added).** `src/engine.js:recoverFixtureRuns` already retained and reported replacement temps left without a base journal, but the focused tests covered only a temp alongside an existing journal and `GETTING_STARTED.md` did not explain the orphan case. Added a disposable test that simulates a temp surviving without the main journal and verifies recovery reports its run ID while preserving the exact temp bytes and not recreating the main file. Updated [GETTING_STARTED.md](GETTING_STARTED.md) and [architecture.md](architecture.md) to describe this conservative outcome. No recovery mutation was added.
