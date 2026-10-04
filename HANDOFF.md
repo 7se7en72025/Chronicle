@@ -10,7 +10,7 @@ A read-only 2026-10-04 host audit found `codex-cli 0.160.0`, no installed Chroni
 
 The new low-space gate passed focused Windows PowerShell, baseline fake-runner, and forced-stop fixtures (3/3) plus `npm.cmd run check`. The complete suite remains deferred under the disk constraint. The task remains STOP-gated; this code change does not clear or bypass that gate.
 
-Verified commit `b5ae2e3` is on `origin/main`; it includes the workspace/state/Codex/temp-volume preflight and was fast-forwarded into the clean `Chronicle-night-runner` checkout. The complete autonomous-runner test file passes 17/17, including the disk gate; the Codex trace inspector fixtures pass 2/2. Task Scheduler remains `Ready`, and `%LOCALAPPDATA%\Chronicle\runner\STOP` remains untouched. C: has about 104 MiB free, so full-suite and new host checks remain deferred.
+Verified commit `b5ae2e3` is on `origin/main`; it includes the workspace/state/Codex/temp-volume preflight and was fast-forwarded into the clean `Chronicle-night-runner` checkout. The complete autonomous-runner test file passes 17/17, including the disk gate; the Codex trace inspector fixtures pass 2/2. Task Scheduler remains `Ready`, and `%LOCALAPPDATA%\Chronicle\runner\STOP` remains untouched. C: currently has about 67 MiB free, so full-suite and new host checks remain deferred.
 
 The current direction is a local companion for Codex or Claude Code: record supported file changes, review checkpoints, and apply selected changes without a new model request. See [architecture.md](architecture.md).
 
