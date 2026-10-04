@@ -5,6 +5,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 ## Unreleased
 
 - Record the low-disk Codex host prerequisite and absent local Chronicle plugin without claiming host validation.
+- Carry the low-disk prerequisite into the release and runner handoffs before new host or scheduled work.
 - Document a dependency-aware local-history retention and future JSON-to-SQLite migration contract without enabling deletion or migration.
 - Count published gap records rather than interrupted temporary files toward the 1000-gap history cap.
 - Apply the global capture-gap overflow warning only to checkpoint intervals that reach its recorded time.
