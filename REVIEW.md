@@ -750,3 +750,9 @@ The runner now captures Git validation, staging, commit, and post-commit check o
 **P2 - The proposed completeness gate needed consistent queue and handoff wording.** The proposed gate in `architecture.md` is still documentation only. Updated `ORCHESTRATION.md` to make explicit that O014 remains deferred until a controlled host implementation and validation meet the gate; updated `HANDOFF.md` to name that as the next acceptance step and retain the low-disk and host-evidence limitations. No runtime behavior or milestone status changed.
 
 **Verification:** all relative links in the three changed documents resolve, `git diff --check` passes, and the second-pass diff confirms the change only clarifies documented status and acceptance criteria. No host validation was performed; the existing `BOLPREP.md` untracked file is preserved.
+
+## Codex trace argument comparison - 2026-10-04
+
+**P2 - Equivalent JSON tool arguments could be flagged as mismatched when property order changed.** `src/codex-trace.js` compared the `item.started` and `item.completed` argument objects with `JSON.stringify`, while `src/simulated-replay.js` already defines canonical JSON semantics for matching cassette inputs. The trace auditor now reuses that canonicalization and treats invalid/non-JSON values conservatively as unequal. This removes order-only false negatives without relaxing value, tool, cassette-order, or outcome checks.
+
+**Verification:** the focused `node --test test/codex-trace.test.js` passes 2/2, including a reordered two-key argument fixture and existing value-drift refusal. `npm.cmd run check` and `git diff --check` pass. Full suite remains deferred due low C: free space. No host claim changed.

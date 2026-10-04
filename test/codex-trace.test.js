@@ -40,6 +40,10 @@ test('Codex trace inspector checks ordered fixture calls and refuses ambiguous h
   drift[2].item.arguments = { issueId: 'wrong' };
   drift[3].item.arguments = { issueId: 'wrong' };
   assert.equal(inspectCodexTrace(bytes(drift), cassette).traceCallsMatchCassette, false);
+  const reordered = complete();
+  reordered[4].item.arguments = { limit: 2, query: 'README headings' };
+  reordered[5].item.arguments = { limit: 2, query: 'README headings' };
+  assert.equal(inspectCodexTrace(bytes(reordered), cassette).status, 'host-reported-match');
   const extra = complete();
   extra.splice(6, 0, { type: 'item.completed', item: { id: 'item_other', type: 'command_execution', status: 'completed' } });
   assert.equal(inspectCodexTrace(bytes(extra), cassette).otherToolItems, 1);

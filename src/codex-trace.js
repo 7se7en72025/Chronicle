@@ -1,7 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { createSimulatedReplay } = require('./simulated-replay');
+const { createSimulatedReplay, canonicalJson } = require('./simulated-replay');
 
 const MAX_TRACE_BYTES = 4 * 1024 * 1024;
 const MAX_TRACE_LINES = 10000;
@@ -21,6 +21,11 @@ function countHostDiagnostics(bytes) {
     }
     return true;
   }).length;
+}
+
+function sameJsonValue(left, right) {
+  try { return canonicalJson(left) === canonicalJson(right); }
+  catch { return false; }
 }
 
 function matchesServerEvidence(serverEvidence, expected, receiptText) {
@@ -94,7 +99,7 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverE
           continue;
         }
         const started = pending.get(item.id);
-        if (!started || started.tool !== item.tool || JSON.stringify(started.arguments) !== JSON.stringify(item.arguments)) {
+        if (!started || started.tool !== item.tool || !sameJsonValue(started.arguments, item.arguments)) {
           invalid = true;
           continue;
         }
