@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput } = require('../src/engine');
+const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput, fileIdentity } = require('../src/engine');
 const { recordHook } = require('../src/hook');
 const { normalizeAdapterEvent } = require('../src/event-contract');
 const { spawnSync } = require('node:child_process');
@@ -927,6 +927,14 @@ test('case-insensitive path collision detection checks every path segment', () =
   assert.deepEqual(caseInsensitivePathCollisions(['Assets/icon.svg', 'assets/logo.svg']), ['Assets', 'assets']);
   assert.deepEqual(caseInsensitivePathCollisions(['src/A.js', 'src/B.js']), []);
   assert.deepEqual(caseInsensitivePathCollisions(['src/A.js', 'test/a.js']), []);
+});
+
+test('filesystem path alias identities preserve 64-bit file IDs exactly', () => {
+  const firstIno = 9007199254740992n;
+  const secondIno = 9007199254740993n;
+  assert.equal(Number(firstIno), Number(secondIno)); // Number cannot distinguish these valid IDs.
+  assert.notEqual(fileIdentity({ dev: 7n, ino: firstIno }), fileIdentity({ dev: 7n, ino: secondIno }));
+  assert.throws(() => fileIdentity({ dev: 7, ino: Number(firstIno) }), /requires BigInt filesystem stats/);
 });
 
 test('Git path output rejects invalid UTF-8 instead of decoding a replacement pathname', () => {

@@ -103,6 +103,13 @@ function caseInsensitivePathCollisions(paths) {
   return [...collisions].sort();
 }
 
+function fileIdentity(stat) {
+  if (typeof stat?.dev !== 'bigint' || typeof stat?.ino !== 'bigint') {
+    throw new Error('File identity requires BigInt filesystem stats');
+  }
+  return `${stat.dev}:${stat.ino}`;
+}
+
 function text(bytes) {
   if (bytes.includes(0)) throw new Error('Binary file');
   return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
@@ -519,14 +526,16 @@ class Chronicle {
         }
         const outputInodes = new Map();
         for (const [name, file] of expected) {
-          const full = safePath(target, name), stat = fs.lstatSync(full);
+          const full = safePath(target, name), stat = fs.lstatSync(full, { bigint: true });
           if (!stat.isFile()) throw new Error('Output path is not a regular file: ' + name);
-          const identity = `${stat.dev}:${stat.ino}`;
+          // Windows file IDs are 64-bit; Number-valued Stats.ino can round two
+          // distinct files to the same value and falsely report an alias.
+          const identity = fileIdentity(stat);
           const previous = outputInodes.get(identity);
           if (previous && previous !== name) throw new Error(`Output paths alias on the target filesystem: ${previous}, ${name}`);
           outputInodes.set(identity, name);
           if (hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== hash(file.bytes)) throw new Error('Output verification failed after all writes: ' + name);
-          const mode = process.platform === 'win32' ? file.mode : stat.mode & 0o111 ? '100755' : '100644';
+          const mode = process.platform === 'win32' ? file.mode : stat.mode & 0o111n ? '100755' : '100644';
           if (mode !== file.mode) throw new Error('Output mode verification failed: ' + name);
         }
         op.state = 'completed';
@@ -1142,4 +1151,4 @@ class Chronicle {
   }
 }
 
-module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput };
+module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput, fileIdentity };

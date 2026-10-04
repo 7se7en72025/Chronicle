@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Use exact BigInt device/file identities when verifying selected output files so Windows' rounded 64-bit `Stats.ino` values cannot falsely classify distinct paths as aliases.
 - Package Codex lifecycle hooks through `.codex-plugin/plugin.json` after Codex CLI 0.160.0 loaded zero hooks from Chronicle's Agent Plugins v1 root manifest; the compatibility layout recorded two session-end checkpoints in a disposable host fixture.
 - Keep hook stderr diagnostics fixed and omit exception text that could disclose local workspace or storage paths.
 - Refuse case-only output path collisions on Windows and verify every branch file again after all writes before marking an operation complete.

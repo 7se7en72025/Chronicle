@@ -1,5 +1,13 @@
 # Latest development review
 
+## Windows branch-output file identity precision — 2026-10-05
+
+**P2 — Valid Windows output paths could be rejected as aliases (fixed).** `Chronicle.createBranch` compared `${stat.dev}:${stat.ino}` using default Node `Stats`, whose `ino` is a JavaScript Number. Windows file identifiers are 64-bit and may exceed Number's exact integer range; distinct IDs then round to the same value. The failure reproduced in the saved-output manifest test after four passes, with two different path pairs reported. It is a false positive in the defensive verification gate, not evidence that the files were actually aliases.
+
+The writer now obtains `fs.lstatSync(..., { bigint: true })` and compares exact BigInt device/file IDs. Executable mode checking uses a BigInt mask. A focused unit test uses adjacent integers above 2^53 that convert to the same Number and verifies their BigInt identities remain distinct.
+
+**Verification:** the focused identity regression passes, `npm.cmd run check` passes, and the complete Windows suite passes 101/104 with three Linux-only skips. One five-run pre-fix repetition reproduced the alias report; a post-fix eight-run repetition produced seven passes and one unrelated `spawnSync git ETIMEDOUT` during reconciliation. The focused branch-manifest test then passed, as did the complete suite, controlled replay demo, root Markdown relative-link check, and `git diff --check`. The isolated timeout's cause is not established. Host-trust and real-editor gates remain open; no host settings changed. No independent reviewer participated.
+
 ## Codex plugin lifecycle hooks require the compatibility manifest on CLI 0.160.0 (2026-10-05)
 
 **P2 — Chronicle's portable root `plugin.json` was accepted as an installed plugin but Codex CLI 0.160.0 loaded zero lifecycle hooks from it.** Two `/hooks` views showed zero installed/active hooks for the source-matched Agent Plugins v1 package, including a run with `features.hooks=true`. This exactly matches the open [Codex CLI issue #47925](https://github.com/openai/codex/issues/47925), which reports that Agent Plugins v1 roots bypass plugin hook loading despite the current packaging guide describing `extensions.com.openai.hooks` support. The official guide says a Codex compatibility manifest at `.codex-plugin/plugin.json` is supported.
