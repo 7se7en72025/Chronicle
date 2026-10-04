@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Specify proposed fail-closed host-coverage criteria for O014, explicitly distinguishing partial observation from controlled replay completeness.
 - Reconcile D008's Codex host status with the narrow temporary-inline-hook evidence while retaining the shipped-plugin, editor, and Claude verification gaps.
 - Correct the Codex host setup note to distinguish observed temporary inline-hook delivery from the still-unverified shipped plugin trust/loading and Bash/file-edit paths.
 - Add a recovery fixture proving an orphan atomic fixture-journal temp is listed and preserved when no main journal was published.

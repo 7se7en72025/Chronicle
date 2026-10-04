@@ -1,5 +1,11 @@
 # Latest development review
 
+## O014 proposed host-coverage gate (2026-10-04)
+
+**P2 — Temporary host traces could be misread as exhaustive replay coverage (contract clarified; implementation remains open).** The observed Codex policy-blocked shell attempt appeared in native stderr but not as a JSONL command item. Existing CLI auditing catches this diagnostic and requires stderr for host/server consistency, but neither stream proves that every tool path was observed. Added a proposed architecture contract separating `partial-observed`, `unknown`, `complete-controlled`, and `replay-complete`, with per-call `fixture-injected`, `live-observed`, `rejected/unmatched`, or `unknown` provenance. Complete binding would require dispatcher control over every tool route, shared run identity, ordered call/outcome reconciliation, matching hashes/counts, and a valid finish receipt. The current Codex probe remains partial, and no new host binding or capture claim was implemented.
+
+**Verification:** compared the proposed gate to the observed missing JSONL shell item, failed-call behavior, and sidecar/receipt contract already documented in [REVIEW.md](REVIEW.md) and [RELEASE_AUDIT.md](RELEASE_AUDIT.md). Relative links, terminology consistency, and `git diff --check` pass; application tests do not apply to this design-only change. This is a same-agent sequential review.
+
 ## D008 Codex host-status wording (2026-10-04)
 
 **P2 — D008 understated later narrow Codex CLI evidence (documentation corrected).** `DECISIONS.md` still said both real Codex and Claude sessions were unverified. That matched the initial decision point but not later recorded temporary inline-hook probes for Codex session lifecycle and fixture MCP pre/post-tool checkpoints. Updated D008 to state the timeline and preserve the remaining gaps: shipped plugin trust/loading, Bash/file-edit coverage, editor flow, and Claude delivery. No installation or trust setting changed.

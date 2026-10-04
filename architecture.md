@@ -248,6 +248,16 @@ The host hook APIs offer limited input/output rewriting, but a post-tool output 
 
 For replay that must avoid external effects, route the agent through an explicitly controlled fixture tool or an orchestrator-owned dispatcher that can return cassette data before any real tool executes. Keep host hooks as observations/guards unless a host-specific integration proves a pre-execution substitution path. No such agent-facing integration is implemented or host-validated here.
 
+#### Proposed O014 host-run coverage gate (not implemented)
+
+Keep per-call provenance separate from run completeness: `fixture-injected` means the controlled dispatcher returned the pinned cassette response; `live-observed` means a host boundary explicitly reported a real tool call; `rejected/unmatched` means the fixture dispatcher refused the input; and `unknown` means the call or outcome cannot be classified. An observed live call never implies that other tools were observed, and an absent event never proves that no call occurred.
+
+Classify a host run as `partial-observed` when an adapter sees some boundaries without an enforceable guarantee that every tool route is covered. Use `unknown` when any boundary is missing or unpaired, a call has no terminal result, the run lacks a trusted completion receipt, the host and dispatcher ledgers conflict, or an unrecognized diagnostic indicates hidden activity. Only a controller-owned, allowlisted dispatcher that intercepts every tool before external effects and records every attempted call plus terminal outcome may declare `complete-controlled`. A host-hook implementation needs a host-specific proof that no alternate command, plugin, or native tool route escapes that dispatcher.
+
+Future host-bound fixture replay may be called `replay-complete` only when the run is `complete-controlled`, session and call events share the launcher's run ID, every call is fixture-injected in cassette order, host and child evidence agree on counts and hashes, the finish receipt is valid, and there are no live, rejected, or unknown calls. Otherwise preserve available events with a partial/unknown label and refuse complete-replay binding; retain all files for inspection. The current Codex JSONL/stderr probe is partial evidence: a policy-blocked shell attempt appeared on stderr but not as a JSONL command item, so it cannot establish exhaustiveness. These are proposed criteria, not a guarantee from current plugin hooks or an implementation claim.
+
+Minimum negative acceptance cases for a future adapter are an omitted/policy-rejected tool event, a missing post-event after a failed tool, an extra or duplicate completion receipt, sidecar/journal count or hash drift, and any unclassified diagnostic. Each case must prevent `replay-complete` and preserve the source workspace, index, and evidence.
+
 ## 10. Main data records
 
 | Record | What it stores |
