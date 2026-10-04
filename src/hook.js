@@ -26,7 +26,7 @@ if (require.main === module) {
       const input = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, inputBytes));
       recordHook(JSON.parse(input), undefined, process.argv[2] === 'codex' ? 'codex-cli' : 'claude-code');
     }
-    catch (error) { console.error('Chronicle capture skipped: ' + error.message); }
+    catch { console.error('Chronicle capture skipped; error details omitted.'); }
     // Recorder failures do not reject the agent's action or inject model context.
   });
 }

@@ -1330,17 +1330,38 @@ test('hook stdin limit counts UTF-8 bytes before parsing or capturing', t => {
   assert.ok(input.length < 1024 * 1024 && Buffer.byteLength(input, 'utf8') > 1024 * 1024);
   const oversized = spawnSync(process.execPath, [hook, 'codex'], { cwd: root, env, input, encoding: 'utf8' });
   assert.equal(oversized.status, 0, oversized.stderr);
-  assert.match(oversized.stderr, /Hook payload exceeds 1 MiB/);
+  assert.match(oversized.stderr, /^Chronicle capture skipped; error details omitted\.\n?$/);
   assert.equal(engine.list().length, 0);
   const malformed = Buffer.from(JSON.stringify({ ...payload, tool_input: { command: 'MALFORMED_HOOK_PAYLOAD' } }), 'utf8');
   malformed[malformed.indexOf(Buffer.from('MALFORMED_HOOK_PAYLOAD'))] = 0xff;
   const invalid = spawnSync(process.execPath, [hook, 'codex'], { cwd: root, env, input: malformed, encoding: 'utf8' });
   assert.equal(invalid.status, 0, invalid.stderr);
-  assert.match(invalid.stderr, /Chronicle capture skipped/);
+  assert.match(invalid.stderr, /^Chronicle capture skipped; error details omitted\.\n?$/);
   assert.equal(engine.list().length, 0);
   const accepted = spawnSync(process.execPath, [hook, 'codex'], { cwd: root, env, input: JSON.stringify({ ...payload, tool_input: { command: 'read-only' } }), encoding: 'utf8' });
   assert.equal(accepted.status, 0, accepted.stderr);
   assert.equal(engine.list().length, 1);
+});
+
+test('hook stderr omits local paths when recorder initialization fails', t => {
+  const { root } = fixture(t);
+  const hook = path.join(__dirname, '..', 'src', 'hook.js');
+  const storage = path.join(path.dirname(root), 'PRIVATE_STORAGE_PATH_MARKER');
+  const repoStore = path.join(storage, hash(root).slice(0, 24));
+  fs.mkdirSync(repoStore, { recursive: true });
+  const pathSecret = 'PRIVATE_STORAGE_PATH_MARKER';
+  fs.writeFileSync(path.join(repoStore, 'blobs'), 'block directory creation');
+  const payload = JSON.stringify({ cwd: root, hook_event_name: 'SessionStart', session_id: 'session' });
+  const result = spawnSync(process.execPath, [hook, 'codex'], {
+    cwd: root,
+    env: { ...process.env, CHRONICLE_HOME: storage },
+    input: payload,
+    encoding: 'utf8'
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, 'Chronicle capture skipped; error details omitted.\n');
+  assert.equal(result.stderr.includes(root), false);
+  assert.equal(result.stderr.includes(pathSecret), false);
 });
 
 test('Codex plugin config references only fixture-supported lifecycle hooks', () => {

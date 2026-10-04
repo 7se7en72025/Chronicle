@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Keep hook stderr diagnostics fixed and omit exception text that could disclose local workspace or storage paths.
 - Refuse case-only output path collisions on Windows and verify every branch file again after all writes before marking an operation complete.
 - Keep branch-comparable usage unavailable until host token counters have a verified per-run boundary; document that token counts are not billed-dollar cost.
 - Verify interrupted guarded undo preserves a completed temporary restore file for inspection while reconciliation exposes the remaining dirty worktree.

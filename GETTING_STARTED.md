@@ -124,7 +124,7 @@ The root `plugin.json` selects [Codex hook configuration](hooks/codex-hooks.json
 - Default storage: a `Chronicle` directory under Windows local application data, or `~/.local/share` on other systems. Each repository has a separate store.
 - Override with `CHRONICLE_HOME`, outside the recorded repository. Set it consistently for the CLI, extension host, and hooks to share history.
 - Snapshots contain supported tracked and non-ignored untracked files. Git-ignored files are omitted. Limits: 1 MiB per file and 32 MiB per checkpoint.
-- Hook stdin is limited to 1 MiB of UTF-8 bytes. An oversized or malformed hook payload is skipped and reported on stderr; without a trustworthy repository root, Chronicle cannot attach that event to a repository gap record.
+- Hook stdin is limited to 1 MiB of UTF-8 bytes. Invalid input or capture failures produce a fixed stderr diagnostic with exception details omitted; without a trustworthy repository root, Chronicle cannot attach that event to a repository gap record.
 - `.env` variants, private-key filenames, dependency/build directories, symlinks, binary files, non-UTF-8 files, and unsupported Git modes are excluded and reported. The policy is fixed in this prototype.
 - Branch output refuses captures with exclusions. Use a small supported text fixture for now.
 - Snapshots use JSON metadata and content-addressed blobs. Saved blobs are checked as regular files within the 1 MiB file limit when read or reused; damaged entries stop the operation for inspection. SQLite migration and retention controls are planned.

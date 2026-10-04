@@ -1,5 +1,13 @@
 # Latest development review
 
+## Hook failure diagnostics disclose local paths (fixed, 2026-10-04)
+
+**P2 — `src/hook.js` printed `error.message` directly to host stderr.** Engine initialization and capture errors can embed the Chronicle storage directory or repository-relative path, allowing host logs to retain local filesystem details even though event payloads are excluded from evidence.
+
+Hook failures now emit one fixed diagnostic and omit exception text. Added child-process coverage that makes Chronicle initialization fail on a path containing a distinctive marker and asserts stderr contains neither that marker nor the repository root. Oversized and invalid UTF-8 stdin coverage now asserts the fixed diagnostic too. Invalid input without a trusted root still cannot be attached to a repository gap record.
+
+**Verification:** focused stdin/privacy tests pass 2/2; `npm.cmd test` passes 100 tests with 3 Linux-only integrations skipped on Windows (103 total); `npm.cmd run check`, `npm.cmd run demo:replay`, relative Markdown links across 16 root files, and `git diff --check` pass. The full suite first exposed an accidental destructuring edit in the unrelated Unicode filename test; that fixture was restored and the clean rerun passed. A second pass over the final diff found no additional issue; same-agent review only, no independent reviewer participated.
+
 ## Non-UTF-8 Git path output could be silently omitted (fixed)
 
 **P1 — `src/engine.js:git` and `Chronicle.inventory` decoded NUL-delimited Git pathname bytes with replacement semantics (fixed).** Git documents that `-z` emits paths verbatim, while Git pathnames can be byte sequences that are not UTF-8. Passing those bytes through Node's permissive `encoding: 'utf8'` can turn an invalid byte into U+FFFD; the resulting JavaScript path no longer names the original file, and the inventory's missing-file path could silently omit it. That could make capture or selected output appear complete while omitting a path. See the primary [Git `ls-files` documentation](https://git-scm.com/docs/git-ls-files) and [Git pathname encoding notes](https://git-scm.com/docs/git-show#_discussion).
