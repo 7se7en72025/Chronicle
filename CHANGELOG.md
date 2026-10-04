@@ -6,6 +6,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 - Refuse case-only output path collisions on Windows and verify every branch file again after all writes before marking an operation complete.
 - Keep branch-comparable usage unavailable until host token counters have a verified per-run boundary; document that token counts are not billed-dollar cost.
+- Verify interrupted guarded undo preserves a completed temporary restore file for inspection while reconciliation exposes the remaining dirty worktree.
 - Preserve a sanitized capture-gap record when checkpoint capture rejects an unsupported adapter-event contract; retain unknown sources as `unknown` rather than attributing them to Claude.
 - Compare Codex trace start/completion arguments by canonical JSON value so object-key ordering does not create a false mismatch.
 - Specify proposed fail-closed host-coverage criteria for O014, explicitly distinguishing partial observation from controlled replay completeness.

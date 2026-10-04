@@ -810,6 +810,35 @@ test('guarded undo resumes a partially restored multi-file operation', t => {
   assert.equal(fs.readFileSync(path.join(op.target, 'second.txt'), 'utf8'), 'old\n');
 });
 
+test('guarded undo preserves a verified restore temp across a rename interruption', t => {
+  const { root, engine, file } = fixture(t);
+  const before = engine.capture(); fs.writeFileSync(file, 'changed\n'); const after = engine.capture();
+  const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const op = engine.createBranch(before.id, after.id, ids, 'chronicle/undo-temp-recovery');
+  const output = path.join(op.target, 'README.md');
+  const originalRename = fs.renameSync;
+  fs.renameSync = (source, destination) => {
+    if (String(source).includes('.chronicle-undo-')) throw new Error('simulated interruption before undo rename');
+    return originalRename(source, destination);
+  };
+  try { assert.throws(() => engine.undoOperation(op.id), /simulated interruption before undo rename/); }
+  finally { fs.renameSync = originalRename; }
+  const candidates = fs.readdirSync(op.target).filter(name => /^README\.md\.chronicle-undo-[a-f0-9-]{36}\.tmp$/.test(name));
+  assert.equal(candidates.length, 1);
+  const candidate = path.join(op.target, candidates[0]);
+  const candidateBytes = fs.readFileSync(candidate);
+  assert.equal(candidateBytes.toString(), 'one\ntwo\nthree\n');
+  assert.equal(fs.readFileSync(output, 'utf8'), 'changed\n');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(engine.store, 'operations', op.id + '.json'), 'utf8')).state, 'undoing');
+
+  assert.equal(engine.undoOperation(op.id).state, 'undone');
+  assert.equal(fs.readFileSync(output, 'utf8'), 'one\ntwo\nthree\n');
+  assert.equal(fs.readFileSync(candidate).equals(candidateBytes), true, 'recovery must leave the orphan temp for inspection');
+  const assessment = engine.reconcileOperations().find(item => item.id === op.id);
+  assert.equal(assessment.assessment, 'operation-undone');
+  assert.equal(assessment.dirty, true, 'the preserved temp remains visible as untracked output');
+});
+
 test('exclusions are reported and incomplete output is rejected', t => {
   const { root, engine, file } = fixture(t);
   fs.writeFileSync(path.join(root, '.env'), 'SECRET=value'); fs.writeFileSync(path.join(root, 'binary.dat'), Buffer.from([0, 1, 2]));

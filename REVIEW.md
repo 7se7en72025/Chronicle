@@ -1,5 +1,13 @@
 # Latest development review
 
+## Guarded-undo rename interruption coverage (verified existing recovery; 2026-10-04)
+
+**P2 — The write-ahead temporary-file boundary in guarded undo lacked a failure-injection regression (coverage added).** `src/engine.js:Chronicle.undoOperation` fsyncs `<selected-path>.chronicle-undo-<uuid>.tmp` before renaming it over the selected output. Existing recovery tests simulated interruption after a selected file was already restored, but not after the temporary bytes were durable and before rename.
+
+Added a disposable regression that forces only the temp-to-output rename to fail. The undo journal remains `undoing`, the selected result file remains unchanged, and the verified temp bytes remain intact. Retrying undo restores the selected path; Chronicle deliberately does not delete the orphan temp, and `reconcileOperations` reports `operation-undone` with `dirty: true`. This keeps cleanup human-reviewed and makes the leftover visible rather than silently removing an untracked file.
+
+**Verification:** focused interruption/resume tests pass 2/2. The full serial suite passes 97/97, `npm.cmd run check` passes, all 16 root Markdown files have no broken relative links, and `git diff --check` passes. Final diff review confirms the test injects only the temp rename failure, restores the monkeypatch in `finally`, compares preserved bytes, and verifies dirty reconciliation after a successful retry. No production workspace, Git index, or STOP marker was changed. Same-agent review only; no independent reviewer participated.
+
 ## Codex usage counters are not yet branch-cost evidence (roadmap gate clarified, 2026-10-04)
 
 **P2 — `turn.completed.usage` cannot currently be treated as the cost of one selected branch (documented; no accounting code added).** The official Codex SDK event type exposes token counters. A recent [Codex CLI issue](https://github.com/openai/codex/issues/49574) reports that resumed-thread totals in 0.159.2 include earlier turns even though the SDK describes the fields as turn usage. The issue is version-specific and does not prove 0.160.0 behaves identically, but it makes an unvalidated sum unsafe. Token counts also do not independently establish dollar charges or subscription quota consumption. `src/engine.js:createBranch` correctly writes `reportedCost: null`, and `src/extension.js:renderComparison` displays it as unavailable.
