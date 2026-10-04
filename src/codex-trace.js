@@ -55,6 +55,23 @@ function matchesServerEvidence(serverEvidence, expected, receiptText) {
   });
 }
 
+function classifyCoverage({ traceStructureValid, traceCallsMatchCassette, finishCalls, failedCalls,
+  otherToolItems, hostErrorItems, pendingCalls, serverEvidence, serverEvidenceMatches,
+  diagnosticsBytes, hostDiagnosticLines }) {
+  const reasons = [];
+  if (!traceStructureValid) reasons.push('trace-structure-invalid');
+  if (!traceCallsMatchCassette) reasons.push('visible-cassette-calls-incomplete');
+  if (failedCalls || pendingCalls) reasons.push('host-boundary-failed-or-pending');
+  if (otherToolItems || hostErrorItems) reasons.push('other-host-tool-or-error-present');
+  if (finishCalls !== 1 || serverEvidence === null) reasons.push('completion-receipt-unavailable');
+  else if (serverEvidenceMatches !== true) reasons.push('completion-receipt-mismatch');
+  if (diagnosticsBytes === null) reasons.push('host-diagnostics-unavailable');
+  else if (hostDiagnosticLines !== 0) reasons.push('host-diagnostics-present');
+
+  // Matching visible records still cannot prove that every host tool route was observed.
+  return { classification: reasons.length === 0 ? 'partial-observed' : 'unknown', reasons };
+}
+
 function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverEvidence = null, diagnosticsBytes = null) {
   if (!Buffer.isBuffer(bytes) || bytes.length > MAX_TRACE_BYTES) throw new Error('Codex trace exceeds the 4 MiB limit');
   const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
@@ -144,11 +161,14 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverE
     pending.size === 0 && failedCalls === 0 && otherToolItems === 0 && hostErrorItems === 0 && traceCallsMatchCassette &&
     (serverEvidence === null ? finishCalls === 0 : finishCalls === 1) &&
     (serverEvidence === null ? hostDiagnosticLines === null || hostDiagnosticLines === 0 : hostDiagnosticLines === 0);
+  const coverage = classifyCoverage({ traceStructureValid: !invalid, traceCallsMatchCassette,
+    finishCalls, failedCalls, otherToolItems, hostErrorItems, pendingCalls: pending.size,
+    serverEvidence, serverEvidenceMatches, diagnosticsBytes, hostDiagnosticLines });
   return {
     status: hostReportedMatch && serverEvidenceMatches === true ? 'host-server-evidence-consistent' :
       hostReportedMatch && serverEvidenceMatches === null ? 'host-reported-match' : 'review-required',
     matchedCalls, expectedCalls: cassette.calls.length, finishCalls, failedCalls, otherToolItems,
-    hostErrorItems, pendingCalls: pending.size, traceStructureValid: !invalid, traceCallsMatchCassette,
+    hostErrorItems, pendingCalls: pending.size, traceStructureValid: !invalid, traceCallsMatchCassette, coverage,
     ...(serverEvidence !== null ? { serverEvidenceMatches } : {}),
     ...(diagnosticsBytes !== null ? { hostDiagnosticLines } : {})
   };

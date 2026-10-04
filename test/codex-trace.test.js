@@ -30,7 +30,8 @@ test('Codex trace inspector checks ordered fixture calls and refuses ambiguous h
   const accepted = inspectCodexTrace(bytes(complete()), cassette);
   assert.deepEqual(accepted, { status: 'host-reported-match', matchedCalls: 2, expectedCalls: 2,
     finishCalls: 0, failedCalls: 0, otherToolItems: 0, hostErrorItems: 0, pendingCalls: 0,
-    traceStructureValid: true, traceCallsMatchCassette: true });
+    traceStructureValid: true, traceCallsMatchCassette: true,
+    coverage: { classification: 'unknown', reasons: ['completion-receipt-unavailable', 'host-diagnostics-unavailable'] } });
   assert.equal(JSON.stringify(accepted).includes('README headings'), false);
 
   const failed = complete();
@@ -48,10 +49,12 @@ test('Codex trace inspector checks ordered fixture calls and refuses ambiguous h
   extra.splice(6, 0, { type: 'item.completed', item: { id: 'item_other', type: 'command_execution', status: 'completed' } });
   assert.equal(inspectCodexTrace(bytes(extra), cassette).otherToolItems, 1);
   assert.equal(inspectCodexTrace(bytes(extra), cassette).status, 'review-required');
+  assert.equal(inspectCodexTrace(bytes(extra), cassette).coverage.classification, 'unknown');
   const missing = complete();
   missing.splice(5, 1);
   assert.equal(inspectCodexTrace(bytes(missing), cassette).pendingCalls, 1);
   assert.equal(inspectCodexTrace(bytes(missing), cassette).status, 'review-required');
+  assert.equal(inspectCodexTrace(bytes(missing), cassette).coverage.classification, 'unknown');
   const warning = complete();
   warning.splice(2, 0, { type: 'item.completed', item: { id: 'warning', type: 'error' } });
   assert.equal(inspectCodexTrace(bytes(warning), cassette).status, 'review-required');
@@ -102,15 +105,21 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   assert.equal(accepted.status, 'review-required');
   assert.equal(accepted.serverEvidenceMatches, true);
   assert.equal(accepted.finishCalls, 1);
+  assert.equal(accepted.coverage.classification, 'unknown');
+  assert.ok(accepted.coverage.reasons.includes('host-diagnostics-unavailable'));
   const benignDiagnostics = Buffer.from('Reading additional input from stdin...\r\n');
-  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence, benignDiagnostics).status,
-    'host-server-evidence-consistent');
-  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence,
-    Buffer.concat([benignDiagnostics, benignDiagnostics])).status, 'review-required');
+  const consistent = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence, benignDiagnostics);
+  assert.equal(consistent.status, 'host-server-evidence-consistent');
+  assert.deepEqual(consistent.coverage, { classification: 'partial-observed', reasons: [] });
+  const duplicateDiagnostic = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence,
+    Buffer.concat([benignDiagnostics, benignDiagnostics]));
+  assert.equal(duplicateDiagnostic.status, 'review-required');
+  assert.equal(duplicateDiagnostic.coverage.classification, 'unknown');
   const hiddenToolError = Buffer.from('Reading additional input from stdin...\nERROR codex_core::tools::router: PRIVATE_COMMAND rejected by policy\n');
   const withError = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence, hiddenToolError);
   assert.equal(withError.status, 'review-required');
   assert.equal(withError.hostDiagnosticLines, 1);
+  assert.equal(withError.coverage.classification, 'unknown');
   assert.equal(JSON.stringify(withError).includes('PRIVATE_COMMAND'), false);
   assert.equal(inspectCodexTrace(bytes(complete()), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
   assert.equal(inspectCodexTrace(bytes(withFinish), cassette).status, 'review-required');
@@ -123,7 +132,9 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   const drifted = { ...serverEvidence, sidecarBytes: Buffer.from(lines.replace('injected-fixture', 'rejected-fixture')) };
   assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', drifted).status, 'review-required');
   const wrongRun = { ...serverEvidence, completionBytes: Buffer.from(JSON.stringify({ ...completion, runId: crypto.randomUUID() }) + '\n') };
-  assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', wrongRun).serverEvidenceMatches, false);
+  const wrongRunResult = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', wrongRun);
+  assert.equal(wrongRunResult.serverEvidenceMatches, false);
+  assert.equal(wrongRunResult.coverage.classification, 'unknown');
   const hostFailed = structuredClone(withFinish);
   hostFailed[3].item.status = 'failed';
   assert.equal(inspectCodexTrace(bytes(hostFailed), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
@@ -141,6 +152,7 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   const good = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
   assert.equal(good.status, 0, good.stderr);
   assert.equal(JSON.parse(good.stdout).status, 'host-server-evidence-consistent');
+  assert.equal(JSON.parse(good.stdout).coverage.classification, 'partial-observed');
   fs.writeFileSync(paths[4], hiddenToolError);
   const warned = spawnSync(process.execPath, [script, ...paths], { encoding: 'utf8' });
   assert.equal(warned.status, 2, warned.stderr);

@@ -76,7 +76,7 @@ Reason: direct `createBranch` has no shared identifier with an independently sta
 
 Revisit for durable subprocess interruption recovery or host event IDs and lifecycle guarantees.
 
-Proposed host-bound coverage categories and binding criteria are documented in [architecture.md](architecture.md#proposed-o014-host-run-coverage-gate-not-implemented). Temporary Codex traces are partial observations; the proposed completeness gate is not implemented.
+The read-only Codex trace inspector reports only `partial-observed` or `unknown` coverage under the criteria in [architecture.md](architecture.md#proposed-o014-host-run-coverage-gate-not-implemented). Host-bound `complete-controlled`/`replay-complete` classification and branch binding remain unimplemented; temporary Codex traces do not prove exhaustive observation.
 
 ## D012 — Allow the optional laptop runner on battery
 
