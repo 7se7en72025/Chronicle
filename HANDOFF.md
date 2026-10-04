@@ -2,6 +2,10 @@
 
 Updated: 2026-10-04.
 
+## Latest verified local change
+
+The Windows branch writer now refuses case-only Git path collisions before creating an operation and verifies all written output files again before declaring completion. The disposable Windows regression reproduces colliding Git index paths and confirms the refusal leaves the source file, index, operation journal, and output worktrees unchanged. Pure tests cover filename and directory-segment collisions. The full suite passes 96/96, `npm.cmd run check` passes, and `npm.cmd run demo:replay` succeeds. This change is locally verified but not yet committed or pushed; see the latest [REVIEW.md](REVIEW.md) entry. Untracked `BOLPREP.md` remains untouched.
+
 ## State
 
 The user authorized implementation. A dependency-free local prototype now exists: checkpoint engine, CLI, VS Code review panel, and optional Claude Code hook adapter. It is not published or deployed. The Windows Codex CLI task uses a clean sibling checkout and may run on battery. Its 17:18 UTC cycle stopped without edits after its restricted PATH hid `codex` and `claude`; the supervisor had launched Codex. Local O014 recovery and evidence work was then verified and normally pushed, with both checkouts synced. Task Scheduler reports `Ready`, but the task remains STOP-gated; the marker is preserved. The chat heartbeat remains paused. Real Codex CLI 0.160.0 runs called read-only fixture MCP tools and delivered session and fixture MCP pre/post-tool checkpoints through temporary inline hooks with external storage; see [REVIEW.md](REVIEW.md). Full agent replay, the shipped plugin's runtime hook delivery, Bash/file-edit boundaries, and the review UI remain unvalidated.

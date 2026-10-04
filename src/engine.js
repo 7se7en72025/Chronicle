@@ -71,6 +71,24 @@ function safePath(root, relative) {
   return resolved;
 }
 
+function caseInsensitivePathCollisions(paths) {
+  const seen = new Map(), collisions = new Set();
+  for (const name of paths) {
+    let exactPrefix = '', foldedPrefix = '';
+    for (const part of name.split('/')) {
+      exactPrefix = exactPrefix ? exactPrefix + '/' + part : part;
+      const key = foldedPrefix + '\0' + part.toLowerCase();
+      const previous = seen.get(key);
+      if (previous && previous.part !== part) {
+        collisions.add(previous.path);
+        collisions.add(exactPrefix);
+      } else if (!previous) seen.set(key, { part, path: exactPrefix });
+      foldedPrefix = foldedPrefix ? foldedPrefix + '/' + part.toLowerCase() : part.toLowerCase();
+    }
+  }
+  return [...collisions].sort();
+}
+
 function text(bytes) {
   if (bytes.includes(0)) throw new Error('Binary file');
   return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
@@ -448,6 +466,15 @@ class Chronicle {
       const baseline = this.checkpoint(from);
       // An incomplete baseline cannot be represented as an exact selected output.
       if (baseline.excluded.length || this.checkpoint(to).excluded.length) throw new Error('Capture has excluded files. Use a smaller text-only fixture for branch output in this prototype.');
+      const outputPaths = new Set(Object.keys(baseline.files));
+      for (const file of preview.files) {
+        if (file.content === null) outputPaths.delete(file.path);
+        else outputPaths.add(file.path);
+      }
+      if (process.platform === 'win32') {
+        const collisions = caseInsensitivePathCollisions([...outputPaths]);
+        if (collisions.length) throw new Error('Output paths collide on this case-insensitive Windows target: ' + collisions.slice(0, 8).join(', '));
+      }
       const id = crypto.randomUUID(), target = path.join(this.store, 'worktrees', id);
       const journal = path.join(this.store, 'operations', id + '.json');
       const op = { id, from, to, selected, branch, target, head: baseline.head, state: 'prepared', createdAt: new Date().toISOString(), modelRequests: 0 };
@@ -475,6 +502,18 @@ class Chronicle {
           fs.writeFileSync(full, file.bytes);
           if (process.platform !== 'win32') fs.chmodSync(full, file.mode === '100755' ? 0o755 : 0o644);
           if (hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== hash(file.bytes)) throw new Error('Output verification failed: ' + name);
+        }
+        const outputInodes = new Map();
+        for (const [name, file] of expected) {
+          const full = safePath(target, name), stat = fs.lstatSync(full);
+          if (!stat.isFile()) throw new Error('Output path is not a regular file: ' + name);
+          const identity = `${stat.dev}:${stat.ino}`;
+          const previous = outputInodes.get(identity);
+          if (previous && previous !== name) throw new Error(`Output paths alias on the target filesystem: ${previous}, ${name}`);
+          outputInodes.set(identity, name);
+          if (hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== hash(file.bytes)) throw new Error('Output verification failed after all writes: ' + name);
+          const mode = process.platform === 'win32' ? file.mode : stat.mode & 0o111 ? '100755' : '100644';
+          if (mode !== file.mode) throw new Error('Output mode verification failed: ' + name);
         }
         op.state = 'completed';
         op.files = [...expected].map(([name, file]) => ({ path: name, hash: hash(file.bytes) }));
@@ -1086,4 +1125,4 @@ class Chronicle {
   }
 }
 
-module.exports = { Chronicle, git, hash, safePath };
+module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions };

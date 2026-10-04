@@ -1,5 +1,13 @@
 # Latest development review
 
+## Case-insensitive Git path collision in branch output (2026-10-04)
+
+**P1 — Distinct Git paths could alias on Windows and leave a completed operation inconsistent with its manifest (fixed).** In `src/engine.js:Chronicle.createBranch`, expected files were written and verified one at a time. On a case-insensitive filesystem, a later `case.txt` write can replace `Case.txt`; the earlier verification had already passed, so the operation could be marked completed with one incorrect output hash. A disposable Windows repo reproduced the failure before the fix using two case-distinct Git index paths.
+
+The engine now checks the complete selected output path set for case-fold collisions before journal/worktree creation on Windows. It also rechecks all expected files after the full write loop, requiring each to remain a regular file with a distinct device/inode identity and the expected bytes/mode before completion. The preflight includes directory-segment collisions. It conservatively refuses case-fold collisions on Windows even where a directory could be specially configured as case-sensitive; that configuration is not currently detected.
+
+**Verification:** the Windows-only regression ran on this Windows host. It stages a case-only index addition in a disposable repository and confirms branch creation refuses before an operation journal or worktree exists, leaving source bytes and the source Git index unchanged. Pure helper cases cover leaf collisions, directory-segment collisions, and non-colliding paths. The initial helper test exposed the intended directory-level diagnostic (`Assets`/`assets`); its assertion was corrected. Focused tests pass 3/3; the full serial suite passes 96/96; `npm.cmd run check`, `npm.cmd run demo:replay`, relative-link validation across root Markdown files, and `git diff --check` pass. The final diff review confirms the worktree case preflight precedes operation journal creation and the final byte/mode/identity pass precedes the completed state. Same-agent review only; no independent reviewer participated.
+
 ## VS Code CLI available; native UI helper unavailable (2026-10-04)
 
 **P2 — Real editor validation remains unobserved despite the VS Code CLI being present.** `code.cmd --version` reports VS Code 1.139.1 and `code.cmd --list-extensions` completes successfully. The supported Windows computer-use helper failed `sky.list_apps()` on three attempts: the initial call, a same-call retry after two seconds, and one retry after kernel reset/reinitialization. Each returned `Computer Use native pipe is unavailable`. No VS Code window was launched or manipulated. This proves CLI inventory only, not Extension Development Host startup, panel rendering, or editor integration.

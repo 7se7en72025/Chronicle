@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { Chronicle, git, hash, safePath } = require('../src/engine');
+const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions } = require('../src/engine');
 const { recordHook } = require('../src/hook');
 const { normalizeAdapterEvent } = require('../src/event-contract');
 const { spawnSync } = require('node:child_process');
@@ -871,6 +871,36 @@ test('corrupted snapshots fail integrity checks', t => {
   const { engine } = fixture(t); const cp = engine.capture(); const entry = cp.files['README.md'];
   fs.writeFileSync(path.join(engine.store, 'blobs', entry.hash), 'tampered');
   assert.throws(() => engine.bytes(entry), /integrity/);
+});
+
+test('case-insensitive path collision detection checks every path segment', () => {
+  assert.deepEqual(caseInsensitivePathCollisions(['Case.txt', 'case.txt']), ['Case.txt', 'case.txt']);
+  assert.deepEqual(caseInsensitivePathCollisions(['Assets/icon.svg', 'assets/logo.svg']), ['Assets', 'assets']);
+  assert.deepEqual(caseInsensitivePathCollisions(['src/A.js', 'src/B.js']), []);
+  assert.deepEqual(caseInsensitivePathCollisions(['src/A.js', 'test/a.js']), []);
+});
+
+test('Windows branch creation refuses case-only Git path collisions before mutation', { skip: process.platform !== 'win32' }, t => {
+  const { root, engine, file } = fixture(t, 'baseline\n');
+  const caseFile = path.join(root, 'Case.txt');
+  fs.renameSync(file, caseFile);
+  git(root, ['add', '-A']); git(root, ['commit', '-m', 'Case-sensitive path baseline']);
+  const before = engine.capture('Before case-only path');
+  const blob = spawnSync('git', ['hash-object', '-w', '--stdin'], { cwd: root, input: Buffer.from('added through alias\n'), encoding: 'utf8' });
+  assert.equal(blob.status, 0, blob.stderr);
+  git(root, ['update-index', '--add', '--cacheinfo', `100644,${blob.stdout.trim()},case.txt`]);
+  fs.writeFileSync(caseFile, 'added through alias\n');
+  const after = engine.capture('After case-only path');
+  const diff = engine.compare(before.id, after.id);
+  const addition = diff.changes.find(change => change.path === 'case.txt');
+  assert.ok(addition, JSON.stringify(diff.changes.map(change => change.path)));
+  const source = fs.readFileSync(caseFile);
+  const index = git(root, ['ls-files', '--stage', '-z']);
+  assert.throws(() => engine.createBranch(before.id, after.id, addition.hunks.map(hunk => hunk.id), 'chronicle/case-collision'), /collide on this case-insensitive Windows target/);
+  assert.equal(fs.readFileSync(caseFile).equals(source), true);
+  assert.equal(git(root, ['ls-files', '--stage', '-z']), index);
+  assert.deepEqual(fs.readdirSync(path.join(engine.store, 'operations')), []);
+  assert.deepEqual(fs.readdirSync(path.join(engine.store, 'worktrees')), []);
 });
 
 test('oversized or non-regular saved blobs cannot be read or reused', t => {
