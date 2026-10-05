@@ -129,3 +129,13 @@ Package Codex lifecycle hooks through `.codex-plugin/plugin.json` and do not inc
 Reason: a correctly installed but inert plugin is misleading; observed callbacks and host evidence take precedence over an unverified compatibility claim.
 
 Revisit when an updated Codex CLI lists and runs hooks from the root manifest in a disposable test, without a trust bypass, while preserving the compatibility and portability requirements.
+
+## D017 — Support maintained Node.js LTS runtimes
+
+Status: accepted for the local prototype.
+
+Require Node.js 22 or later for local CLI and hook execution. Verify the minimum and current maintained LTS lines (22 and 24) in the Windows/Linux CI matrix. Do not test against EOL Node versions as supported targets.
+
+Reason: Node.js 20 reached EOL on 2026-03-24. Declaring it supported would permit the local recorder and hook processes to run on a release that no longer receives security fixes. The Node project lists 22 and 24 as LTS; see [Node.js releases](https://nodejs.org/en/about/previous-releases) and [EOL policy](https://nodejs.org/en/about/eol).
+
+Revisit when Node.js 22 reaches EOL or the application requires a newer runtime; advance the floor only after CI verifies the new minimum.

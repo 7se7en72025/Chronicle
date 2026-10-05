@@ -1,6 +1,6 @@
 # Run the first Chronicle prototype
 
-This is a local development prototype, not a published extension. It has no npm runtime dependencies and makes no model or network requests. Requirements: Node.js 20 or later, Git, and optionally VS Code.
+This is a local development prototype, not a published extension. It has no npm runtime dependencies and makes no model or network requests. Requirements: Node.js 22 or later, Git, and optionally VS Code.
 
 ## Fast demonstration
 

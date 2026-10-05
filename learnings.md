@@ -2,6 +2,12 @@
 
 Reviewed: 2026-10-05. This is a short engineering synthesis, not a systematic literature review. It focuses on primary papers relevant to recording, debugging, replay, and evaluating tool-using coding agents. Each paper's result is separated from the product implication we infer from it.
 
+## Runtime support and cross-platform checks (2026-10-05)
+
+The official [Node.js releases table](https://nodejs.org/en/about/previous-releases) lists Node 20 as EOL since 2026-03-24 and Node 22 and 24 as LTS. The [EOL policy](https://nodejs.org/en/about/eol) states EOL releases no longer receive security updates. GitHub's official [`actions/setup-node`](https://github.com/actions/setup-node/releases) and [`actions/checkout`](https://github.com/actions/checkout/releases) repositories publish maintained workflow actions; Chronicle's new CI pins their reviewed immutable release commits and grants only `contents: read`.
+
+**Chronicle decision:** raise the local Node floor from 20 to 22, then run the full tests and syntax check on Node 22 and 24 on both Windows and Linux. This is a product support choice inferred from the vendor lifecycle evidence; passing tests on the local Windows Node 24 host alone does not prove the other three matrix cells. Those cells remain unverified until the pushed GitHub Actions workflow completes.
+
 ## Host usage evidence audit (2026-10-04)
 
 Codex's published [`turn.completed` event type](https://github.com/openai/codex/blob/main/sdk/typescript/src/events.ts) exposes input, cached-input, cache-write, output, and reasoning-output token counters. Those are token usage fields, not billed-dollar values. A [recent Codex CLI report](https://github.com/openai/codex/issues/49574) documents `turn.completed.usage` on resumed threads including earlier turns' totals in CLI/SDK 0.159.2, despite the SDK type describing per-turn usage. This issue report is version-specific evidence, not proof that every Codex release or host behaves the same.

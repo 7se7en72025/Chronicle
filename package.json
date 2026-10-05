@@ -4,7 +4,7 @@
   "description": "Capture local checkpoints and keep selected coding-agent changes.",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=20", "vscode": "^1.85.0" },
+  "engines": { "node": ">=22", "vscode": "^1.85.0" },
   "main": "./src/extension.js",
   "bin": { "chronicle": "./src/cli.js" },
   "scripts": { "test": "node --test test/*.test.js", "demo": "node scripts/demo.js", "demo:replay": "node scripts/simulated-replay-demo.js", "check": "node --check src/engine.js && node --check src/cli.js && node --check src/extension.js && node --check src/hook.js && node --check src/event-contract.js && node --check src/codex-trace.js && node --check src/simulated-replay.js && node --check src/simulated-replay-mcp.js && node --check src/sample-app.js && node --check src/sample-replay.js && node --check scripts/simulated-replay-demo.js && node --check scripts/simulated-replay-mcp.js && node --check scripts/inspect-codex-trace.js" },
