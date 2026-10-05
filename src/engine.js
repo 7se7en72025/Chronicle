@@ -1057,6 +1057,8 @@ class Chronicle {
           run = JSON.parse(readRegularLimited(file, 1024 * 1024).toString('utf8'));
         }
         catch { return null; }
+        if (!run || typeof run !== 'object' || Array.isArray(run) ||
+            run.id !== name.slice(0, -5) || run.kind !== 'chronicle.fixture-run' || run.schema !== 1) return null;
         if (run.binding?.operationId !== operation.id) continue;
         if (run.transport === 'stdio-subprocess') {
           try {
@@ -1074,7 +1076,8 @@ class Chronicle {
             !manifestHashes.has(run.binding.manifestHash) || run.candidateOperationId !== operation.id ||
             run.outcome?.status !== 'complete' || !Array.isArray(run.events) ||
             run.events.length !== run.outcome.consumedCalls ||
-            run.events.some((event, index) => event.kind !== 'injected-fixture' || event.sequence !== index + 1 ||
+            run.events.some((event, index) => !event || typeof event !== 'object' || Array.isArray(event) ||
+              event.kind !== 'injected-fixture' || event.sequence !== index + 1 ||
               event.runId !== run.id || event.cassetteHash !== run.cassetteHash || event.fixtureId !== run.fixtureId ||
               !/^[a-f0-9]{64}$/.test(event.requestHash) || !/^[a-f0-9]{64}$/.test(event.responseHash))) return null;
         matches.push({ runId: run.id, injectedFixtureCalls: run.events.length, rejectedFixtureCalls: 0, liveToolCalls: null });

@@ -94,8 +94,24 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
   fs.writeFileSync(damagedRun, '{broken');
   assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
+  for (const damaged of [null, [], 'not a run', 7, {},
+    { ...saved, id: crypto.randomUUID(), binding: null },
+    { ...saved, id: path.basename(damagedRun, '.json'), kind: 'not-a-fixture-run', binding: null },
+    { ...saved, id: path.basename(damagedRun, '.json'), schema: 2, binding: null }]) {
+    const bytes = JSON.stringify(damaged);
+    fs.writeFileSync(damagedRun, bytes);
+    const inspected = engine.compareOperations(op.id, stale.id);
+    assert.equal(inspected.first.fixtureEvidence, null);
+    assert.deepEqual(inspected.files, comparison.files);
+    assert.equal(fs.readFileSync(damagedRun, 'utf8'), bytes);
+  }
   fs.unlinkSync(damagedRun);
   assert.deepEqual(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, comparison.first.fixtureEvidence);
+  const boundBytes = fs.readFileSync(fileName);
+  const boundRun = JSON.parse(boundBytes);
+  fs.writeFileSync(fileName, JSON.stringify({ ...boundRun, events: [null, boundRun.events[1]] }));
+  assert.equal(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, null);
+  fs.writeFileSync(fileName, boundBytes);
   engine.recordCheck(op.id, 'after binding', 0);
   assert.deepEqual(engine.compareOperations(op.id, stale.id).first.fixtureEvidence, comparison.first.fixtureEvidence);
   const operationFile = path.join(engine.store, 'operations', op.id + '.json');

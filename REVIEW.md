@@ -1,5 +1,12 @@
 # Latest development review
 
+## Non-object fixture journals crashed saved branch comparison (2026-10-05, fixed)
+
+**P2 — `Chronicle.compareOperations` accessed parsed journal properties without validating the record shape.** A UUID-named journal containing valid JSON null crashed comparison at `run.binding`; primitives and malformed unbound identities could be silently skipped instead of making provenance unavailable. A bound run containing a null event also crashed at `event.kind`. Disposable regressions reproduced both TypeErrors before their fixes.
+
+The comparison scan now checks journal object shape, filename/ID agreement, kind, and schema before considering its binding; event validation rejects non-object entries before accessing fields. Damaged records hide fixture evidence for the comparison while saved file comparison remains usable. Regressions cover null, arrays, primitives, missing identity, mismatched ID/kind/schema, and a null bound event, retaining damaged journal bytes. Verification: the focused integration test passes, including a follow-up rerun with independently isolated kind/schema cases. The full suite passes 110/113 with three Linux-only skips and zero failures. Syntax checks cover 15 JavaScript files; 145 Markdown relative links and whitespace checks pass. A same-agent second review checked validation order, retained damaged bytes, and restoration of valid evidence; it is not independent review. This is conservative inspection of writable local evidence, not authentication or complete host coverage.
+
+
 ## Earlier post-tool evidence hid later missing outcomes (2026-10-05, fixed)
 
 **P2 — `Chronicle.unpairedToolBoundaries` matched IDs across all saved history without checking event time.** An earlier Codex PostToolUse with the same session/tool-use IDs suppressed an outcome-unknown warning for a later PreToolUse. The new disposable regression reproduced an empty warning list before the fix. The scan now retains the latest observed post timestamp per correlation key and requires it to be no earlier than the pre checkpoint. Matching posts beyond the selected interval still resolve warnings; malformed and empty IDs retain their existing behavior.
