@@ -1,11 +1,11 @@
 # Latest development review
-## Hosted Windows path spellings split storage identity (fixed locally; CI rerun pending)
+## Hosted Windows path spellings split storage identity (fixed and verified)
 
 **P1 — Windows produced multiple path spellings for the same repo root.** Authenticated run [37328322537](https://github.com/7se7en72025/Chronicle/actions/runs/37328322537) showed Git worktree registrations using `RUNNER~1` while Node used `runneradmin`. `Chronicle.reconcileOperations` and `undoOperation` compared raw resolved path strings, making registered outputs appear unavailable and cascading into stale check/bind/undo failures. Those comparisons now use BigInt filesystem identity for differently spelled paths, guarded by non-following `lstat` across each component.
 
 The next run [37332661022](https://github.com/7se7en72025/Chronicle/actions/runs/37332661022) confirms these operation-path failures no longer appear, but reports six other Windows failures. `Chronicle.constructor` called Git for its root spelling, then hashed it; another hook/test caller used Node's alternate spelling. This split the per-repository storage key, bypassing three symlink-protection assertions and causing the path-targeted hook stderr fixture to miss its blocker. The enlarged-source race test also compared open paths with strict string equality, so its injected mutation missed the short/long alias. The constructor now derives a lexical repo root from the caller path, validates the result against Git root identity, and the race fixture compares filesystem identity.
 
-**Verification:** all six targeted regressions pass locally, and the full serial suite passes 109/112 with three Linux-only skips and zero failures. `npm.cmd run check`, controlled replay demo, 249 relative Markdown links across 16 files, and `git diff --check` pass. Run 37332661022 passes both Ubuntu jobs and fails both Windows jobs on the prior source; a post-fix run is still required. Do not call hosted CI green. Existing runner STOP marker and unrelated untracked `BOLPREP.md` remain unchanged.
+**Verification:** all six targeted regressions pass locally, and the full serial suite passes 109/112 with three Linux-only skips and zero failures. `npm.cmd run check`, controlled replay demo, 249 relative Markdown links across 16 files, and `git diff --check` pass. The predecessor [run 37332661022](https://github.com/7se7en72025/Chronicle/actions/runs/37332661022) passed Ubuntu but failed Windows; post-fix [run 37334567677](https://github.com/7se7en72025/Chronicle/actions/runs/37334567677) passes all four Node 22/24 Ubuntu/Windows jobs. Existing runner STOP marker and unrelated untracked `BOLPREP.md` remain unchanged.
 
 ## Empty Codex boundary IDs could suppress coverage warnings (fixed)
 
