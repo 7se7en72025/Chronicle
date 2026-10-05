@@ -646,6 +646,47 @@ test('fixture journal replacement retries one transient Windows permission error
     { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
 });
 
+test('persistent Windows journal replacement failures preserve the old record and inspectable temp', async t => {
+  if (process.platform !== 'win32') return t.skip('Windows rename sharing behavior');
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  saved.outcome = null;
+  saved.controllerPid = saved.childPid;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  const originalBytes = fs.readFileSync(file);
+
+  const originalRename = fs.renameSync;
+  let attempts = 0;
+  fs.renameSync = function (source, destination) {
+    if (destination === file && source.startsWith(file + '.') && source.endsWith('.tmp')) {
+      attempts++;
+      const error = new Error('simulated persistent Windows sharing violation');
+      error.code = 'EPERM';
+      throw error;
+    }
+    return originalRename.call(this, source, destination);
+  };
+  try {
+    assert.throws(() => engine.recoverFixtureRuns(), error => error.code === 'EPERM');
+  } finally {
+    fs.renameSync = originalRename;
+  }
+  assert.equal(attempts, 6);
+  assert.deepEqual(fs.readFileSync(file), originalBytes);
+  const temps = fs.readdirSync(path.dirname(file)).filter(name => name.startsWith(path.basename(file) + '.') && name.endsWith('.tmp'));
+  assert.equal(temps.length, 1);
+  const tempFile = path.join(path.dirname(file), temps[0]);
+  const tempBytes = fs.readFileSync(tempFile);
+  assert.deepEqual(JSON.parse(tempBytes.toString('utf8')).outcome,
+    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+  assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'replacement-inspect' }]);
+  assert.deepEqual(fs.readFileSync(tempFile), tempBytes);
+});
+
 test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => {
   const original = Array.from({ length: 120 }, (_, i) => `line ${i}\n`);
   const { root, engine, file } = fixture(t, original.join(''));
