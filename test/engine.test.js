@@ -943,7 +943,7 @@ test('guarded undo refuses undecodable staged paths before changing files or jou
   assert.deepEqual(fs.readFileSync(journal), savedJournal);
   assert.equal(JSON.parse(fs.readFileSync(journal, 'utf8')).state, 'completed');
   assert.deepEqual(fs.readFileSync(path.join(op.target, 'README.md')), savedOutput);
-  assert.equal(git(root, ['rev-parse', 'HEAD']).trim(), before.commit);
+  assert.equal(git(root, ['rev-parse', 'HEAD']).trim(), before.head);
 });
 
 test('guarded undo resumes a partially restored multi-file operation', t => {
