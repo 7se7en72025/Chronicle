@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput, fileIdentity } = require('../src/engine');
+const { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput, fileIdentity, sameFilesystemPath } = require('../src/engine');
 const { recordHook } = require('../src/hook');
 const { normalizeAdapterEvent } = require('../src/event-contract');
 const { spawnSync } = require('node:child_process');
@@ -1576,6 +1576,17 @@ test('unpaired Codex tool boundaries show an unknown-outcome warning in review a
   const fallback = engine.createBranch(before.id, after.id, selected, 'chronicle/coverage-unavailable');
   assert.equal(fallback.manifest.captureCoverage.unpairedToolBoundaries, null);
   fs.unlinkSync(damagedCheckpoint);
+});
+
+test('filesystem path comparison accepts alternate spellings but refuses redirected directories', t => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-path-identity-'));
+  const target = path.join(base, 'target'); fs.mkdirSync(target);
+  const alias = path.join(base, 'alias');
+  fs.symlinkSync(target, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  assert.equal(sameFilesystemPath(target, target), true);
+  if (process.platform === 'win32') assert.equal(sameFilesystemPath(target.toUpperCase(), target), true);
+  assert.equal(sameFilesystemPath(alias, target), false);
 });
 
 test('empty Codex boundary identifiers cannot falsely pair tool calls and remain outcome-unknown', t => {

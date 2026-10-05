@@ -135,6 +135,33 @@ function text(bytes) {
   return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
 }
 
+function sameFilesystemPath(left, right) {
+  const resolved = value => path.resolve(value);
+  const identity = value => {
+    try {
+      const parsed = path.parse(value);
+      let cursor = parsed.root;
+      let stat = fs.lstatSync(cursor, { bigint: true });
+      if (stat.isSymbolicLink()) return { redirected: true };
+      for (const part of value.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
+        cursor = path.join(cursor, part);
+        stat = fs.lstatSync(cursor, { bigint: true });
+        // Do not let a junction/symlink anywhere in the path make a different
+        // worktree look like the recorded target. lstat still gives 8.3 and
+        // long Windows paths the same directory identity without following it.
+        if (stat.isSymbolicLink()) return { redirected: true };
+      }
+      return { id: fileIdentity(stat) };
+    } catch { return undefined; }
+  };
+  const a = resolved(left), b = resolved(right);
+  if (a === b) return true;
+  const aIdentity = identity(a), bIdentity = identity(b);
+  if (aIdentity?.redirected || bIdentity?.redirected) return false;
+  if (aIdentity && bIdentity) return aIdentity.id === bIdentity.id;
+  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
 const RENAME_RETRY_DELAYS = Object.freeze([10, 25, 50, 100, 200]);
 
 function renameWithWindowsRetry(source, destination) {
@@ -1059,7 +1086,7 @@ class Chronicle {
       const journal = path.join(this.store, 'operations', id + '.json');
       const op = readJsonLimited(journal, MAX_TOTAL * 2);
       const target = path.resolve(this.store, 'worktrees', id);
-      if (op.id !== id || path.resolve(op.target || '') !== target) throw new Error('Operation target is invalid');
+      if (op.id !== id || !sameFilesystemPath(op.target || '', target)) throw new Error('Operation target is invalid');
       if (!['completed', 'undoing'].includes(op.state)) throw new Error('Only a completed Chronicle operation can be undone');
       if (git(target, ['rev-parse', 'HEAD']).trim() !== op.head) throw new Error('Output branch has new commits; undo refused');
       const branchRef = 'refs/heads/' + op.branch;
@@ -1069,7 +1096,7 @@ class Chronicle {
       const registered = registrations.some(record => {
         const worktree = record.split(/\r?\n/).find(line => line.startsWith('worktree '));
         const branch = record.split(/\r?\n/).find(line => line.startsWith('branch '));
-        return worktree && path.resolve(worktree.slice(9)) === target && branch?.slice(7) === branchRef;
+        return worktree && sameFilesystemPath(worktree.slice(9), target) && branch?.slice(7) === branchRef;
       });
       if (!registered || !fs.statSync(target).isDirectory()) throw new Error('Chronicle output worktree is unavailable; undo refused');
 
@@ -1142,10 +1169,10 @@ class Chronicle {
     }
     return this.operations().map(operation => {
       const expectedTarget = path.resolve(this.store, 'worktrees', operation.id);
-      if (!/^[a-f0-9-]{36}$/.test(operation.id || '') || path.resolve(operation.target || '') !== expectedTarget) {
+      if (!/^[a-f0-9-]{36}$/.test(operation.id || '') || !sameFilesystemPath(operation.target || '', expectedTarget)) {
         return { id: operation.id, branch: operation.branch, recordedState: operation.state, assessment: 'invalid-journal-target', target: operation.target, worktreeRegistered: false, branchExists: false, dirty: null };
       }
-      const registration = worktrees.get(expectedTarget);
+      const registration = [...worktrees.entries()].find(([registeredPath]) => sameFilesystemPath(registeredPath, expectedTarget))?.[1];
       const targetExists = fs.existsSync(expectedTarget);
       const branchRef = 'refs/heads/' + operation.branch;
       const branchExists = Boolean(git(this.root, ['show-ref', '--verify', '--hash', branchRef], [0, 1]).trim());
@@ -1243,4 +1270,4 @@ class Chronicle {
   }
 }
 
-module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput, fileIdentity };
+module.exports = { Chronicle, git, hash, safePath, caseInsensitivePathCollisions, decodeGitPathOutput, fileIdentity, sameFilesystemPath };

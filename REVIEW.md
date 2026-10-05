@@ -1,4 +1,12 @@
 # Latest development review
+## Hosted Windows worktree paths used short-name aliases (fixed locally; CI rerun pending)
+
+**P1 — `Chronicle.reconcileOperations` and `Chronicle.undoOperation` compared raw resolved paths.** Authenticated Actions logs for Windows run [37328322537](https://github.com/7se7en72025/Chronicle/actions/runs/37328322537) showed Git reporting worktree paths under `C:\\Users\\RUNNER~1\\...`, while Node used `C:\\Users\\runneradmin\\...`. The mismatch made registered outputs look unregistered and cascaded into stale check/bind refusals, incorrect interruption status, and unavailable-worktree undo refusals.
+
+`sameFilesystemPath` now compares existing directories using exact BigInt `lstat` identities, which equates short and long names without following any path-component link. It rejects symlink/junction identity matches. Worktree registration lookup, journal target validation, and the guarded-undo registration check use this helper. A regression verifies a junction to another directory is not treated as the same target.
+
+**Verification:** on the current Windows host, the focused integration set passes 11/11, covering branch output/reconciliation/undo and storage symlink guards. The full serial suite passes 109/112 with three Linux-only skips and zero failures. `npm.cmd run check`, `npm.cmd run demo:replay`, 249 relative Markdown links across 16 files, and `git diff --check` pass. The local pass does not establish hosted CI until a new Actions run succeeds. Existing runner STOP marker and unrelated untracked `BOLPREP.md` remain unchanged.
+
 ## Empty Codex boundary IDs could suppress coverage warnings (fixed)
 
 **P2 - Empty strings passed the session/tool-use identifier validators.** `src/event-contract.js:boundedIdentifier` and `src/engine.js:safeIdentifier` accepted `""`. Then `Chronicle.unpairedToolBoundaries` treated empty IDs as a valid pair key: an incomplete pre-tool call and a different post-tool event with missing IDs both mapped to `["", ""]`, so the post event could hide the unknown outcome.
