@@ -1578,6 +1578,28 @@ test('unpaired Codex tool boundaries show an unknown-outcome warning in review a
   fs.unlinkSync(damagedCheckpoint);
 });
 
+test('empty Codex boundary identifiers cannot falsely pair tool calls and remain outcome-unknown', t => {
+  const { root, engine } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before empty-ID tool calls');
+  const payload = { cwd: root, hook_event_name: 'PreToolUse', session_id: '', turn_id: '',
+    tool_use_id: '', tool_name: 'Bash' };
+  const pre = recordHook(payload, options, 'codex-cli');
+  recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  const malformed = { ...payload, session_id: 'bad/session', tool_use_id: 'bad/call' };
+  recordHook(malformed, options, 'codex-cli');
+  recordHook({ ...malformed, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  const after = engine.capture('After empty-ID tool calls');
+
+  assert.equal(pre.event.sessionId, undefined);
+  assert.equal(pre.event.turnId, undefined);
+  assert.equal(pre.event.toolUseId, undefined);
+  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings.map(item => [item.reason, item.status]), [
+    ['TOOL_BOUNDARY_ID_UNAVAILABLE', 'outcome-unknown'],
+    ['TOOL_BOUNDARY_ID_UNAVAILABLE', 'outcome-unknown']
+  ]);
+});
+
 test('checkpoint and gap storage project adapter metadata without raw caller fields', t => {
   const { root, engine, file } = fixture(t);
   const originalIndex = git(root, ['ls-files', '--stage', '-z']);

@@ -213,7 +213,7 @@ const adapterBoundaries = Object.freeze({
 });
 
 function safeIdentifier(value, limit = 128) {
-  return typeof value === 'string' && value.length <= limit && /^[a-zA-Z0-9._:-]+$/.test(value) ? value : undefined;
+  return typeof value === 'string' && value.length > 0 && value.length <= limit && /^[a-zA-Z0-9._:-]+$/.test(value) ? value : undefined;
 }
 
 function storedEvent(event, references) {
@@ -388,22 +388,27 @@ class Chronicle {
     }
     catch { return null; }
     const key = event => JSON.stringify([event.sessionId, event.toolUseId]);
-    const identifiable = event => event?.source === 'codex-cli' && typeof event.sessionId === 'string' &&
-      typeof event.toolUseId === 'string';
+    const identifiable = event => event?.source === 'codex-cli' && safeIdentifier(event.sessionId) !== undefined &&
+      safeIdentifier(event.toolUseId) !== undefined;
     const post = new Set(checkpoints.map(cp => cp.event).filter(event => identifiable(event) && event.boundary === 'PostToolUse').map(key));
     const seen = new Set();
     return checkpoints.filter(cp => {
       const event = cp.event;
-      if (!identifiable(event) || event.boundary !== 'PreToolUse' ||
+      if (event?.source !== 'codex-cli' || event.boundary !== 'PreToolUse' ||
           Date.parse(cp.createdAt) < start || Date.parse(cp.createdAt) > end) return false;
+      if (!identifiable(event)) return true;
       const id = key(event);
       if (post.has(id) || seen.has(id)) return false;
       seen.add(id);
       return true;
     }).map(cp => ({
-      kind: 'coverage-warning', reason: 'POST_BOUNDARY_UNOBSERVED', status: 'outcome-unknown',
+      kind: 'coverage-warning',
+      reason: identifiable(cp.event) ? 'POST_BOUNDARY_UNOBSERVED' : 'TOOL_BOUNDARY_ID_UNAVAILABLE',
+      status: 'outcome-unknown',
       createdAt: cp.createdAt, source: 'codex-cli', boundary: 'PreToolUse',
-      sessionId: cp.event.sessionId, toolUseId: cp.event.toolUseId, tool: cp.event.tool
+      ...(safeIdentifier(cp.event.sessionId) ? { sessionId: safeIdentifier(cp.event.sessionId) } : {}),
+      ...(safeIdentifier(cp.event.toolUseId) ? { toolUseId: safeIdentifier(cp.event.toolUseId) } : {}),
+      tool: safeIdentifier(cp.event.tool, 80)
     }));
   }
 

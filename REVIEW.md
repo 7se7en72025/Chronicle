@@ -1,5 +1,11 @@
 # Latest development review
+## Empty Codex boundary IDs could suppress coverage warnings (fixed)
 
+**P2 - Empty strings passed the session/tool-use identifier validators.** `src/event-contract.js:boundedIdentifier` and `src/engine.js:safeIdentifier` accepted `""`. Then `Chronicle.unpairedToolBoundaries` treated empty IDs as a valid pair key: an incomplete pre-tool call and a different post-tool event with missing IDs both mapped to `["", ""]`, so the post event could hide the unknown outcome.
+
+The normalizer and storage projection now reject unusable identifiers. Coverage matching uses only valid non-empty safe identifiers; a pre-tool checkpoint without usable IDs is reported as `TOOL_BOUNDARY_ID_UNAVAILABLE` instead of being paired, while identifiable pre calls without a post remain `POST_BOUNDARY_UNOBSERVED`. VS Code describes both as uncertain outcomes and does not claim a tool failure.
+
+**Verification:** a disposable Git repository test records pre/post events with empty IDs and then malformed session/tool-use IDs; both pairs remain uncorrelatable and produce outcome-unknown warnings. The existing identifiable missing-post regression still passes. The full serial suite passes 108/111 with three Linux-only tests skipped on Windows and zero failures; `npm.cmd run check`, `npm.cmd run demo:replay`, root Markdown links (16 files), and `git diff --check` pass. No host state, source project files, or Git index were changed by these tests.
 ## EOL Node minimum and absent cross-platform CI (2026-10-05)
 
 **P2 — The declared Node.js 20 minimum was EOL, and no workflow checked the supported host platforms.** `package.json:7`, `README.md`, and `GETTING_STARTED.md` declared Node 20 even though the official Node release schedule marks it EOL from 2026-03-24. The repository had no `.github/workflows` files, so tests had not been continuously verified on Linux and Windows at the declared minimum. Raised the engine/documentation minimum to Node 22 and added a read-only matrix for Node 22/24 on Ubuntu and `windows-latest`. The workflow pins reviewed `actions/checkout` and `actions/setup-node` release SHAs, limits `GITHUB_TOKEN` to `contents: read`, disables package-manager caching, and only runs `npm test` plus `npm run check`.

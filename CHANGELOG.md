@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Keep empty or malformed Codex session/tool-use identifiers from pairing unrelated tool boundaries; show uncorrelatable pre-tool events as outcome-unknown warnings.
 - Require maintained Node.js LTS versions (22+) and add read-only CI coverage for Node 22/24 on Linux and the current Windows runner.
 - Retry brief Windows sharing/permission errors while atomically replacing local JSON journals and restoring selected files during guarded undo; persistent failures still preserve recoverable state for inspection.
 - Recheck the fsynced fixture completion marker against the run and sidecar before binding or displaying saved subprocess evidence; tampered or missing markers now fail closed.

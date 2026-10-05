@@ -8,7 +8,7 @@ const EVENTS = Object.freeze({
 });
 
 function boundedIdentifier(value, limit = 128) {
-  return typeof value === 'string' && value.length <= limit && /^[a-zA-Z0-9._:-]+$/.test(value) ? value : undefined;
+  return typeof value === 'string' && value.length > 0 && value.length <= limit && /^[a-zA-Z0-9._:-]+$/.test(value) ? value : undefined;
 }
 
 function normalizeAdapterEvent(payload, adapter) {
