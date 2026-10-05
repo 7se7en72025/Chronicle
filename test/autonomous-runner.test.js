@@ -106,9 +106,6 @@ test('task installer requests bounded restart-on-failure without changing stop-m
   assert.match(installer, /-RestartCount\s+3\s+-RestartInterval\s+\(New-TimeSpan\s+-Minutes\s+5\)/);
   assert.match(installer, /-MultipleInstances\s+IgnoreNew/);
 
-  const probe = "$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 5); if ($settings.RestartCount -ne 3 -or $settings.RestartInterval -ne 'PT5M' -or $settings.MultipleInstances -ne 'IgnoreNew') { throw 'Unexpected task recovery settings.' }";
-  execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', probe], { encoding: 'utf8', stdio: 'pipe', windowsHide: true });
-
   const runner = fs.readFileSync(path.join(repositoryRoot, 'scripts', 'run-autonomous.ps1'), 'utf8');
   assert.match(runner, /Queue complete or blocked/);
   assert.match(runner, /Test-Path -LiteralPath \$stopPath\) \{ Write-RunnerLog .*exiting\./);

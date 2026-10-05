@@ -685,6 +685,7 @@ class Chronicle {
     const cassetteFile = path.join(folder, id + '.cassette.json');
     const launchFile = path.join(folder, id + '.launch.json');
     const evidenceFile = path.join(folder, id + '.evidence.jsonl');
+    const completionFile = path.join(folder, id + '.completion.json');
     const run = {
       schema: 1, kind: 'chronicle.fixture-run', id, transport: 'stdio-subprocess',
       fixtureId: pinned.fixtureId, cassetteHash: hash(Buffer.from(serialized, 'utf8')),
@@ -700,7 +701,7 @@ class Chronicle {
       run.launchPhase = 'spawning';
       writeJson(file, run);
     });
-    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile, launchFile, id, evidenceFile],
+    const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'simulated-replay-mcp.js'), cassetteFile, launchFile, id, evidenceFile, completionFile],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     if (Number.isSafeInteger(child.pid) && child.pid > 0) this.exclusive(() => {
       run.childPid = child.pid;
@@ -737,8 +738,18 @@ class Chronicle {
     clearTimeout(timer);
     this.exclusive(() => {
       run.processExit = { code, signal };
-      run.outcome = !failure && !timedOut && code === 0 &&
-        run.events.length === pinned.calls.length && run.events.every(event => event.kind === 'injected-fixture')
+      let completionValid = false;
+      if (!failure && !timedOut && code === 0) {
+        try {
+          const sidecarBytes = readRegularLimited(evidenceFile, 256 * 1024);
+          const marker = JSON.parse(readRegularLimited(completionFile, 512).toString('utf8'));
+          completionValid = marker.schema === 1 && marker.kind === 'chronicle.fixture-server-completion' &&
+            marker.runId === id && marker.cassetteHash === run.cassetteHash &&
+            marker.consumedCalls === pinned.calls.length && marker.consumedCalls === run.events.length &&
+            marker.evidenceHash === hash(sidecarBytes) && run.events.every(event => event.kind === 'injected-fixture');
+        } catch { completionValid = false; }
+      }
+      run.outcome = completionValid
         ? { status: 'complete', consumedCalls: run.events.length }
         : { status: 'failed', code: failure || (timedOut ? 'MCP_PROCESS_TIMEOUT' : 'MCP_PROCESS_INCOMPLETE') };
       writeJson(file, run);

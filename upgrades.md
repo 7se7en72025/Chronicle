@@ -66,7 +66,9 @@ Use these terms consistently:
 
 **Local durability step:** the controlled child now fsyncs a bounded metadata-only evidence sidecar before forwarding each event to the controller. `inspect-fixture-evidence` reports whether the sidecar and journal are consistent, the sidecar is ahead, or evidence is invalid/unavailable. Recovery refuses to change a pending journal when the sidecar is invalid or conflicting; consistent or sidecar-ahead records can only become failed after existing process-death checks. This does not establish tool provenance or prove host tool activity. Reconciliation of additional sidecar events remains unimplemented.
 
-Per [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-journals), sidecar-ahead events remain separate during recovery. A merge would need a versioned append-only log, durable completion marker, and real interruption evidence; it is not an automatic next step for the current fixture.
+The controlled subprocess now receives a completion-marker path and accepts success only when the child's fsynced marker matches the run ID, cassette hash, consumed-call count, and durable sidecar hash. This verifies successful fixture completion locally; it does not authorize recovery to promote a pending journal or merge sidecar-ahead events.
+
+Per [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-journals), sidecar-ahead events remain separate during recovery. A matching durable completion marker is now implemented for successful controlled subprocesses. Recovery reconciliation remains deferred until a versioned event-log contract and a boundary-specific real controller-death test establish a safe merge rule; the existing marker does not authorize promotion of an interrupted journal.
 
 New controlled subprocess runs require a consistent child-written sidecar before fixture evidence can be bound or displayed in branch comparison. Legacy records without a sidecar marker retain their earlier journal/cassette checks. This is local consistency evidence, not independent host-tool observation.
 

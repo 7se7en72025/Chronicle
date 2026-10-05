@@ -161,6 +161,13 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
   const evidenceFile = path.join(engine.store, 'fixture-runs', run.id + '.evidence.jsonl');
   const evidenceBytes = fs.readFileSync(evidenceFile);
+  const completionFile = path.join(engine.store, 'fixture-runs', run.id + '.completion.json');
+  const completion = JSON.parse(fs.readFileSync(completionFile, 'utf8'));
+  assert.deepEqual(completion, {
+    schema: 1, kind: 'chronicle.fixture-server-completion', runId: run.id,
+    cassetteHash: saved.cassetteHash, consumedCalls: 2,
+    evidenceHash: crypto.createHash('sha256').update(evidenceBytes).digest('hex')
+  });
   assert.deepEqual(evidenceBytes.toString('utf8').trim().split('\n').map(line => JSON.parse(line)), saved.events);
   const operation = run.createBranch(after.id, selected, 'chronicle/process-bound');
   const cassetteFile = path.join(engine.store, 'fixture-runs', run.id + '.cassette.json');

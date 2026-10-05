@@ -2,9 +2,13 @@
 
 Updated: 2026-10-05.
 
+## Latest local O014 change
+
+`runFixtureSubprocess` now passes the controlled child's completion-marker path and records success only after validating the fsynced marker against the run ID, pinned cassette, consumed-call count, and durable sidecar hash. Focused subprocess, inspection, and recovery tests pass 3/3; `npm.cmd run check` passes and the full suite passes 104/107 with three Linux-only skips. The initial scheduled cycle's full test attempt failed because the runner-install test invoked the Task Scheduler API from Codex's restricted sandbox and received Access Denied. That test now checks the installer flags without calling the privileged API; focused runner tests pass 18/18. Pre-witness child death remains conservatively pending because a child may die before writing its witness and the controller may die before saving its PID; no durable observation distinguishes that from a launch that never occurred. Sidecar-ahead recovery remains failed-only under D014. Host UI and shipped-hook acceptance gates remain open. The scheduled task is stopped with a STOP marker while this verified repair is published; next, resume it only from the clean sibling checkout.
+
 ## Latest runner recovery change
 
-The optional Windows Task Scheduler installer now requests up to three restarts at five-minute intervals after an unexpected nonzero supervisor exit. The focused runner suite passes 18/18; full `npm.cmd test` passes 104/107 with three Linux-only skips, and `npm.cmd run check` passes. A local settings probe confirms the Windows cmdlet accepts `RestartCount=3` and `RestartInterval=PT5M`. The currently registered task remains Ready with its existing `RestartCount=0`; it was not reconfigured or started. The `%LOCALAPPDATA%\Chronicle\runner\STOP` marker remains present and unchanged. Applying the new setting requires reviewing and running the documented installer after resolving the existing STOP reason. This is bounded crash recovery, not a guaranteed eight-hour run; details and limits are in [ORCHESTRATION.md](ORCHESTRATION.md).
+The Windows Task Scheduler task is registered with `RestartCount=3` and `RestartInterval=PT5M`. It was resumed for the user's repo-work request, completed one cycle, then stopped because its full suite hit Access Denied when a regression test called the Task Scheduler API inside Codex's restricted sandbox. That test now checks installer flags without invoking the service. Focused runner tests pass 18/18; `npm.cmd run check` passes; the full suite passes 104/107 with three Linux-only skips. The O014 completion-marker change and test repair are verified and ready for manual publication because the runner correctly refused the failed run. The STOP marker remains in place until publication and deliberate resume. This is bounded crash recovery, not a guaranteed eight-hour run; see [ORCHESTRATION.md](ORCHESTRATION.md).
 
 ## Latest verified local change
 
