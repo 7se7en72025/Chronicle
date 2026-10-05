@@ -102,7 +102,7 @@ The derived Codex unpaired-tool warning scan checks timestamps on intermediate c
 
 | Layer | Initial choice | Reason |
 | --- | --- | --- |
-| Local engine | Dependency-free JavaScript on Node.js 22+ | Shared by the CLI, editor extension, and hook adapters; CI targets maintained LTS lines 22 and 24 on Ubuntu, Windows Server 2022, and the current Windows runner |
+| Local engine | Dependency-free JavaScript on Node.js 22+ | Shared by the CLI, editor extension, and hook adapters; CI targets maintained LTS lines 22 and 24 on Ubuntu and the current Windows runner |
 | Review interface | VS Code extension, React webview | Fits the coding workflow and supports a custom diff review UI |
 | Metadata | SQLite | Local persistence for sessions, events, checkpoints, and recovery |
 | File snapshots | Content-addressed blobs | Store identical file contents once and verify them by hash |

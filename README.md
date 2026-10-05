@@ -8,7 +8,7 @@ The first prototype includes a local engine, CLI, VS Code review extension, and 
 
 ## Try it
 
-Requirements: Node.js 22+ and Git. CI tests maintained Node LTS lines 22 and 24 on Linux, Windows Server 2022, and the current Windows runner. No npm dependencies need installing.
+Requirements: Node.js 22+ and Git. CI tests maintained Node LTS lines 22 and 24 on Linux and the current Windows runner. No npm dependencies need installing.
 
 ```sh
 npm test

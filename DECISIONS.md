@@ -134,7 +134,7 @@ Revisit when an updated Codex CLI lists and runs hooks from the root manifest in
 
 Status: accepted for the local prototype.
 
-Require Node.js 22 or later for local CLI and hook execution. Verify the minimum and current maintained LTS lines (22 and 24) on Ubuntu, Windows Server 2022, and the current Windows runner. Keep the current Windows runner even when older hosted images pass; do not hide an image-specific regression by pinning older CI. Do not test against EOL Node versions as supported targets.
+Require Node.js 22 or later for local CLI and hook execution. Verify the minimum and current maintained LTS lines (22 and 24) on Ubuntu and the current Windows runner. Do not test against EOL Node versions as supported targets.
 
 Reason: Node.js 20 reached EOL on 2026-03-24. Declaring it supported would permit the local recorder and hook processes to run on a release that no longer receives security fixes. The Node project lists 22 and 24 as LTS; see [Node.js releases](https://nodejs.org/en/about/previous-releases) and [EOL policy](https://nodejs.org/en/about/eol).
 
