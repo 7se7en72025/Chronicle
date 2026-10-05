@@ -1578,6 +1578,25 @@ test('unpaired Codex tool boundaries show an unknown-outcome warning in review a
   fs.unlinkSync(damagedCheckpoint);
 });
 
+test('earlier Codex post boundaries cannot hide later reused-ID pre boundaries', t => {
+  const { root, engine } = fixture(t);
+  const payload = { cwd: root, session_id: 'session', tool_use_id: 'reused-call', tool_name: 'Bash' };
+  const boundary = hook_event_name => recordHook({ ...payload, hook_event_name },
+    { storage: path.dirname(engine.store) }, 'codex-cli');
+  const oldPost = boundary('PostToolUse');
+  const before = engine.capture('Before later call');
+  const pre = boundary('PreToolUse');
+  const after = engine.capture('After later call');
+  const setTime = (cp, seconds) => fs.writeFileSync(path.join(engine.store, 'checkpoints', cp.id + '.json'),
+    JSON.stringify({ ...cp, createdAt: `2026-01-01T00:00:0${seconds}.000Z` }));
+  [oldPost, before, pre, after].forEach((cp, index) => setTime(cp, index));
+  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings.map(item => item.reason),
+    ['POST_BOUNDARY_UNOBSERVED']);
+  const laterPost = boundary('PostToolUse');
+  setTime(laterPost, 4);
+  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings, []);
+});
+
 test('filesystem path comparison accepts alternate spellings but refuses redirected directories', t => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-path-identity-'));
   const target = path.join(base, 'target'); fs.mkdirSync(target);

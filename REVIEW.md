@@ -1,5 +1,11 @@
 # Latest development review
 
+## Earlier post-tool evidence hid later missing outcomes (2026-10-05, fixed)
+
+**P2 — `Chronicle.unpairedToolBoundaries` matched IDs across all saved history without checking event time.** An earlier Codex PostToolUse with the same session/tool-use IDs suppressed an outcome-unknown warning for a later PreToolUse. The new disposable regression reproduced an empty warning list before the fix. The scan now retains the latest observed post timestamp per correlation key and requires it to be no earlier than the pre checkpoint. Matching posts beyond the selected interval still resolve warnings; malformed and empty IDs retain their existing behavior.
+
+Verification: focused boundary tests pass 3/3; the full suite passes 110/113 with three Linux-only skips and zero failures. Syntax checks pass across 15 JavaScript files; 145 Markdown relative links resolve, and whitespace checks pass. A same-agent second diff review confirms matching later posts remain supported; this is not independent review. A read-only VS Code inventory attempt failed with sandbox EPERM in its user directory, so no new host validation was performed. This is a saved-evidence chronology check, not proof of host causality: equal timestamps, clock changes, or later reuse of IDs remain ambiguous, and complete event capture is not claimed.
+
 ## Syntax checks silently omitted newly added JavaScript files (fixed and verified)
 
 **P2 - `npm run check` kept a manually maintained file list.** A new JavaScript module under `src/` or `scripts/` could be omitted and receive no syntax validation in CI. Replaced the package command with `scripts/check-syntax.js`, which recursively discovers regular `.js` files in both directories, sorts them for stable output, and checks each using the current Node executable. Non-project folders and symlinked entries are not traversed.

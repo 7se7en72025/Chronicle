@@ -424,7 +424,14 @@ class Chronicle {
     const key = event => JSON.stringify([event.sessionId, event.toolUseId]);
     const identifiable = event => event?.source === 'codex-cli' && safeIdentifier(event.sessionId) !== undefined &&
       safeIdentifier(event.toolUseId) !== undefined;
-    const post = new Set(checkpoints.map(cp => cp.event).filter(event => identifiable(event) && event.boundary === 'PostToolUse').map(key));
+    const post = new Map();
+    for (const cp of checkpoints) {
+      if (identifiable(cp.event) && cp.event.boundary === 'PostToolUse') {
+        // IDs can recur in imported or host-reused history. An earlier post
+        // cannot establish that a later pre boundary's outcome was observed.
+        post.set(key(cp.event), Date.parse(cp.createdAt));
+      }
+    }
     const seen = new Set();
     return checkpoints.filter(cp => {
       const event = cp.event;
@@ -432,7 +439,7 @@ class Chronicle {
           Date.parse(cp.createdAt) < start || Date.parse(cp.createdAt) > end) return false;
       if (!identifiable(event)) return true;
       const id = key(event);
-      if (post.has(id) || seen.has(id)) return false;
+      if ((post.has(id) && post.get(id) >= Date.parse(cp.createdAt)) || seen.has(id)) return false;
       seen.add(id);
       return true;
     }).map(cp => ({

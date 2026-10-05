@@ -8,9 +8,11 @@ Chronicle is an unpublished local prototype: checkpoints, coverage warnings, hun
 
 The latest source fixes reconcile Windows worktree aliases through non-following BigInt filesystem identities and preserve the caller's repository-root spelling for storage keys while validating Git identity. Local validation passed 109/112 tests with three Linux-only skips and zero failures; syntax, controlled replay, 249 relative Markdown links, and whitespace checks passed. Post-fix [CI run 37334567677](https://github.com/7se7en72025/Chronicle/actions/runs/37334567677) passed Node 22/24 on Ubuntu and Windows. Earlier hosted failures and log-access blockers are superseded. Details and investigation history remain in [REVIEW.md](REVIEW.md).
 
-This handoff consolidation changes documentation only and establishes no additional host coverage.
+The previous handoff consolidation changed documentation only and established no additional host coverage.
 
 The syntax check now discovers JavaScript files recursively under `src/` and `scripts/`; `npm run check` passes across all 15 files. The complete test suite passed immediately before this maintenance change (109 passed, 3 platform-specific skips, 0 failures).
+
+The boundary warning scan now refuses a matching post timestamp older than its pre checkpoint, preventing reused IDs in earlier history from hiding later missing outcomes. Focused tests pass 3/3; the full suite passes 110/113 with three Linux-only skips and zero failures, syntax checks pass for 15 JavaScript files, and documentation/whitespace checks pass. This does not establish complete capture or causal ordering under clock changes.
 
 ## Remaining acceptance gates
 
