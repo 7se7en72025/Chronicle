@@ -925,6 +925,8 @@ The inspector now requires exact field sets for injected sidecar events and the 
 
 Fresh hosted CI run [37316236257](https://github.com/7se7en72025/Chronicle/actions/runs/37316236257) passed Ubuntu Node 22/24 but failed Windows Node 22/24 at `npm test`. Public check annotations expose only exit code 1; anonymous retrieval of the failed job logs returns HTTP 403. Local Windows 24.12 suite passes do not identify this hosted-only failure. Repository-admin job-log access remains the next diagnostic step.
 
+The documentation-only follow-up commit `f4a695d` also failed both Windows LTS jobs in run [37327539567](https://github.com/7se7en72025/Chronicle/actions/runs/37327539567), while both Ubuntu jobs passed. This confirms persistence without code changes; it does not reveal the underlying assertion.
+
 **Verification:** focused `node --test test/codex-trace.test.js` passes 2/2; the full suite passes 108/111 with three Linux-only skips and zero failures; `npm.cmd run check`, `npm.cmd run demo:replay`, root Markdown relative-link checks, and `git diff --check` pass. A second-pass diff review found no new issue or scope expansion. No host run or trust change was made; the STOP marker and unrelated `BOLPREP.md` remain untouched. No independent reviewer participated.
 
 ## O004 current UI-helper inventory - 2026-10-05

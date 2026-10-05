@@ -12,6 +12,8 @@ The official [Node.js releases table](https://nodejs.org/en/about/previous-relea
 
 The latest run on `fe9d602` ([run 37316236257](https://github.com/7se7en72025/Chronicle/actions/runs/37316236257)) passed both Ubuntu Node 22/24 cells and failed both `windows-latest` Node 22/24 cells at `npm test`. The public check annotations show only a generic exit code; anonymous job-log retrieval returns HTTP 403. This repeats the prior cross-image Windows failures, but the exact failing assertions remain unknown without repository-admin log access. Chronicle's local Windows test pass is narrower evidence and does not establish hosted runner compatibility.
 
+A follow-up run on the documentation-only commit `f4a695d` ([run 37327539567](https://github.com/7se7en72025/Chronicle/actions/runs/37327539567)) produced the same four-cell outcome, confirming that the Windows failure persisted without another source change. Both failed Windows annotations remain generic exit-code reports; no assertion-level cause is available anonymously.
+
 ## Host usage evidence audit (2026-10-04)
 
 Codex's published [`turn.completed` event type](https://github.com/openai/codex/blob/main/sdk/typescript/src/events.ts) exposes input, cached-input, cache-write, output, and reasoning-output token counters. Those are token usage fields, not billed-dollar values. A [recent Codex CLI report](https://github.com/openai/codex/issues/49574) documents `turn.completed.usage` on resumed threads including earlier turns' totals in CLI/SDK 0.159.2, despite the SDK type describing per-turn usage. This issue report is version-specific evidence, not proof that every Codex release or host behaves the same.
