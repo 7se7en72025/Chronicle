@@ -19,7 +19,9 @@ $trigger = New-ScheduledTaskTrigger -AtLogOn -User $principalId
 $principal = New-ScheduledTaskPrincipal -UserId $principalId -LogonType Interactive -RunLevel Limited
 # The user opted into running review cycles on battery power. Windows still
 # controls critical-battery shutdown; this task makes no power-plan changes.
-$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+# Retry unexpected nonzero task failures only. Intentional runner STOP outcomes
+# exit successfully, so safety gates and completed/blocked queues remain terminal.
+$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 5)
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Runs bounded, local Chronicle review cycles while this Windows user is logged in.' -Force | Out-Null
 Start-ScheduledTask -TaskName $taskName
-Write-Output "Registered and started '$taskName'. It runs only in this user session and uses Codex model usage."
+Write-Output "Registered and started '$taskName'. It runs only in this user session, uses Codex model usage, and retries unexpected task failures up to three times at five-minute intervals."

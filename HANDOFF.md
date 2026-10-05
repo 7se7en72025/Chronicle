@@ -2,6 +2,10 @@
 
 Updated: 2026-10-05.
 
+## Latest runner recovery change
+
+The optional Windows Task Scheduler installer now requests up to three restarts at five-minute intervals after an unexpected nonzero supervisor exit. The focused runner suite passes 18/18; full `npm.cmd test` passes 104/107 with three Linux-only skips, and `npm.cmd run check` passes. A local settings probe confirms the Windows cmdlet accepts `RestartCount=3` and `RestartInterval=PT5M`. The currently registered task remains Ready with its existing `RestartCount=0`; it was not reconfigured or started. The `%LOCALAPPDATA%\Chronicle\runner\STOP` marker remains present and unchanged. Applying the new setting requires reviewing and running the documented installer after resolving the existing STOP reason. This is bounded crash recovery, not a guaranteed eight-hour run; details and limits are in [ORCHESTRATION.md](ORCHESTRATION.md).
+
 ## Latest verified local change
 
 The latest code review closes a concurrent capture-gap cap race: writers claim numbered slots atomically, while UUIDs remain in filenames for record identity validation and legacy UUID-named records stay readable. The deterministic stale-listing regression and focused cap, writer, and tampering tests pass. Full `npm.cmd test` passes 103/106 with three platform-specific skips; `npm.cmd run check`, controlled replay, Markdown links, and `git diff --check` pass. Earlier verified changes close two path-integrity gaps: branch-output identity uses exact BigInt file IDs, and `safePath` rejects a symlink/junction at the workspace root before resolving selected paths. Existing host-validation and low-disk gates below remain unchanged.
