@@ -16,6 +16,8 @@ The boundary warning scan now refuses a matching post timestamp older than its p
 
 Saved branch comparison now validates fixture journal shape and identity before binding lookup and refuses non-object events. Damaged JSON records hide fixture provenance without crashing file comparison; the focused regression passes and the full suite passes 110/113 (three Linux-only skips, zero failures); syntax, 145 documentation links, and whitespace checks pass. See REVIEW.md for evidence.
 
+Fixture binding now refuses malformed UUID-named journals during duplicate scans before updating the target run. Focused integration passes; the full suite passes 110/113 with three Linux-only skips and zero failures. Syntax, 145 documentation links, and whitespace checks pass. Damaged records stay available for inspection; see REVIEW.md.
+
 ## Remaining acceptance gates
 
 - O004/O007: validate the exact shipped Codex package through normal reviewed/trusted loading, Bash and partial-write boundaries, privacy, and source/index preservation. Temporary inline hooks and a disposable compatibility-manifest package observed callbacks; portable root-manifest packages produced no checkpoints in their fixture turn. These are distinct integration paths.

@@ -67,6 +67,17 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   fs.writeFileSync(damagedRun, Buffer.alloc(1024 * 1024 + 1));
   assert.throws(() => engine.bindFixtureRun(run.id, op.id), /Invalid evidence file/);
   assert.equal(JSON.parse(fs.readFileSync(fileName, 'utf8')).binding, null);
+  for (const damaged of ['not a run', null, [], 7, {},
+    { ...saved, id: crypto.randomUUID(), binding: null },
+    { ...saved, id: path.basename(damagedRun, '.json'), kind: 'wrong-kind', binding: null },
+    { ...saved, id: path.basename(damagedRun, '.json'), schema: 2, binding: null }]) {
+    const damagedBytes = JSON.stringify(damaged);
+    const pendingBytes = fs.readFileSync(fileName);
+    fs.writeFileSync(damagedRun, damagedBytes);
+    assert.throws(() => engine.bindFixtureRun(run.id, op.id), /Invalid fixture journal/);
+    assert.deepEqual(fs.readFileSync(fileName), pendingBytes);
+    assert.equal(fs.readFileSync(damagedRun, 'utf8'), damagedBytes);
+  }
   fs.unlinkSync(damagedRun);
   assert.equal(engine.bindFixtureRun(run.id, op.id).operationId, op.id);
   assert.equal(fs.readFileSync(unrelatedJson, 'utf8'), '{broken');

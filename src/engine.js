@@ -877,6 +877,10 @@ class Chronicle {
       for (const name of fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
         if (name === runId + '.json') continue;
         const other = JSON.parse(readRegularLimited(path.join(folder, name), 1024 * 1024).toString('utf8'));
+        if (!other || typeof other !== 'object' || Array.isArray(other) ||
+            other.id !== name.slice(0, -5) || other.kind !== 'chronicle.fixture-run' || other.schema !== 1) {
+          throw new Error('Invalid fixture journal; inspect it before binding');
+        }
         if (other.binding?.operationId === operationId) throw new Error('Operation already has fixture evidence');
       }
       const op = readJsonLimited(path.join(this.store, 'operations', operationId + '.json'), MAX_TOTAL * 2);

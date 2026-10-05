@@ -1,5 +1,12 @@
 # Latest development review
 
+## Malformed duplicate-scan journals allowed new fixture bindings (2026-10-05, fixed)
+
+**P2 — `Chronicle.bindFixtureRun` checked another parsed journal's binding without validating its object shape or identity.** Unlike unreadable JSON, a primitive JSON value or mismatched unbound journal was skipped, allowing new evidence attachment despite damaged run history. The disposable regression reproduced a successful binding where refusal was expected.
+
+Duplicate scans now require object shape, filename/ID agreement, fixture-run kind, and schema 1 before checking existing bindings. Invalid records refuse binding with a fixed error, retaining both damaged bytes and the target run journal unchanged. The regression covers primitive, null, array, missing identity, mismatched ID, kind, and schema; the existing test still verifies successful binding after the damaged record is removed. Verification: focused integration passes; the full suite passes 110/113 with three Linux-only skips and zero failures. Syntax checks cover 15 JavaScript files; 145 Markdown links and whitespace checks pass. The same-agent second diff review checked validation before writes and successful binding after damaged-record removal; it is not independent review. This validates local record integrity, not authenticity or exhaustive host coverage.
+
+
 ## Non-object fixture journals crashed saved branch comparison (2026-10-05, fixed)
 
 **P2 — `Chronicle.compareOperations` accessed parsed journal properties without validating the record shape.** A UUID-named journal containing valid JSON null crashed comparison at `run.binding`; primitives and malformed unbound identities could be silently skipped instead of making provenance unavailable. A bound run containing a null event also crashed at `event.kind`. Disposable regressions reproduced both TypeErrors before their fixes.

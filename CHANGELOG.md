@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse new fixture evidence bindings when the duplicate scan encounters malformed journal shapes or identities, preserving the target run and damaged records.
+
 - Keep saved file comparison usable when fixture journals or bound events contain non-object JSON; report fixture provenance unavailable and preserve damaged records.
 
 - Prevent earlier Codex post-tool checkpoints with reused IDs from suppressing warnings for later pre-tool checkpoints.
