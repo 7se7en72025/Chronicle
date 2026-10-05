@@ -1243,7 +1243,7 @@ test('capture refuses a source file enlarged between inspection and read', t => 
   const originalOpen = fs.openSync;
   let enlarged = false;
   fs.openSync = (target, ...args) => {
-    if (target === file && !enlarged) {
+    if (sameFilesystemPath(target, file) && !enlarged) {
       enlarged = true;
       fs.writeFileSync(file, Buffer.alloc(1024 * 1024 + 1, 65));
     }

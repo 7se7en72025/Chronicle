@@ -272,7 +272,14 @@ function storedEvent(event, references) {
 
 class Chronicle {
   constructor(root, options = {}) {
-    this.root = fs.realpathSync(git(root, ['rev-parse', '--show-toplevel']).trim());
+    const repositoryRoot = git(root, ['rev-parse', '--show-toplevel']).trim();
+    const relativePrefix = git(root, ['rev-parse', '--show-prefix']).trim();
+    const rootFromCallerPath = path.resolve(root, ...relativePrefix.split('/').filter(Boolean).map(() => '..'));
+    // Git and Node can spell the same Windows path differently (for example,
+    // 8.3 short names). Resolve the lexical root derived from the caller's path
+    // so storage identity stays consistent with other callers holding that path.
+    this.root = fs.realpathSync(rootFromCallerPath);
+    if (!sameFilesystemPath(this.root, repositoryRoot)) throw new Error('Git repository root changed while Chronicle was initializing');
     const base = options.storage || process.env.CHRONICLE_HOME || path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), '.local', 'share'), 'Chronicle');
     let storageBase = path.resolve(base), probe = storageBase;
     const remainder = [];
