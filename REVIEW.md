@@ -923,4 +923,6 @@ The installer now configures at most three restarts, five minutes apart. This on
 
 The inspector now requires exact field sets for injected sidecar events and the completion marker. Regression fixtures update their hashes and host-visible receipt to remain internally consistent while adding a private payload field; both are refused, remain `unknown`, and never echo that field.
 
+Fresh hosted CI run [37316236257](https://github.com/7se7en72025/Chronicle/actions/runs/37316236257) passed Ubuntu Node 22/24 but failed Windows Node 22/24 at `npm test`. Public check annotations expose only exit code 1; anonymous retrieval of the failed job logs returns HTTP 403. Local Windows 24.12 suite passes do not identify this hosted-only failure. Repository-admin job-log access remains the next diagnostic step.
+
 **Verification:** focused `node --test test/codex-trace.test.js` passes 2/2; the full suite passes 108/111 with three Linux-only skips and zero failures; `npm.cmd run check`, `npm.cmd run demo:replay`, root Markdown relative-link checks, and `git diff --check` pass. A second-pass diff review found no new issue or scope expansion. No host run or trust change was made; the STOP marker and unrelated `BOLPREP.md` remain untouched. No independent reviewer participated.

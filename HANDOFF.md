@@ -4,7 +4,7 @@ Updated: 2026-10-05.
 
 ## Latest O014 trace evidence validation
 
-The Codex trace inspector now requires exact schema-1 key sets for controlled sidecar events and completion markers. Extra fields make server evidence inconsistent and keep coverage `unknown`; regression cases confirm added private payload fields are neither accepted nor printed. The full suite passes 108/111 with three Linux-only skips and zero failures; the focused trace tests pass 2/2, `npm.cmd run check`, `npm.cmd run demo:replay`, root Markdown relative-link checks, and `git diff --check` pass. This is local validation only; files are not signed and host tool coverage is still partial. The existing STOP marker stays untouched.
+The Codex trace inspector now requires exact schema-1 key sets for controlled sidecar events and completion markers. Extra fields make server evidence inconsistent and keep coverage `unknown`; regression cases confirm added private payload fields are neither accepted nor printed. The full suite passes 108/111 with three Linux-only skips and zero failures; the focused trace tests pass 2/2, `npm.cmd run check`, `npm.cmd run demo:replay`, root Markdown relative-link checks, and `git diff --check` pass. Fresh GitHub run [37316236257](https://github.com/7se7en72025/Chronicle/actions/runs/37316236257) on this commit passes both Ubuntu LTS cells but fails both Windows LTS cells at `npm test`; public annotations show only exit code 1 and anonymous log retrieval returns HTTP 403. Local Windows passes do not explain hosted failures; repository-admin log access remains required. This is local validation only; files are not signed and host tool coverage is still partial. The existing STOP marker stays untouched.
 
 ## Latest O013 coverage warning fix
 
