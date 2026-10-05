@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Require exact schema-1 key sets for controlled replay sidecar events and completion markers before labeling host/server evidence consistent.
 - Keep empty or malformed Codex session/tool-use identifiers from pairing unrelated tool boundaries; show uncorrelatable pre-tool events as outcome-unknown warnings, and label the saved count accordingly.
 - Require maintained Node.js LTS versions (22+) and add read-only CI coverage for Node 22/24 on Linux and the current Windows runner.
 - Retry brief Windows sharing/permission errors while atomically replacing local JSON journals and restoring selected files during guarded undo; persistent failures still preserve recoverable state for inspection.

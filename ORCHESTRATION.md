@@ -75,6 +75,8 @@ The 2026-10-05 portable root-manifest Codex hook attempt produced a fixture file
 
 An optional fixture-server completion marker and bounded host/server evidence consistency check now exist. A plain Codex CLI two-call turn exited without the server's graceful-end marker. The controlled `fixture.replay.finish` tool now fsyncs that marker before returning a run-ID/hash receipt, and a later real read-only Codex turn produced a matching host-visible receipt. Another read-only turn attempted a shell command that policy blocked: stderr reported it, while JSONL omitted the tool item. The auditor now requires stderr for host/server consistency and flags unexpected diagnostics. Its read-only coverage label is `partial-observed` when visible trace/receipt/sidecar/stderr agree, and `unknown` when evidence is missing or inconsistent. The full coverage contract remains documented in [architecture.md](architecture.md#proposed-o014-host-run-coverage-gate-not-implemented); keep O014 unbound until a controlled host implementation proves it meets that gate. Neither zero exit nor matching fixture evidence proves complete host-tool coverage.
 
+The trace inspector now also rejects extra fields in schema-1 sidecar events and completion markers, matching the local fixture evidence contract. This protects the evidence label from silently accepting an expanded payload; it does not authenticate local files or prove exhaustive host coverage.
+
 ## Boundaries and stopping
 
 Autonomous implementation, focused tests, living-document updates, commits, and normal pushes are authorized. Current destination: `origin` at `https://github.com/7se7en72025/Chronicle.git`, branch `main`. Recheck the branch and remote before each push; do not silently redirect publication.

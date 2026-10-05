@@ -8,6 +8,13 @@ const MAX_TRACE_LINES = 10000;
 const MAX_SERVER_EVIDENCE_BYTES = 256 * 1024;
 const MAX_COMPLETION_BYTES = 1024;
 const MAX_DIAGNOSTICS_BYTES = 1024 * 1024;
+const SIDECAR_EVENT_KEYS = ['callId', 'cassetteHash', 'fixtureId', 'kind', 'requestHash', 'responseHash', 'runId', 'sequence', 'tool'];
+const COMPLETION_KEYS = ['cassetteHash', 'consumedCalls', 'evidenceHash', 'kind', 'runId', 'schema'];
+
+function hasExactKeys(value, expected) {
+  return value && typeof value === 'object' && !Array.isArray(value) &&
+    JSON.stringify(Object.keys(value).sort()) === JSON.stringify(expected);
+}
 
 function countHostDiagnostics(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length > MAX_DIAGNOSTICS_BYTES) throw new Error('Codex diagnostics exceed the 1 MiB limit');
@@ -40,14 +47,14 @@ function matchesServerEvidence(serverEvidence, expected, receiptText) {
       new TextDecoder('utf-8', { fatal: true }).decode(sidecarBytes).slice(0, -1).split('\n').map(line => JSON.parse(line));
   } catch { return false; }
   const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
-  if (!marker || receiptText !== JSON.stringify(marker) || marker.schema !== 1 ||
+  if (!hasExactKeys(marker, COMPLETION_KEYS) || receiptText !== JSON.stringify(marker) || marker.schema !== 1 ||
       marker.kind !== 'chronicle.fixture-server-completion' ||
       typeof marker.runId !== 'string' || !/^[a-f0-9-]{36}$/.test(marker.runId) ||
       marker.cassetteHash !== hash(cassetteBytes) || marker.evidenceHash !== hash(sidecarBytes) ||
       marker.consumedCalls !== expected.length || lines.length !== expected.length) return false;
   return lines.every((line, index) => {
     const wanted = expected[index];
-    return line && line.kind === 'injected-fixture' && line.runId === marker.runId &&
+    return hasExactKeys(line, SIDECAR_EVENT_KEYS) && line.kind === 'injected-fixture' && line.runId === marker.runId &&
       line.cassetteHash === marker.cassetteHash && line.sequence === index + 1 &&
       line.fixtureId === wanted.fixtureId && line.callId === wanted.callId &&
       line.tool === wanted.tool && line.requestHash === wanted.requestHash &&

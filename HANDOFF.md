@@ -2,6 +2,10 @@
 
 Updated: 2026-10-05.
 
+## Latest O014 trace evidence validation
+
+The Codex trace inspector now requires exact schema-1 key sets for controlled sidecar events and completion markers. Extra fields make server evidence inconsistent and keep coverage `unknown`; regression cases confirm added private payload fields are neither accepted nor printed. The full suite passes 108/111 with three Linux-only skips and zero failures; the focused trace tests pass 2/2, `npm.cmd run check`, `npm.cmd run demo:replay`, root Markdown relative-link checks, and `git diff --check` pass. This is local validation only; files are not signed and host tool coverage is still partial. The existing STOP marker stays untouched.
+
 ## Latest O013 coverage warning fix
 
 Empty Codex session/tool-use IDs could previously pair unrelated pre/post boundaries and hide an unobserved outcome. The adapter now omits empty IDs; comparison emits `TOOL_BOUNDARY_ID_UNAVAILABLE` for a pre-tool event it cannot correlate and retains `POST_BOUNDARY_UNOBSERVED` for identifiable calls with no matching post event. The VS Code review text covers both cases. The full suite passes 108/111 with three Linux-only tests skipped on Windows and zero failures; `npm.cmd run check`, controlled replay, root Markdown links (16 files), and whitespace checks pass. Hosted Windows CI and real host/editor validation remain open. See [REVIEW.md](REVIEW.md) and [architecture.md](architecture.md).

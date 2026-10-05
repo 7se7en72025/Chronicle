@@ -131,6 +131,25 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   assert.equal(inspectCodexTrace(bytes(extraFinish), cassette, 'chronicle_replay', serverEvidence).status, 'review-required');
   const drifted = { ...serverEvidence, sidecarBytes: Buffer.from(lines.replace('injected-fixture', 'rejected-fixture')) };
   assert.equal(inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', drifted).status, 'review-required');
+  const extendedEvent = JSON.parse(lines.split('\n')[0]);
+  extendedEvent.unexpectedPayload = 'PRIVATE_TOOL_INPUT';
+  const extendedSidecarBytes = Buffer.from(JSON.stringify(extendedEvent) + '\n' + lines.split('\n').slice(1).join('\n'));
+  const extendedCompletion = { ...completion, evidenceHash: hash(extendedSidecarBytes) };
+  const extendedSidecarTrace = structuredClone(withFinish);
+  extendedSidecarTrace[7].item.result.content[0].text = JSON.stringify(extendedCompletion);
+  const extendedSidecar = { ...serverEvidence, sidecarBytes: extendedSidecarBytes,
+    completionBytes: Buffer.from(JSON.stringify(extendedCompletion) + '\n') };
+  const rejectedExtendedSidecar = inspectCodexTrace(bytes(extendedSidecarTrace), cassette, 'chronicle_replay', extendedSidecar, benignDiagnostics);
+  assert.equal(rejectedExtendedSidecar.serverEvidenceMatches, false);
+  assert.equal(rejectedExtendedSidecar.coverage.classification, 'unknown');
+  assert.equal(JSON.stringify(rejectedExtendedSidecar).includes('PRIVATE_TOOL_INPUT'), false);
+  const extendedMarker = { ...completion, unexpectedPayload: 'PRIVATE_MARKER_DATA' };
+  const extendedMarkerTrace = structuredClone(withFinish);
+  extendedMarkerTrace[7].item.result.content[0].text = JSON.stringify(extendedMarker);
+  const rejectedExtendedMarker = inspectCodexTrace(bytes(extendedMarkerTrace), cassette, 'chronicle_replay',
+    { ...serverEvidence, completionBytes: Buffer.from(JSON.stringify(extendedMarker) + '\n') }, benignDiagnostics);
+  assert.equal(rejectedExtendedMarker.serverEvidenceMatches, false);
+  assert.equal(JSON.stringify(rejectedExtendedMarker).includes('PRIVATE_MARKER_DATA'), false);
   const wrongRun = { ...serverEvidence, completionBytes: Buffer.from(JSON.stringify({ ...completion, runId: crypto.randomUUID() }) + '\n') };
   const wrongRunResult = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', wrongRun);
   assert.equal(wrongRunResult.serverEvidenceMatches, false);
