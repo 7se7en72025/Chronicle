@@ -6,6 +6,8 @@ Updated: 2026-10-05.
 
 The previous full suite exposed an intermittent Windows `EPERM` while `runFixtureSubprocess` atomically replaced its journal to persist the child PID during the killed-controller regression. `writeJson` retries transient Windows `EPERM`/`EACCES` for up to 385 ms; persistent errors still fail and leave the temp available for inspection. The retry fix is published in `96e74da`. The real killed-controller test plus transient and persistent injected-denial recovery tests pass 3/3; the full suite passes 106/109 with three Linux-only skips, and `npm.cmd run check`, all 16 root Markdown link targets, and `git diff --check` pass. The scheduled runner remains idle behind its existing `STOP` marker; `BOLPREP.md` remains unrelated and untracked.
 
+Read-only host refresh: Codex CLI 0.160.0 is present; its plugin inventory still includes stale/test-specific Chronicle packages and a disabled compatibility fixture. Claude CLI is not on PATH, and VS Code has no Chronicle extension. No host run, trust change, or UI action was performed. Exact package paths and source hashes are recorded in [REVIEW.md](REVIEW.md); O004 remains open pending normal hook review/trust and a targetable editor window.
+
 Fixture subprocess completion markers are revalidated against the saved run and evidence-sidecar hash before binding or comparison displays their evidence. Tampered or missing markers fail closed; the legacy no-sidecar path keeps its prior behavior. Pre-witness child death remains unresolved, and sidecar-ahead recovery remains failed-only under D014. Host UI and shipped-hook acceptance gates remain open; see [REVIEW.md](REVIEW.md).
 
 ## Latest runner recovery change
