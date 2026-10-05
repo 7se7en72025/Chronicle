@@ -886,6 +886,34 @@ test('guarded undo restores only selected output paths and leaves source and unr
   assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'operation-undone');
 });
 
+test('guarded undo retries one transient Windows sharing error when restoring a selected file', { skip: process.platform !== 'win32' }, t => {
+  const { root, engine, file } = fixture(t, 'one\ntwo\nthree\n');
+  const before = engine.capture(); fs.writeFileSync(file, 'one\nchanged\nthree\n'); const after = engine.capture();
+  const ids = engine.compare(before.id, after.id).changes.flatMap(change => change.hunks.map(hunk => hunk.id));
+  const op = engine.createBranch(before.id, after.id, ids, 'chronicle/undo-transient-rename');
+  const output = path.join(op.target, 'README.md');
+  const originalRename = fs.renameSync;
+  let attempts = 0;
+  fs.renameSync = function (source, destination) {
+    if (destination === output && String(source).includes('.chronicle-undo-')) {
+      attempts++;
+      if (attempts === 1) {
+        const error = new Error('simulated transient Windows sharing violation');
+        error.code = 'EPERM';
+        throw error;
+      }
+    }
+    return originalRename.call(this, source, destination);
+  };
+  let result;
+  try { result = engine.undoOperation(op.id); }
+  finally { fs.renameSync = originalRename; }
+  assert.equal(attempts, 2);
+  assert.equal(result.state, 'undone');
+  assert.equal(fs.readFileSync(output, 'utf8'), 'one\ntwo\nthree\n');
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'operation-undone');
+});
+
 test('guarded undo refuses later edits, staged selected paths, and committed output', t => {
   for (const scenario of ['edited', 'staged', 'committed']) {
     const { root, engine, file } = fixture(t);

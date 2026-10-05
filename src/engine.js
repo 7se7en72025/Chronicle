@@ -135,19 +135,24 @@ function text(bytes) {
   return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
 }
 
+const RENAME_RETRY_DELAYS = Object.freeze([10, 25, 50, 100, 200]);
+
+function renameWithWindowsRetry(source, destination) {
+  for (let attempt = 0; ; attempt++) {
+    try { fs.renameSync(source, destination); return; }
+    catch (error) {
+      if (process.platform !== 'win32' || !['EPERM', 'EACCES'].includes(error.code) || attempt >= RENAME_RETRY_DELAYS.length) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAYS[attempt]);
+    }
+  }
+}
+
 function writeJson(file, value) {
   const temp = file + '.' + crypto.randomUUID() + '.tmp';
   const fd = fs.openSync(temp, 'wx', 0o600);
   try { fs.writeFileSync(fd, JSON.stringify(value, null, 2)); fs.fsyncSync(fd); }
   finally { fs.closeSync(fd); }
-  const retryDelay = [10, 25, 50, 100, 200];
-  for (let attempt = 0; ; attempt++) {
-    try { fs.renameSync(temp, file); return; }
-    catch (error) {
-      if (process.platform !== 'win32' || !['EPERM', 'EACCES'].includes(error.code) || attempt >= retryDelay.length) throw error;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, retryDelay[attempt]);
-    }
-  }
+  renameWithWindowsRetry(temp, file);
 }
 
 function writeJsonCreateOnly(file, value) {
@@ -1112,7 +1117,7 @@ class Chronicle {
           if (hash(readRegularLimited(temp, MAX_SELECTED_FILE)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed before replacement: ' + item.file.path);
           // A crash before rename leaves the original selected file intact. A rename
           // publishes the fully written baseline atomically on the same filesystem.
-          fs.renameSync(temp, item.full);
+          renameWithWindowsRetry(temp, item.full);
           if (hash(readRegularLimited(item.full, MAX_SELECTED_FILE)) !== hash(item.prior.bytes)) throw new Error('Undo verification failed: ' + item.file.path);
         }
       }

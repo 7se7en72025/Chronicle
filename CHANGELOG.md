@@ -4,7 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
-- Retry brief Windows sharing/permission errors while atomically replacing local JSON journals; persistent failures still surface for inspection.
+- Retry brief Windows sharing/permission errors while atomically replacing local JSON journals and restoring selected files during guarded undo; persistent failures still preserve recoverable state for inspection.
 - Recheck the fsynced fixture completion marker against the run and sidecar before binding or displaying saved subprocess evidence; tampered or missing markers now fail closed.
 - Pass the fixture subprocess its completion-marker path and require the child's fsynced marker to match the pinned cassette, consumed calls, and durable sidecar before recording success.
 - Configure the optional Windows runner task to retry unexpected supervisor failures up to three times, five minutes apart, while preserving successful terminal `STOP` behavior.
