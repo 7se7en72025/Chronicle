@@ -1,4 +1,9 @@
 # Latest development review
+
+## Contradictory current handoff (2026-10-05, fixed)
+
+**P2 — HANDOFF.md retained superseded current-status instructions.** Later sections said the hosted Windows cause was unknown, CI could not be called green, and the heartbeat was paused after the top section documented the verified fix. This could send autonomous cycles to a resolved investigation or obsolete execution mode. Replaced the accumulated handoff with current verification, distinct host gates, STOP preservation, and an actionable next task; investigation history remains here. Documentation-only verification passed: 145 root Markdown relative links resolve, git diff --check passes, and a same-agent second diff review confirms the remaining acceptance gates are retained. No application behavior or host acceptance changed.
+
 ## Hosted Windows path spellings split storage identity (fixed and verified)
 
 **P1 — Windows produced multiple path spellings for the same repo root.** Authenticated run [37328322537](https://github.com/7se7en72025/Chronicle/actions/runs/37328322537) showed Git worktree registrations using `RUNNER~1` while Node used `runneradmin`. `Chronicle.reconcileOperations` and `undoOperation` compared raw resolved path strings, making registered outputs appear unavailable and cascading into stale check/bind/undo failures. Those comparisons now use BigInt filesystem identity for differently spelled paths, guarded by non-following `lstat` across each component.
