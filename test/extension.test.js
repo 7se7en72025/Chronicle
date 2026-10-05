@@ -70,9 +70,13 @@ test('editor command flow requires preview and produces a separate selected work
   assert.equal(hostile.includes(injection), false); assert.match(hostile, /&lt;script&gt;/);
   const gapHtml = exports.render({}, { changes: [], excluded: [], gaps: [{ kind: 'capture-gap', createdAt: 'now', boundary: 'PostToolUseFailure', tool: 'Bash', reason: 'RECORDER_BUSY', sessionId: 'session-1' }] }, { label: 'from' }, { label: 'to' });
   assert.match(gapHtml, /Capture gaps \(1\)/); assert.match(gapHtml, /RECORDER_BUSY/);
-  const warningHtml = exports.render({}, { changes: [], excluded: [], coverageWarnings: [{ createdAt: 'now', tool: injection, reason: 'POST_BOUNDARY_UNOBSERVED', sessionId: 'session-1' }] }, { label: 'from' }, { label: 'to' });
-  assert.match(warningHtml, /Unpaired or uncorrelatable tool boundaries \(1\)/);
+  const warningHtml = exports.render({}, { changes: [], excluded: [], coverageWarnings: [
+    { createdAt: 'now', tool: injection, reason: 'POST_BOUNDARY_UNOBSERVED', sessionId: 'session-1' },
+    { createdAt: 'later', tool: 'Bash', reason: 'TOOL_BOUNDARY_ID_UNAVAILABLE' }
+  ] }, { label: 'from' }, { label: 'to' });
+  assert.match(warningHtml, /Unpaired or uncorrelatable tool boundaries \(2\)/);
   assert.match(warningHtml, /outcome unknown/);
+  assert.match(warningHtml, /session unavailable/);
   assert.equal(warningHtml.includes(injection), false);
   const unavailableHtml = exports.render({}, { changes: [], excluded: [], coverageWarnings: null }, { label: 'from' }, { label: 'to' });
   assert.match(unavailableHtml, /Tool-boundary coverage unavailable/);
