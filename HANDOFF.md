@@ -1,6 +1,6 @@
 # Current handoff
 
-Updated: 2026-10-05.
+Updated: 2026-10-06.
 
 ## Current state and verification
 
@@ -21,7 +21,7 @@ Fixture binding now refuses malformed UUID-named journals during duplicate scans
 ## Remaining acceptance gates
 
 - O004/O007: validate the exact shipped Codex package through normal reviewed/trusted loading, Bash and partial-write boundaries, privacy, and source/index preservation. Temporary inline hooks and a disposable compatibility-manifest package observed callbacks; portable root-manifest packages produced no checkpoints in their fixture turn. These are distinct integration paths.
-- Editor/second host: exercise the real VS Code Extension Development Host review/select/preview/apply/undo workflow and refusals. The last UI inventory exposed no apps or browsers, no Chronicle extension was installed, and Claude CLI was unavailable. Mocked tests and CLI inventory do not satisfy acceptance.
+- Editor/second host: exercise the real VS Code Extension Development Host review/select/preview/apply/undo workflow and refusals. The native Windows computer-use connection now exposes the Chronicle VS Code window, but selecting it returns "Computer Use was not approved to use Visual Studio Code." App approval is pending; the other connection still returns an empty inventory. A fresh CLI extension list has no Chronicle extension; Claude host validation remains open. Mocked tests and CLI inventory do not satisfy acceptance.
 - O014: fixture replay/evidence contracts are implemented; exhaustive host tool interception and fresh agent branch binding remain unverified. Pre-witness child death is ambiguous. Sidecar-ahead recovery stays failed-only and separate under [D014](DECISIONS.md). Do not label fixture evidence complete environment replay.
 
 [upgrades.md](upgrades.md) owns the accepted roadmap; [learnings.md](learnings.md) distinguishes research implications from verified behavior. Browser/OS replay, hosted collaboration, and hidden agent-state restoration remain deferred.
@@ -34,4 +34,4 @@ Preserve unrelated untracked `BOLPREP.md`, existing staging, private recordings,
 
 ## Next concrete task
 
-With a targetable editor and the exact shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.
+After Visual Studio Code is approved in computer-use permissions and the exact shipped hook is reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

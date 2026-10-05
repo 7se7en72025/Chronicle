@@ -1,5 +1,10 @@
 # Latest development review
 
+## Editor surface discovered; app access denied (2026-10-06)
+
+O004 prerequisite refresh: the native Windows computer-use connection returned exactly one VS Code window for Chronicle. Selecting that returned window was rejected with "Computer Use was not approved to use Visual Studio Code." The alternate connection still returns an empty app/browser inventory. The terminal can list installed extensions and showed no Chronicle extension. No editor action, extension loading, hook trust change, or host validation occurred. The user has been asked to approve Visual Studio Code in computer-use app permissions; do not bypass the denial through another UI control mechanism. After approval, run the disposable editor acceptance workflow in RELEASE_AUDIT.md. The current handoff now reflects this narrower blocker. Documentation-only whitespace and relative-link checks apply; application tests are not rerun.
+
+
 ## Malformed duplicate-scan journals allowed new fixture bindings (2026-10-05, fixed)
 
 **P2 — `Chronicle.bindFixtureRun` checked another parsed journal's binding without validating its object shape or identity.** Unlike unreadable JSON, a primitive JSON value or mismatched unbound journal was skipped, allowing new evidence attachment despite damaged run history. The disposable regression reproduced a successful binding where refusal was expected.
