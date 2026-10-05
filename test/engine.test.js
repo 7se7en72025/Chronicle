@@ -609,6 +609,43 @@ test('fixture subprocess recovery preserves a real killed controller record', as
   assert.deepEqual(engine.recoverFixtureRuns(), []);
 });
 
+test('fixture journal replacement retries one transient Windows permission error', async t => {
+  if (process.platform !== 'win32') return t.skip('Windows rename sharing behavior');
+  const { engine } = fixture(t);
+  const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
+  const before = engine.capture('Before');
+  const run = await engine.runFixtureSubprocess(cassette, before.id, []);
+  const file = path.join(engine.store, 'fixture-runs', run.id + '.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  saved.outcome = null;
+  saved.controllerPid = saved.childPid;
+  fs.writeFileSync(file, JSON.stringify(saved));
+
+  const originalRename = fs.renameSync;
+  let denied = false;
+  let attempts = 0;
+  fs.renameSync = function (source, destination) {
+    if (destination === file && source.startsWith(file + '.') && source.endsWith('.tmp')) {
+      attempts++;
+      if (!denied) {
+        denied = true;
+        const error = new Error('simulated transient Windows sharing violation');
+        error.code = 'EPERM';
+        throw error;
+      }
+    }
+    return originalRename.call(this, source, destination);
+  };
+  try {
+    assert.deepEqual(engine.recoverFixtureRuns(), [{ id: run.id, assessment: 'interrupted-recorded' }]);
+  } finally {
+    fs.renameSync = originalRename;
+  }
+  assert.equal(attempts, 2);
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).outcome,
+    { status: 'failed', code: 'MCP_PROCESS_INTERRUPTED' });
+});
+
 test('keep 40 of 80 edits, dirty baseline and staged index remain intact', t => {
   const original = Array.from({ length: 120 }, (_, i) => `line ${i}\n`);
   const { root, engine, file } = fixture(t, original.join(''));

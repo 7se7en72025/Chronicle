@@ -1,5 +1,11 @@
 # Latest development review
 
+## Windows fixture journal replacement retry (2026-10-05)
+
+**P2 — A transient Windows sharing denial could abort controlled fixture startup (fixed).** The full scheduled suite reported `EPERM` from `writeJson` at `src/engine.js:143` while `runFixtureSubprocess` persisted the child PID. The parent regression polls that journal concurrently, and Windows can briefly deny replacing the destination. `writeJson` now retries only `EPERM`/`EACCES` on Windows with bounded backoff (at most 385 ms); a persistent denial still fails, leaving the uniquely named temp for existing inspection/recovery behavior. A deterministic regression injects one transient `EPERM` during dead-process journal recovery and verifies the second atomic rename succeeds.
+
+**Verification:** focused recovery tests pass 2/2, including the real killed-controller scenario; the full suite passes 105/108 with three Linux-only skips; `npm.cmd run check`, all 16 root Markdown relative targets, and `git diff --check` pass. Five additional focused killed-controller reruns passed before the fix; the original failure remains treated as an intermittent Windows race, not as proof that the retry is unnecessary. The regression exercises one transient failure, not antivirus or arbitrary persistent file locks. No independent reviewer participated.
+
 ## O014 completion-marker revalidation (2026-10-05)
 
 **P2 - saved fixture evidence stopped checking its durable completion marker after initial completion (fixed locally).** `runFixtureSubprocess` validated the child's fsynced completion marker before setting the journal outcome to complete. Later `bindFixtureRun` and `compareOperations` rechecked the pinned cassette and sidecar, but could still accept or display a run after its completion marker had been removed or changed. Added bounded regular-file reads and strict marker shape/value/sidecar-hash checks at both later evidence boundaries. New sidecar-backed subprocess evidence fails closed when the marker is missing or disagrees; legacy records without the sidecar contract keep their previous behavior.
