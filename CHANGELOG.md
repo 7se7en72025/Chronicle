@@ -5,6 +5,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 ## Unreleased
 
 - Consolidate the current handoff and mark superseded Windows CI evidence historical, retaining open host gates and runner STOP protection.
+- Discover JavaScript files recursively for `npm run check` so new source and helper scripts receive syntax validation automatically.
 
 - Preserve the caller's Windows repository-root spelling for storage keys, and match Git-reported worktree path aliases by non-following filesystem identity without accepting symlink or junction aliases.
 - Require exact schema-1 key sets for controlled replay sidecar events and completion markers before labeling host/server evidence consistent.

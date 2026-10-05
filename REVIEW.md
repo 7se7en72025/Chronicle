@@ -1,5 +1,11 @@
 # Latest development review
 
+## Syntax checks silently omitted newly added JavaScript files (fixed and verified)
+
+**P2 - `npm run check` kept a manually maintained file list.** A new JavaScript module under `src/` or `scripts/` could be omitted and receive no syntax validation in CI. Replaced the package command with `scripts/check-syntax.js`, which recursively discovers regular `.js` files in both directories, sorts them for stable output, and checks each using the current Node executable. Non-project folders and symlinked entries are not traversed.
+
+**Verification:** `npm run check` passes and reports all 15 current JavaScript files. `npm test` passed immediately before this maintenance-only change (112 tests: 109 passed, 3 platform-specific skips, 0 failures); the test suite itself was not changed. Final diff review confirms the scan covers nested directories and includes its own checker script. No user files or Git index state were changed.
+
 ## Contradictory current handoff (2026-10-05, fixed)
 
 **P2 — HANDOFF.md retained superseded current-status instructions.** Later sections said the hosted Windows cause was unknown, CI could not be called green, and the heartbeat was paused after the top section documented the verified fix. This could send autonomous cycles to a resolved investigation or obsolete execution mode. Replaced the accumulated handoff with current verification, distinct host gates, STOP preservation, and an actionable next task; investigation history remains here. Documentation-only verification passed: 145 root Markdown relative links resolve, git diff --check passes, and a same-agent second diff review confirms the remaining acceptance gates are retained. No application behavior or host acceptance changed.

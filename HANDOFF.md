@@ -10,6 +10,8 @@ The latest source fixes reconcile Windows worktree aliases through non-following
 
 This handoff consolidation changes documentation only and establishes no additional host coverage.
 
+The syntax check now discovers JavaScript files recursively under `src/` and `scripts/`; `npm run check` passes across all 15 files. The complete test suite passed immediately before this maintenance change (109 passed, 3 platform-specific skips, 0 failures).
+
 ## Remaining acceptance gates
 
 - O004/O007: validate the exact shipped Codex package through normal reviewed/trusted loading, Bash and partial-write boundaries, privacy, and source/index preservation. Temporary inline hooks and a disposable compatibility-manifest package observed callbacks; portable root-manifest packages produced no checkpoints in their fixture turn. These are distinct integration paths.
