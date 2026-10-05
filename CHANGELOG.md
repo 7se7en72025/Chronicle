@@ -4,6 +4,7 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Recheck the fsynced fixture completion marker against the run and sidecar before binding or displaying saved subprocess evidence; tampered or missing markers now fail closed.
 - Pass the fixture subprocess its completion-marker path and require the child's fsynced marker to match the pinned cassette, consumed calls, and durable sidecar before recording success.
 - Configure the optional Windows runner task to retry unexpected supervisor failures up to three times, five minutes apart, while preserving successful terminal `STOP` behavior.
 - Verify four Codex CLI hook boundaries through the compatibility-manifest test package in one disposable, ephemeral session; also record that the enabled portable root-manifest packages produced no checkpoints in their own fixture attempt. No trust or plugin settings persisted.

@@ -15,6 +15,23 @@ const MAX_TOTAL = 32 * 1024 * 1024;
 const forbidden = /(^|\/)(\.git|\.env(?:\..*)?|node_modules|dist|build|\.chronicle-dev|\.ssh)(\/|$)|\.(pem|key|p12|pfx)$/i;
 const lines = text => text.match(/[^\n]*\n|[^\n]+$/g) || [];
 
+function fixtureCompletionValid(folder, run) {
+  if (!run || run.transport !== 'stdio-subprocess' || run.evidenceSidecar !== true ||
+      run.outcome?.status !== 'complete' || !Array.isArray(run.events) ||
+      run.events.length !== run.outcome.consumedCalls) return false;
+  try {
+    const sidecar = readRegularLimited(path.join(folder, run.id + '.evidence.jsonl'), 256 * 1024);
+    const marker = JSON.parse(readRegularLimited(path.join(folder, run.id + '.completion.json'), 512).toString('utf8'));
+    const keys = ['cassetteHash', 'consumedCalls', 'evidenceHash', 'kind', 'runId', 'schema'];
+    return marker && typeof marker === 'object' && !Array.isArray(marker) &&
+      JSON.stringify(Object.keys(marker).sort()) === JSON.stringify(keys) &&
+      marker.schema === 1 && marker.kind === 'chronicle.fixture-server-completion' &&
+      marker.runId === run.id && marker.cassetteHash === run.cassetteHash &&
+      marker.consumedCalls === run.outcome.consumedCalls &&
+      marker.evidenceHash === hash(sidecar);
+  } catch { return false; }
+}
+
 function changeGroups(hunk) {
   const rows = hunk.patch.split(/\r?\n/).slice(1);
   const groups = [];
@@ -795,6 +812,9 @@ class Chronicle {
         if (run.evidenceSidecar === true && this.inspectFixtureEvidence(runId).status !== 'consistent') {
           throw new Error('Fixture evidence sidecar is unavailable or differs from the run; binding refused');
         }
+        if (run.evidenceSidecar === true && !fixtureCompletionValid(folder, run)) {
+          throw new Error('Fixture completion evidence is unavailable or differs from the run; binding refused');
+        }
       }
       for (const name of fs.readdirSync(folder).filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
         if (name === runId + '.json') continue;
@@ -989,6 +1009,7 @@ class Chronicle {
             try { if (this.inspectFixtureEvidence(run.id).status !== 'consistent') return null; }
             catch { return null; }
           }
+          if (run.evidenceSidecar === true && !fixtureCompletionValid(folder, run)) return null;
         }
         if (entries.some(entry => entry.startsWith(name + '.') && /^[a-f0-9-]{36}\.tmp$/.test(entry.slice(name.length + 1))) ||
             run.id !== name.slice(0, -5) || run.kind !== 'chronicle.fixture-run' || run.schema !== 1 ||

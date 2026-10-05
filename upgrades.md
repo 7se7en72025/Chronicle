@@ -68,6 +68,8 @@ Use these terms consistently:
 
 The controlled subprocess now receives a completion-marker path and accepts success only when the child's fsynced marker matches the run ID, cassette hash, consumed-call count, and durable sidecar hash. This verifies successful fixture completion locally; it does not authorize recovery to promote a pending journal or merge sidecar-ahead events.
 
+Binding and saved comparison also revalidate that marker against the current run and sidecar before attaching or displaying new-contract subprocess evidence. Missing, malformed, or changed markers hide/refuse evidence; legacy subprocess records without the sidecar marker retain their prior checks. This is local integrity evidence, not independent provenance or race-free protection against concurrent writes.
+
 Per [D014](DECISIONS.md#d014--keep-interrupted-fixture-sidecars-separate-from-journals), sidecar-ahead events remain separate during recovery. A matching durable completion marker is now implemented for successful controlled subprocesses. Recovery reconciliation remains deferred until a versioned event-log contract and a boundary-specific real controller-death test establish a safe merge rule; the existing marker does not authorize promotion of an interrupted journal.
 
 New controlled subprocess runs require a consistent child-written sidecar before fixture evidence can be bound or displayed in branch comparison. Legacy records without a sidecar marker retain their earlier journal/cassette checks. This is local consistency evidence, not independent host-tool observation.

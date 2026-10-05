@@ -162,6 +162,7 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   const evidenceFile = path.join(engine.store, 'fixture-runs', run.id + '.evidence.jsonl');
   const evidenceBytes = fs.readFileSync(evidenceFile);
   const completionFile = path.join(engine.store, 'fixture-runs', run.id + '.completion.json');
+  const completionBytes = fs.readFileSync(completionFile);
   const completion = JSON.parse(fs.readFileSync(completionFile, 'utf8'));
   assert.deepEqual(completion, {
     schema: 1, kind: 'chronicle.fixture-server-completion', runId: run.id,
@@ -196,6 +197,9 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   fs.writeFileSync(evidenceFile, Buffer.concat([evidenceBytes, Buffer.from('{')]));
   assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /evidence sidecar/);
   fs.writeFileSync(evidenceFile, evidenceBytes);
+  fs.writeFileSync(completionFile, JSON.stringify({ ...completion, evidenceHash: '0'.repeat(64) }));
+  assert.throws(() => engine.bindFixtureRun(run.id, operation.id), /completion evidence/);
+  fs.writeFileSync(completionFile, completionBytes);
   assert.equal(engine.bindFixtureRun(run.id, operation.id).operationId, operation.id);
   const other = engine.createBranch(before.id, after.id, selected, 'chronicle/process-comparison');
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
@@ -208,6 +212,10 @@ test('fixture subprocess exit and evidence gate branch binding', async t => {
   fs.writeFileSync(evidenceFile, Buffer.concat([evidenceBytes, Buffer.from('{')]));
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
   fs.writeFileSync(evidenceFile, evidenceBytes);
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
+  fs.writeFileSync(completionFile, '{}');
+  assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
+  fs.writeFileSync(completionFile, completionBytes);
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence.injectedFixtureCalls, 2);
   fs.unlinkSync(evidenceFile);
   assert.equal(engine.compareOperations(operation.id, other.id).first.fixtureEvidence, null);
