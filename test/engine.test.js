@@ -1585,6 +1585,7 @@ test('empty Codex boundary identifiers cannot falsely pair tool calls and remain
   const payload = { cwd: root, hook_event_name: 'PreToolUse', session_id: '', turn_id: '',
     tool_use_id: '', tool_name: 'Bash' };
   const pre = recordHook(payload, options, 'codex-cli');
+  fs.writeFileSync(path.join(root, 'README.md'), 'selected change\n');
   recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
   const malformed = { ...payload, session_id: 'bad/session', tool_use_id: 'bad/call' };
   recordHook(malformed, options, 'codex-cli');
@@ -1594,10 +1595,14 @@ test('empty Codex boundary identifiers cannot falsely pair tool calls and remain
   assert.equal(pre.event.sessionId, undefined);
   assert.equal(pre.event.turnId, undefined);
   assert.equal(pre.event.toolUseId, undefined);
-  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings.map(item => [item.reason, item.status]), [
+  const comparison = engine.compare(before.id, after.id);
+  assert.deepEqual(comparison.coverageWarnings.map(item => [item.reason, item.status]), [
     ['TOOL_BOUNDARY_ID_UNAVAILABLE', 'outcome-unknown'],
     ['TOOL_BOUNDARY_ID_UNAVAILABLE', 'outcome-unknown']
   ]);
+  const selected = comparison.changes.flatMap(file => file.hunks.map(hunk => hunk.id));
+  const output = engine.createBranch(before.id, after.id, selected, 'chronicle/unusable-tool-ids');
+  assert.equal(output.manifest.captureCoverage.unpairedToolBoundaries, 2);
 });
 
 test('checkpoint and gap storage project adapter metadata without raw caller fields', t => {
