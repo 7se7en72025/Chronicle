@@ -36,6 +36,8 @@ Preserve unrelated untracked `BOLPREP.md`, existing staging, private recordings,
 
 The user authorized skipping VS Code for ongoing work. Continue CLI review and viable local fixes; keep real editor validation pending rather than treating app approval as a prerequisite for all development. The CLI now refuses coerced exit-code arguments that could create false reported passes. Focused and full verification pass: 110 tests passed, three Linux-only skips, zero failures; syntax, links, and whitespace pass.
 
+The Codex boundary warning scan now includes saved turn ID in its correlation key. A post event from another turn no longer hides a missing outcome when session and tool IDs are reused. The regression failed before the change; four focused boundary tests pass afterward. The full suite passes 111/114 with three Linux-only skips and zero failures; syntax, 146 Markdown links, and whitespace checks pass. See [REVIEW.md](REVIEW.md).
+
 ## Next concrete task
 
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

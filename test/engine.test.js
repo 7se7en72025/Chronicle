@@ -1635,6 +1635,25 @@ test('earlier Codex post boundaries cannot hide later reused-ID pre boundaries',
   assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings, []);
 });
 
+test('Codex post boundaries from another turn cannot hide a missing tool outcome', t => {
+  const { root, engine, file } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before turn A');
+  const payload = { cwd: root, session_id: 'session', tool_use_id: 'reused-call', tool_name: 'Bash' };
+  const pre = recordHook({ ...payload, turn_id: 'turn-a', hook_event_name: 'PreToolUse' }, options, 'codex-cli');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  recordHook({ ...payload, turn_id: 'turn-b', hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  const after = engine.capture('After turn B');
+  assert.equal(pre.event.turnId, 'turn-a');
+  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings.map(item => item.reason),
+    ['POST_BOUNDARY_UNOBSERVED']);
+  const selected = [engine.compare(before.id, after.id).changes[0].hunks[0].id];
+  const output = engine.createBranch(before.id, after.id, selected, 'chronicle/turn-boundary');
+  assert.equal(output.manifest.captureCoverage.unpairedToolBoundaries, 1);
+  recordHook({ ...payload, turn_id: 'turn-a', hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings, []);
+});
+
 test('filesystem path comparison accepts alternate spellings but refuses redirected directories', t => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-path-identity-'));
   const target = path.join(base, 'target'); fs.mkdirSync(target);
