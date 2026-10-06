@@ -38,6 +38,8 @@ The user authorized skipping VS Code for ongoing work. Continue CLI review and v
 
 The Codex boundary warning scan now includes saved turn ID in its correlation key. A post event from another turn no longer hides a missing outcome when session and tool IDs are reused. The regression failed before the change; four focused boundary tests pass afterward. The full suite passes 111/114 with three Linux-only skips and zero failures; syntax, 146 Markdown links, and whitespace checks pass. See [REVIEW.md](REVIEW.md).
 
+The scan now also counts repeated pre-tool checkpoints separately and consumes each matching post once. A regression reproduced the old undercount; five focused boundary tests and syntax pass after the fix. The full suite passes 112/115 with three Linux-only skips and zero failures; 147 Markdown links and whitespace checks pass. See [REVIEW.md](REVIEW.md).
+
 ## Next concrete task
 
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

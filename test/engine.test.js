@@ -1654,6 +1654,28 @@ test('Codex post boundaries from another turn cannot hide a missing tool outcome
   assert.deepEqual(engine.compare(before.id, after.id).coverageWarnings, []);
 });
 
+test('one Codex post boundary cannot resolve two pre-tool checkpoints with reused IDs', t => {
+  const { root, engine, file } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before repeated calls');
+  const payload = { cwd: root, session_id: 'session', turn_id: 'turn', tool_use_id: 'reused', tool_name: 'Bash' };
+  const preOne = recordHook({ ...payload, hook_event_name: 'PreToolUse' }, options, 'codex-cli');
+  const preTwo = recordHook({ ...payload, hook_event_name: 'PreToolUse' }, options, 'codex-cli');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After repeated calls');
+  const setTime = (cp, seconds) => fs.writeFileSync(path.join(engine.store, 'checkpoints', cp.id + '.json'),
+    JSON.stringify({ ...cp, createdAt: `2026-01-01T00:00:0${seconds}.000Z` }));
+  [before, preOne, preTwo, after].forEach((cp, index) => setTime(cp, index));
+  const warnings = () => engine.compare(before.id, after.id).coverageWarnings;
+  assert.equal(warnings().length, 2);
+  const postOne = recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  setTime(postOne, 4);
+  assert.equal(warnings().length, 1);
+  const postTwo = recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  setTime(postTwo, 5);
+  assert.deepEqual(warnings(), []);
+});
+
 test('filesystem path comparison accepts alternate spellings but refuses redirected directories', t => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-path-identity-'));
   const target = path.join(base, 'target'); fs.mkdirSync(target);

@@ -427,21 +427,27 @@ class Chronicle {
     const post = new Map();
     for (const cp of checkpoints) {
       if (identifiable(cp.event) && cp.event.boundary === 'PostToolUse') {
-        // IDs can recur in imported or host-reused history. An earlier post
-        // cannot establish that a later pre boundary's outcome was observed.
-        post.set(key(cp.event), Date.parse(cp.createdAt));
+        const id = key(cp.event);
+        if (!post.has(id)) post.set(id, []);
+        post.get(id).push(Date.parse(cp.createdAt));
       }
     }
-    const seen = new Set();
+    const consumed = new Map(), matched = new Set();
+    // Match every saved pre boundary, including those outside the selected
+    // interval, so one later post cannot resolve two calls with reused IDs.
+    for (const cp of checkpoints) {
+      if (cp.event?.boundary !== 'PreToolUse' || !identifiable(cp.event)) continue;
+      const id = key(cp.event), available = post.get(id) || [];
+      let next = consumed.get(id) || 0;
+      while (next < available.length && available[next] < Date.parse(cp.createdAt)) next++;
+      if (next < available.length) { matched.add(cp.id); next++; }
+      consumed.set(id, next);
+    }
     return checkpoints.filter(cp => {
       const event = cp.event;
       if (event?.source !== 'codex-cli' || event.boundary !== 'PreToolUse' ||
           Date.parse(cp.createdAt) < start || Date.parse(cp.createdAt) > end) return false;
-      if (!identifiable(event)) return true;
-      const id = key(event);
-      if ((post.has(id) && post.get(id) >= Date.parse(cp.createdAt)) || seen.has(id)) return false;
-      seen.add(id);
-      return true;
+      return !matched.has(cp.id);
     }).map(cp => ({
       kind: 'coverage-warning',
       reason: identifiable(cp.event) ? 'POST_BOUNDARY_UNOBSERVED' : 'TOOL_BOUNDARY_ID_UNAVAILABLE',

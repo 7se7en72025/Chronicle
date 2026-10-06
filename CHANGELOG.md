@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Count repeated Codex pre-tool boundaries separately and consume each matching post only once when reporting unknown outcomes.
+
 - Match Codex tool boundaries within the same saved turn so reused tool IDs from another turn cannot hide an unknown outcome.
 
 - Require an explicit decimal exit code for CLI check reports; reject empty and coerced zero arguments before modifying evidence.
