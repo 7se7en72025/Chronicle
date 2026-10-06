@@ -1676,6 +1676,38 @@ test('one Codex post boundary cannot resolve two pre-tool checkpoints with reuse
   assert.deepEqual(warnings(), []);
 });
 
+test('Codex boundary pairing follows timestamp order across equivalent timezone forms', t => {
+  const { root, engine, file } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before calls');
+  const payload = { cwd: root, session_id: 'session', turn_id: 'turn', tool_use_id: 'reused', tool_name: 'Bash' };
+  const earlyPre = recordHook({ ...payload, hook_event_name: 'PreToolUse' }, options, 'codex-cli');
+  const post = recordHook({ ...payload, hook_event_name: 'PostToolUse' }, options, 'codex-cli');
+  const latePre = recordHook({ ...payload, hook_event_name: 'PreToolUse' }, options, 'codex-cli');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After calls');
+  const setTime = (cp, createdAt) => fs.writeFileSync(path.join(engine.store, 'checkpoints', cp.id + '.json'),
+    JSON.stringify({ ...cp, createdAt }));
+  setTime(before, '2025-12-31T23:59:59.000Z');
+  setTime(earlyPre, '2026-01-01T01:00:00.000+01:00');
+  setTime(post, '2026-01-01T00:00:01.000Z');
+  setTime(latePre, '2026-01-01T00:00:02.000Z');
+  setTime(after, '2026-01-01T00:00:03.000Z');
+  assert.deepEqual(engine.list().map(cp => cp.id), [before, earlyPre, post, latePre, after].map(cp => cp.id));
+  const warnings = engine.compare(before.id, after.id).coverageWarnings;
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].createdAt, '2026-01-01T00:00:02.000Z');
+});
+
+test('capture gap review orders equivalent timezone forms by instant', t => {
+  const { engine } = fixture(t);
+  const early = engine.recordGap({ source: 'codex-cli', boundary: 'PostToolUse' }, new Error('busy'));
+  const late = engine.recordGap({ source: 'codex-cli', boundary: 'PostToolUse' }, new Error('busy'));
+  fs.writeFileSync(storedGapPath(engine, early.id), JSON.stringify({ ...early, createdAt: '2026-01-01T01:00:00.000+01:00' }));
+  fs.writeFileSync(storedGapPath(engine, late.id), JSON.stringify({ ...late, createdAt: '2026-01-01T00:00:01.000Z' }));
+  assert.deepEqual(engine.gaps().map(gap => gap.id), [early.id, late.id]);
+});
+
 test('filesystem path comparison accepts alternate spellings but refuses redirected directories', t => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'chronicle-path-identity-'));
   const target = path.join(base, 'target'); fs.mkdirSync(target);

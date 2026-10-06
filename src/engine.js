@@ -379,7 +379,7 @@ class Chronicle {
       const cp = readJsonLimited(path.join(this.store, 'checkpoints', n), MAX_TOTAL * 2);
       if (!cp || cp.id + '.json' !== n || cp.root !== this.root || cp.schema !== 1 || !validTimestamp(cp.createdAt)) throw new Error('Checkpoint record identity is invalid');
       return cp;
-    }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id));
   }
 
   gaps(from, to) {
@@ -404,7 +404,8 @@ class Chronicle {
       return gap;
     }).filter(item => item.kind === 'capture-gap'
       ? Date.parse(item.createdAt) >= start && Date.parse(item.createdAt) <= end
-      : Date.parse(item.createdAt) <= end).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      : Date.parse(item.createdAt) <= end).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) ||
+        String(a.id ?? '').localeCompare(String(b.id ?? '')));
   }
 
   unpairedToolBoundaries(from, to) {
@@ -418,7 +419,7 @@ class Chronicle {
         const cp = JSON.parse(readRegularLimited(path.join(folder, name), MAX_TOTAL * 2).toString('utf8'));
         if (cp.id !== name.slice(0, -5) || cp.schema !== 1 || cp.root !== this.root || !validTimestamp(cp.createdAt)) throw new Error('Invalid checkpoint');
         return cp;
-      }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      }).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id));
     }
     catch { return null; }
     const key = event => JSON.stringify([event.sessionId, event.toolUseId, safeIdentifier(event.turnId) ?? null]);

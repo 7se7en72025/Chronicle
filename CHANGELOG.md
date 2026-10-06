@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Order saved checkpoints, capture gaps, and Codex tool-boundary matches by parsed timestamp so valid timezone offsets cannot distort coverage warnings.
+
 - Count repeated Codex pre-tool boundaries separately and consume each matching post only once when reporting unknown outcomes.
 
 - Match Codex tool boundaries within the same saved turn so reused tool IDs from another turn cannot hide an unknown outcome.

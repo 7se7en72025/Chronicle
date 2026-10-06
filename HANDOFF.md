@@ -1,12 +1,12 @@
 # Current handoff
 
-Updated: 2026-10-06.
+Updated: 2026-10-07.
 
 ## Current state and verification
 
 Chronicle is an unpublished local prototype: checkpoints, coverage warnings, hunk/change-group selection, separate worktree output, guarded undo, branch comparison, and bounded simulated replay evidence are implemented. Direct local review and application do not request a model. First-release acceptance remains incomplete; see [PLAN.md](PLAN.md), [architecture.md](architecture.md), and [ORCHESTRATION.md](ORCHESTRATION.md).
 
-The latest source fixes reconcile Windows worktree aliases through non-following BigInt filesystem identities and preserve the caller's repository-root spelling for storage keys while validating Git identity. Local validation passed 109/112 tests with three Linux-only skips and zero failures; syntax, controlled replay, 249 relative Markdown links, and whitespace checks passed. Post-fix [CI run 37334567677](https://github.com/7se7en72025/Chronicle/actions/runs/37334567677) passed Node 22/24 on Ubuntu and Windows. Earlier hosted failures and log-access blockers are superseded. Details and investigation history remain in [REVIEW.md](REVIEW.md).
+Earlier source fixes reconciled Windows worktree aliases through non-following BigInt filesystem identities and preserved the caller's repository-root spelling for storage keys while validating Git identity. Their [CI run 37334567677](https://github.com/7se7en72025/Chronicle/actions/runs/37334567677) passed Node 22/24 on Ubuntu and Windows. That CI result predates the current timestamp-order change; details remain in [REVIEW.md](REVIEW.md).
 
 The previous handoff consolidation changed documentation only and established no additional host coverage.
 
@@ -39,6 +39,8 @@ The user authorized skipping VS Code for ongoing work. Continue CLI review and v
 The Codex boundary warning scan now includes saved turn ID in its correlation key. A post event from another turn no longer hides a missing outcome when session and tool IDs are reused. The regression failed before the change; four focused boundary tests pass afterward. The full suite passes 111/114 with three Linux-only skips and zero failures; syntax, 146 Markdown links, and whitespace checks pass. See [REVIEW.md](REVIEW.md).
 
 The scan now also counts repeated pre-tool checkpoints separately and consumes each matching post once. A regression reproduced the old undercount; five focused boundary tests and syntax pass after the fix. The full suite passes 112/115 with three Linux-only skips and zero failures; 147 Markdown links and whitespace checks pass. See [REVIEW.md](REVIEW.md).
+
+The latest fix orders saved checkpoint and gap review, plus Codex pre/post matching, by parsed timestamp. A regression with valid timezone offsets reproduced an incorrect warning count before the change. Focused tests pass 5/5; the full suite passes 114/117 with three platform-specific skips and zero failures. Syntax, 148 relative Markdown links, and whitespace checks pass. See [REVIEW.md](REVIEW.md).
 
 ## Next concrete task
 
