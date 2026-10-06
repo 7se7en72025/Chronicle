@@ -20,7 +20,12 @@ function main(args) {
   else if (command === 'branch') result = engine.createBranch(rest[0], rest[1], rest.slice(3), rest[2]);
   else if (command === 'operations') result = engine.operations();
   else if (command === 'compare-operations') result = engine.compareOperations(rest[0], rest[1]);
-  else if (command === 'record-check') result = engine.recordCheck(rest[0], rest.slice(2).join(' '), Number(rest[1]));
+  else if (command === 'record-check') {
+    if (typeof rest[1] !== 'string' || !/^\d{1,3}$/.test(rest[1]) || Number(rest[1]) > 255) {
+      throw new Error('Exit code must be an explicit decimal integer from 0 to 255');
+    }
+    result = engine.recordCheck(rest[0], rest.slice(2).join(' '), Number(rest[1]));
+  }
   else if (command === 'undo') result = engine.undoOperation(rest[0]);
   else if (command === 'reconcile') result = engine.reconcileOperations();
   else if (command === 'recover') result = engine.recoverStorage(rest.includes('--confirm-stale-lock'));

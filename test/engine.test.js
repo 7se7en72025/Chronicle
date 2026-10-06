@@ -798,6 +798,17 @@ test('branch manifests compare saved outputs and label unmeasured checks and cos
   });
   assert.equal(recordCli.status, 0, recordCli.stderr);
   assert.deepEqual([JSON.parse(recordCli.stdout).outcome, JSON.parse(recordCli.stdout).source], ['reported-fail', 'user-reported']);
+  const journal = path.join(engine.store, 'operations', b.id + '.json');
+  const journalBytes = fs.readFileSync(journal);
+  for (const exitCode of ['', ' ', '0x0', '0e0', '0.0', '+0']) {
+    const invalid = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'cli.js'),
+      'record-check', b.id, exitCode, 'invalid report'], {
+      cwd: root, encoding: 'utf8', env: { ...process.env, CHRONICLE_HOME: path.dirname(engine.store) }
+    });
+    assert.equal(invalid.status, 1);
+    assert.match(invalid.stderr, /decimal integer/);
+    assert.deepEqual(fs.readFileSync(journal), journalBytes);
+  }
 });
 
 test('selection ignores user diff colors and blank-context formatting', t => {

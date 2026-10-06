@@ -1,5 +1,10 @@
 # Latest development review
 
+## CLI exit-code coercion could record a false pass (2026-10-06, fixed)
+
+**P2 ? `src/cli.js:main` converted the record-check exit argument using Number before lexical validation.** Empty and whitespace arguments became zero; hexadecimal, exponent, decimal-point, and signed-zero forms also passed the engine integer check. The disposable CLI regression reproduced a successful report for an empty argument before the fix. The CLI now requires one to three decimal digits with value 0?255. Invalid arguments exit unsuccessfully and preserve the operation journal byte-for-byte. Verification: focused integration passes; full suite passes 110/113 with three Linux-only skips and zero failures. Syntax covers 15 JavaScript files; 145 relative links and whitespace checks pass. A same-agent second diff review checked refusal before evidence writes; it is not independent review. Reports remain user-reported, not independently executed checks.
+
+
 ## Editor surface discovered; app access denied (2026-10-06)
 
 O004 prerequisite refresh: the native Windows computer-use connection returned exactly one VS Code window for Chronicle. Selecting that returned window was rejected with "Computer Use was not approved to use Visual Studio Code." The alternate connection still returns an empty app/browser inventory. The terminal can list installed extensions and showed no Chronicle extension. No editor action, extension loading, hook trust change, or host validation occurred. The user has been asked to approve Visual Studio Code in computer-use app permissions; do not bypass the denial through another UI control mechanism. After approval, run the disposable editor acceptance workflow in RELEASE_AUDIT.md. The current handoff now reflects this narrower blocker. Documentation-only whitespace and relative-link checks apply; application tests are not rerun.

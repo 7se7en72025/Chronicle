@@ -32,6 +32,10 @@ The optional laptop runner remains behind its existing STOP marker. Do not clear
 
 Preserve unrelated untracked `BOLPREP.md`, existing staging, private recordings, and credentials. Normal verified commits and pushes to the authorized origin/main remain permitted; no force pushes or history rewrites.
 
+## Current execution direction
+
+The user authorized skipping VS Code for ongoing work. Continue CLI review and viable local fixes; keep real editor validation pending rather than treating app approval as a prerequisite for all development. The CLI now refuses coerced exit-code arguments that could create false reported passes. Focused and full verification pass: 110 tests passed, three Linux-only skips, zero failures; syntax, links, and whitespace pass.
+
 ## Next concrete task
 
-After Visual Studio Code is approved in computer-use permissions and the exact shipped hook is reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.
+Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

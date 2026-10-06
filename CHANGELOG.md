@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Require an explicit decimal exit code for CLI check reports; reject empty and coerced zero arguments before modifying evidence.
+
 - Refuse new fixture evidence bindings when the duplicate scan encounters malformed journal shapes or identities, preserving the target run and damaged records.
 
 - Keep saved file comparison usable when fixture journals or bound events contain non-object JSON; report fixture provenance unavailable and preserve damaged records.
