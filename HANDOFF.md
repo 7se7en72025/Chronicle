@@ -48,6 +48,8 @@ Unknown CLI commands now fail before initializing repository or storage state; d
 
 The README and setup guide now match the later compatibility-package fixture evidence in the release audit. This documentation update establishes no new host coverage; normal shipped-package loading and the remaining acceptance gates are still open.
 
+Simulated replay canonicalization now rejects sparse JavaScript arrays, preventing a malformed local request from matching an empty-array cassette input and consuming its response. The regression failed before the fix; seven focused tests pass. The full suite passes 117 of 120 tests with three platform-specific skips and zero failures; syntax, 151 relative Markdown links, and whitespace checks pass. Host coverage remains unchanged. See [REVIEW.md](REVIEW.md).
+
 ## Next concrete task
 
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

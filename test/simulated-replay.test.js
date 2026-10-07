@@ -12,6 +12,20 @@ const { resetSampleApp } = require('../src/sample-app');
 const fixturePath = path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json');
 const loadCassette = () => JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 
+test('sparse array requests cannot alias an empty JSON array or consume its response', () => {
+  const cassette = loadCassette();
+  cassette.calls = [{ ...cassette.calls[0], input: { items: [] } }];
+  const replay = createSimulatedReplay(cassette);
+  assert.throws(() => replay.invoke('fixture.issue.lookup', { items: Array(1) }), { code: 'SIMULATED_REPLAY_UNMATCHED' });
+  assert.equal(replay.position, 0);
+  assert.throws(() => replay.invoke('fixture.issue.lookup', { items: [, 'present'] }), { code: 'SIMULATED_REPLAY_UNMATCHED' });
+  assert.equal(replay.position, 0);
+  replay.invoke('fixture.issue.lookup', { items: [] });
+  replay.assertComplete();
+  cassette.calls[0].response = Array(1);
+  assert.throws(() => createSimulatedReplay(cassette), { code: 'SIMULATED_REPLAY_INVALID_JSON' });
+});
+
 test('simulated replay injects the same allowlisted fixture responses deterministically', () => {
   const cassette = loadCassette();
   const first = createSimulatedReplay(cassette);

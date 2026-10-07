@@ -16,7 +16,14 @@ function canonicalJson(value, depth = 0) {
   if (depth > 64) fail('SIMULATED_REPLAY_INVALID_JSON', 'Simulated tool values exceed the nesting limit.');
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
-  if (Array.isArray(value)) return '[' + value.map(item => canonicalJson(item, depth + 1)).join(',') + ']';
+  if (Array.isArray(value)) {
+    const items = [];
+    for (let index = 0; index < value.length; index++) {
+      if (!Object.hasOwn(value, index)) fail('SIMULATED_REPLAY_INVALID_JSON', 'Simulated tool arrays must not contain holes.');
+      items.push(canonicalJson(value[index], depth + 1));
+    }
+    return '[' + items.join(',') + ']';
+  }
   if (value && typeof value === 'object' && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)) {
     return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonicalJson(value[key], depth + 1)).join(',') + '}';
   }

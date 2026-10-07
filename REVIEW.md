@@ -1,5 +1,11 @@
 # Latest development review
 
+## Sparse arrays aliased empty fixture inputs (2026-10-07, fixed)
+
+**P2 — src/simulated-replay.js:canonicalJson used Array.map, which skipped holes.** A local request containing `Array(1)` canonicalized as `[]`, matching an empty-array cassette input and consuming its response despite different data. A regression failed before the fix. Canonicalization now visits every index and rejects missing own elements; malformed requests remain unmatched without advancing the replay cursor, and sparse cassette responses are rejected before serialization. This affects the programmatic fixture API; ordinary JSON transport cannot encode array holes.
+
+Verification: seven focused replay tests and syntax checks across 15 files pass. Full suite: 117 of 120 tests passed, three platform-specific skips, zero failures. All 151 relative Markdown links and whitespace checks pass. A same-agent second diff review verified rejection before cursor advancement and valid-array behavior; no independent review occurred. The original workspace, unrelated BOLPREP.md, runner STOP, and host trust settings are preserved. This does not establish broader host replay coverage.
+
 ## Host summary lagged behind recorded fixture evidence (2026-10-07, corrected)
 
 **P3 — README.md introductory capability summary and GETTING_STARTED.md Codex adapter setup retained the earlier SessionEnd-only test description.** RELEASE_AUDIT.md and PLAN.md already record the later ephemeral compatibility-package turn with SessionStart, apply_patch pre/post, and SessionEnd. The summaries now distinguish those observed callbacks from the still-unverified normal shipped-package trust/loading path, Bash/partial-write coverage, and real editor/second-host acceptance. The setup guide links the exact conditions and keeps the one-off bypass out of setup guidance.

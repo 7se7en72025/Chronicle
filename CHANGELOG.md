@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Reject sparse arrays in simulated replay canonicalization so malformed local requests cannot consume an empty-array fixture response.
+
 - Align introductory and setup documentation with the recorded compatibility-package host test while preserving open release acceptance gates.
 
 - Keep Codex pre/post-tool outcome correlation scoped to the saved tool name as well as session, turn, and tool-use IDs.
