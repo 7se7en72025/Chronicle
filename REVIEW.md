@@ -1,5 +1,11 @@
 # Latest development review
 
+## Missing host turn completion retained a partial coverage label (2026-10-07, fixed)
+
+**P2 — src/codex-trace.js:inspectCodexTrace only checked lifecycle counts when calculating its overall status.** A newline-terminated trace with all fixture calls and a matching server finish receipt, but no `turn.completed`, returned review-required while still labeling coverage partial-observed. The regression reproduced a valid-structure flag for that unfinished trace. End-of-scan validation now requires exactly one thread start, turn start, and turn completion plus an inactive turn before either structure or coverage can be accepted. Consistent fixture evidence remains visible, while host coverage becomes unknown with trace-structure-invalid.
+
+Verification: two focused trace tests and syntax checks across 15 files pass. The full suite failed: 112 passed, five failed, three skipped. Its reported duration was 12,420,426 ms; four failures were Git/PowerShell subprocess ETIMEDOUT errors and one reported a missing disposable runner-state directory. Those historical failures were outside the changed trace path; their cause remains unconfirmed. A fresh full-suite rerun passed 117 of 120 tests with three platform-specific skips and zero failures in 247,074 ms, without changes to the runner or recovery code. Syntax across 15 files, relative Markdown links, and whitespace checks pass. The same-agent second review confirmed the lifecycle requirement applies to both status and coverage; this is not independent review. This is local trace inspection, not exhaustive host interception or new host validation. No trust changes, runner start, or independent-agent review occurred.
+
 ## Sparse arrays aliased empty fixture inputs (2026-10-07, fixed)
 
 **P2 — src/simulated-replay.js:canonicalJson used Array.map, which skipped holes.** A local request containing `Array(1)` canonicalized as `[]`, matching an empty-array cassette input and consuming its response despite different data. A regression failed before the fix. Canonicalization now visits every index and rejects missing own elements; malformed requests remain unmatched without advancing the replay cursor, and sparse cassette responses are rejected before serialization. This affects the programmatic fixture API; ordinary JSON transport cannot encode array holes.

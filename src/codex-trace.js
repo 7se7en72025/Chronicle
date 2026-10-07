@@ -160,6 +160,8 @@ function inspectCodexTrace(bytes, cassette, server = 'chronicle_replay', serverE
       else if (!['agent_message', 'reasoning'].includes(item.type)) otherToolItems++;
     } else if (event.type !== 'thread.started' && event.type !== 'turn.started' && event.type !== 'turn.completed') invalid = true;
   }
+  // A complete server receipt does not establish that the host turn ended.
+  if (threadStarted !== 1 || turnStarted !== 1 || turnCompleted !== 1 || turnActive) invalid = true;
   let traceCallsMatchCassette = false;
   try { replay.assertComplete(); traceCallsMatchCassette = true; } catch { /* Incomplete or rejected tool sequence. */ }
   const serverEvidenceMatches = serverEvidence === null ? null : matchesServerEvidence(serverEvidence, expectedEvidence, receiptText);

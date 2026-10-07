@@ -111,6 +111,13 @@ test('Codex trace inspector checks consistency with a completed fixture server s
   const consistent = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence, benignDiagnostics);
   assert.equal(consistent.status, 'host-server-evidence-consistent');
   assert.deepEqual(consistent.coverage, { classification: 'partial-observed', reasons: [] });
+  const unfinishedTurn = inspectCodexTrace(bytes(withFinish.slice(0, -1)), cassette,
+    'chronicle_replay', serverEvidence, benignDiagnostics);
+  assert.equal(unfinishedTurn.serverEvidenceMatches, true);
+  assert.equal(unfinishedTurn.status, 'review-required');
+  assert.equal(unfinishedTurn.traceStructureValid, false);
+  assert.equal(unfinishedTurn.coverage.classification, 'unknown');
+  assert.ok(unfinishedTurn.coverage.reasons.includes('trace-structure-invalid'));
   const duplicateDiagnostic = inspectCodexTrace(bytes(withFinish), cassette, 'chronicle_replay', serverEvidence,
     Buffer.concat([benignDiagnostics, benignDiagnostics]));
   assert.equal(duplicateDiagnostic.status, 'review-required');

@@ -50,6 +50,9 @@ The README and setup guide now match the later compatibility-package fixture evi
 
 Simulated replay canonicalization now rejects sparse JavaScript arrays, preventing a malformed local request from matching an empty-array cassette input and consuming its response. The regression failed before the fix; seven focused tests pass. The full suite passes 117 of 120 tests with three platform-specific skips and zero failures; syntax, 151 relative Markdown links, and whitespace checks pass. Host coverage remains unchanged. See [REVIEW.md](REVIEW.md).
 
+## Latest verified fix
+
+The Codex trace inspector keeps coverage unknown when turn.completed is absent, even with matching fixture-server evidence. The regression reproduced the old valid-structure flag; focused tests and syntax pass. The earlier full suite failed with timeouts and missing disposable storage after a reported multi-hour duration; a fresh rerun passed 117 of 120 tests with three platform-specific skips and zero failures in about 247 seconds. No runner or recovery code changes were needed; the earlier cause remains unconfirmed. Documentation and whitespace checks pass. See [REVIEW.md](REVIEW.md) for both results. Host acceptance gates remain open.
 ## Next concrete task
 
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.
