@@ -1,5 +1,14 @@
 # Latest development review
 
+## Reused Codex IDs across tools hid an unknown outcome (2026-10-07, fixed)
+
+**P2 — `Chronicle.unpairedToolBoundaries` paired Codex pre/post events across different saved tool names when session, turn, and tool-use IDs matched.** A disposable regression reproduced zero warnings for a `Bash` pre boundary followed only by an `apply_patch` post boundary with reused IDs. Matching now includes the validated tool name, with missing names matching only other missing names. The wrong-tool post leaves the `Bash` outcome unknown; a later `Bash` post resolves it. Six focused boundary tests pass. Full-suite verification passes: 116 of 119 tests passed, three platform-specific skips, zero failures. Syntax checks cover 15 JavaScript files; 149 relative Markdown links resolve and whitespace checks pass. A same-agent second review checked tool-name matching and CLI refusal before initialization; this is not independent review. This is conservative metadata correlation, not proof that the host emitted every boundary.
+
+## Unknown CLI commands initialized recorder storage (2026-10-07, fixed)
+
+**P2 - src/cli.js:main constructed Chronicle before rejecting unknown commands.** Typos outside a repository returned a misleading Git error; inside a repository they could create recorder storage despite not requesting a supported operation. The disposable regression reproduced the wrong error before the fix. Unknown commands now fail before repository discovery or storage creation. The test covers both non-repository and initialized Git directories and verifies no history directory exists. Focused and syntax checks pass; the full suite passes 116 of 119 tests with three platform-specific skips and zero failures.
+
+
 ## Offset timestamps distorted Codex outcome warnings (2026-10-07, fixed)
 
 **P2 — `Chronicle.unpairedToolBoundaries` sorted valid saved timestamps as strings before one-to-one matching.** With equivalent UTC/offset forms, a later pre boundary could be visited first, skip the earlier post, and leave two outcome-unknown warnings where only one was warranted. The disposable regression reproduced `2 !== 1` before the fix. `Chronicle.list` and `Chronicle.gaps` had the same ordering defect in their review output. All three scans now sort by parsed instant with a stable ID tie-breaker. Focused timestamp and adjacent boundary tests pass 5/5; the full suite passes 114/117 with three platform-specific skips and zero failures. Syntax passes across 15 JavaScript files, 148 relative Markdown links resolve, and whitespace checks pass. This corrects local evidence ordering, not host clock drift or exhaustive capture. The same-agent final diff review is not an independent review.

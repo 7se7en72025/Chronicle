@@ -4,6 +4,10 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Keep Codex pre/post-tool outcome correlation scoped to the saved tool name as well as session, turn, and tool-use IDs.
+
+- Reject unknown CLI commands before repository discovery or recorder storage initialization.
+
 - Order saved checkpoints, capture gaps, and Codex tool-boundary matches by parsed timestamp so valid timezone offsets cannot distort coverage warnings.
 
 - Count repeated Codex pre-tool boundaries separately and consume each matching post only once when reporting unknown outcomes.

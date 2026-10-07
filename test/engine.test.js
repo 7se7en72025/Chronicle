@@ -1699,6 +1699,26 @@ test('Codex boundary pairing follows timestamp order across equivalent timezone 
   assert.equal(warnings[0].createdAt, '2026-01-01T00:00:02.000Z');
 });
 
+test('Codex post boundary from another tool cannot resolve a pre-tool call with reused IDs', t => {
+  const { root, engine, file } = fixture(t);
+  const options = { storage: path.dirname(engine.store) };
+  const before = engine.capture('Before tool call');
+  const payload = { cwd: root, session_id: 'session', turn_id: 'turn', tool_use_id: 'reused' };
+  const pre = recordHook({ ...payload, hook_event_name: 'PreToolUse', tool_name: 'Bash' }, options, 'codex-cli');
+  const otherPost = recordHook({ ...payload, hook_event_name: 'PostToolUse', tool_name: 'apply_patch' }, options, 'codex-cli');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After tool call');
+  const setTime = (cp, seconds) => fs.writeFileSync(path.join(engine.store, 'checkpoints', cp.id + '.json'),
+    JSON.stringify({ ...cp, createdAt: `2026-01-01T00:00:0${seconds}.000Z` }));
+  [before, pre, otherPost, after].forEach((cp, index) => setTime(cp, index));
+  const warnings = () => engine.compare(before.id, after.id).coverageWarnings;
+  assert.equal(warnings().length, 1);
+  assert.equal(warnings()[0].reason, 'POST_BOUNDARY_UNOBSERVED');
+  const matchingPost = recordHook({ ...payload, hook_event_name: 'PostToolUse', tool_name: 'Bash' }, options, 'codex-cli');
+  setTime(matchingPost, 4);
+  assert.deepEqual(warnings(), []);
+});
+
 test('capture gap review orders equivalent timezone forms by instant', t => {
   const { engine } = fixture(t);
   const early = engine.recordGap({ source: 'codex-cli', boundary: 'PostToolUse' }, new Error('busy'));

@@ -422,7 +422,8 @@ class Chronicle {
       }).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id));
     }
     catch { return null; }
-    const key = event => JSON.stringify([event.sessionId, event.toolUseId, safeIdentifier(event.turnId) ?? null]);
+    const key = event => JSON.stringify([event.sessionId, event.toolUseId,
+      safeIdentifier(event.turnId) ?? null, safeIdentifier(event.tool, 80) ?? null]);
     const identifiable = event => event?.source === 'codex-cli' && safeIdentifier(event.sessionId) !== undefined &&
       safeIdentifier(event.toolUseId) !== undefined;
     const post = new Map();

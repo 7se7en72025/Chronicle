@@ -42,6 +42,10 @@ The scan now also counts repeated pre-tool checkpoints separately and consumes e
 
 The latest fix orders saved checkpoint and gap review, plus Codex pre/post matching, by parsed timestamp. A regression with valid timezone offsets reproduced an incorrect warning count before the change. Focused tests pass 5/5; the full suite passes 114/117 with three platform-specific skips and zero failures. Syntax, 148 relative Markdown links, and whitespace checks pass. See [REVIEW.md](REVIEW.md).
 
+Codex pre/post correlation now includes the saved tool name. A wrong-tool post with reused IDs previously hid a missing outcome; the regression failed before the fix and six focused boundary tests now pass. Full-suite verification passes: 116 of 119 tests, three platform-specific skips, zero failures. Syntax, 149 relative Markdown links, and whitespace checks pass. See [REVIEW.md](REVIEW.md).
+
+Unknown CLI commands now fail before initializing repository or storage state; disposable tests cover both repository and non-repository invocation. Focused and syntax checks pass; the full suite passes 116 of 119 tests with three platform-specific skips and zero failures.
+
 ## Next concrete task
 
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

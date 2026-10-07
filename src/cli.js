@@ -10,6 +10,10 @@ function main(args) {
     console.log('  node /path/to/Chronicle/src/cli.js inspect-fixture-evidence <run-id>   # read-only sidecar check');
     return;
   }
+  const commands = ['capture', 'list', 'gaps', 'diff', 'preview', 'branch', 'operations',
+    'compare-operations', 'record-check', 'undo', 'reconcile', 'recover',
+    'recover-fixture-runs', 'inspect-fixture-evidence'];
+  if (!commands.includes(command)) throw new Error('Unknown command. Run with --help.');
   const engine = new Chronicle(process.cwd());
   let result;
   if (command === 'capture') result = engine.capture(rest.join(' ') || 'Manual checkpoint');
