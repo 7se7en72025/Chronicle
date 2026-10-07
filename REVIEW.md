@@ -4,6 +4,8 @@
 
 **P2 — src/engine.js:reconcileOperations compares completed output hashes and path presence, but not executable modes.** createBranch verifies modes at creation and saves them in manifest.outputFiles, while its older operation.files entries retain only path/hash. Reconciliation constructs its expected map from operation.files and only checks lstat.isFile plus the byte hash. Therefore a later POSIX chmod that preserves bytes is not checked against the saved manifest mode; recordCheck and bindFixtureRun depend on the completed assessment. This is a source-review finding, not a reproduced Linux result; Windows does not expose the same executable-bit semantics.
 
+Runtime prerequisite check: the existing Ubuntu-24.04 WSL distribution has /usr/bin/git but no Node on PATH; /opt and /usr/local/bin contain no runtime, and /tmp has no cached Node distribution. No packages were installed and no project files were run through Windows Node as a substitute for POSIX semantics. Acquire a maintained Linux Node runtime before reproducing this finding.
+
 Next: add a disposable POSIX regression that changes only an output executable bit, requires completed-worktree-modified, and verifies check recording and fixture binding refuse without changing journals. Compare live POSIX mode with pinned manifest output mode, retain Windows handling, and decide conservative legacy-manifest behavior. Run maintained Linux and Windows checks before calling this fixed. No source change or new host validation in this review; documentation links and whitespace checks apply.
 
 ## Missing host turn completion retained a partial coverage label (2026-10-07, fixed)
