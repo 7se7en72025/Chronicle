@@ -46,6 +46,8 @@ Codex pre/post correlation now includes the saved tool name. A wrong-tool post w
 
 Unknown CLI commands now fail before initializing repository or storage state; disposable tests cover both repository and non-repository invocation. Focused and syntax checks pass; the full suite passes 116 of 119 tests with three platform-specific skips and zero failures.
 
+The README and setup guide now match the later compatibility-package fixture evidence in the release audit. This documentation update establishes no new host coverage; normal shipped-package loading and the remaining acceptance gates are still open.
+
 ## Next concrete task
 
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

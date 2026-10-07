@@ -1,5 +1,11 @@
 # Latest development review
 
+## Host summary lagged behind recorded fixture evidence (2026-10-07, corrected)
+
+**P3 — README.md introductory capability summary and GETTING_STARTED.md Codex adapter setup retained the earlier SessionEnd-only test description.** RELEASE_AUDIT.md and PLAN.md already record the later ephemeral compatibility-package turn with SessionStart, apply_patch pre/post, and SessionEnd. The summaries now distinguish those observed callbacks from the still-unverified normal shipped-package trust/loading path, Bash/partial-write coverage, and real editor/second-host acceptance. The setup guide links the exact conditions and keeps the one-off bypass out of setup guidance.
+
+Verification: compared both summaries with the existing release audit; relative Markdown links and whitespace checks pass. This is documentation reconciliation, with no new host run or trust change. Application tests were not rerun for prose-only changes. A second review by the same agent checked the distinction between historical fixture evidence and release acceptance; no independent review occurred.
+
 ## Reused Codex IDs across tools hid an unknown outcome (2026-10-07, fixed)
 
 **P2 — `Chronicle.unpairedToolBoundaries` paired Codex pre/post events across different saved tool names when session, turn, and tool-use IDs matched.** A disposable regression reproduced zero warnings for a `Bash` pre boundary followed only by an `apply_patch` post boundary with reused IDs. Matching now includes the validated tool name, with missing names matching only other missing names. The wrong-tool post leaves the `Bash` outcome unknown; a later `Bash` post resolves it. Six focused boundary tests pass. Full-suite verification passes: 116 of 119 tests passed, three platform-specific skips, zero failures. Syntax checks cover 15 JavaScript files; 149 relative Markdown links resolve and whitespace checks pass. A same-agent second review checked tool-name matching and CLI refusal before initialization; this is not independent review. This is conservative metadata correlation, not proof that the host emitted every boundary.

@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Align introductory and setup documentation with the recorded compatibility-package host test while preserving open release acceptance gates.
+
 - Keep Codex pre/post-tool outcome correlation scoped to the saved tool name as well as session, turn, and tool-use IDs.
 
 - Reject unknown CLI commands before repository discovery or recorder storage initialization.
