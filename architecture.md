@@ -364,3 +364,5 @@ For release, verify that the direct review/select/apply flow makes zero model re
 These features require their own restoration and isolation contracts. Browser screenshots do not restore browser memory, and workspace snapshots do not undo remote side effects.
 
 The first product promise is precise: inspect recorded file changes, keep the useful parts, and apply them locally without regenerating them through an AI model.
+
+Completed-output reconciliation on POSIX also checks executable modes against manifest.outputFiles entries with matching hashes. Missing or invalid saved mode evidence conservatively marks the output modified, refusing new check/fixture evidence. Windows retains its existing mode handling.

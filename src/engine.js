@@ -1211,6 +1211,8 @@ class Chronicle {
         if (operation.state === 'completed') {
           if (Array.isArray(operation.files) && Array.isArray(operation.deletedPaths) && typeof operation.head === 'string') {
             const expected = new Map(operation.files.map(file => [file.path, file.hash]));
+            const savedModes = new Map((Array.isArray(operation.manifest?.outputFiles) ? operation.manifest.outputFiles : [])
+              .map(file => [file.path, file]));
             const absent = new Set(operation.deletedPaths);
             modifiedSinceCompletion = git(expectedTarget, ['rev-parse', 'HEAD']).trim() !== operation.head;
             // The intended output is unstaged. A staged variant can differ even when
@@ -1220,7 +1222,13 @@ class Chronicle {
             for (const [name, digest] of expected) {
               try {
                 const full = safePath(expectedTarget, name);
-                if (!fs.lstatSync(full).isFile() || hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== digest) modifiedSinceCompletion = true;
+                const stat = fs.lstatSync(full);
+                if (!stat.isFile() || hash(readRegularLimited(full, MAX_SELECTED_FILE)) !== digest) modifiedSinceCompletion = true;
+                if (process.platform !== 'win32') {
+                  const saved = savedModes.get(name);
+                  const mode = stat.mode & 0o111 ? '100755' : '100644';
+                  if (!saved || saved.hash !== digest || !['100644', '100755'].includes(saved.mode) || saved.mode !== mode) modifiedSinceCompletion = true;
+                }
               } catch { modifiedSinceCompletion = true; }
             }
             for (const name of absent) {

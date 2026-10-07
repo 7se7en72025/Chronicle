@@ -32,6 +32,20 @@ function storedGapPath(engine, id) {
   throw new Error('Stored gap not found: ' + id);
 }
 
+test('completed output executable-mode drift refuses new check evidence', { skip: process.platform === 'win32' }, t => {
+  const { engine, file } = fixture(t);
+  const before = engine.capture('Before');
+  fs.writeFileSync(file, 'one\nchanged\nthree\n');
+  const after = engine.capture('After');
+  const op = engine.createBranch(before.id, after.id, [engine.compare(before.id, after.id).changes[0].hunks[0].id], 'chronicle/mode-drift');
+  const journal = path.join(engine.store, 'operations', op.id + '.json');
+  const saved = fs.readFileSync(journal);
+  fs.chmodSync(path.join(op.target, 'README.md'), 0o755);
+  assert.equal(engine.reconcileOperations().find(item => item.id === op.id).assessment, 'completed-worktree-modified');
+  assert.throws(() => engine.recordCheck(op.id, 'mode drift', 0), /Output workspace changed/);
+  assert.deepEqual(fs.readFileSync(journal), saved);
+});
+
 test('fixture run evidence binds only a complete run to a fresh matching output', t => {
   const { engine, file } = fixture(t);
   const cassette = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'simulated-tools', 'issue-tracker.json'), 'utf8'));
@@ -51,6 +65,15 @@ test('fixture run evidence binds only a complete run to a fresh matching output'
   const op = run.createBranch(after.id, selected, 'chronicle/fixture-bound');
   const fileName = path.join(engine.store, 'fixture-runs', run.id + '.json');
   const saved = JSON.parse(fs.readFileSync(fileName, 'utf8'));
+  if (process.platform !== 'win32') {
+    const output = path.join(op.target, 'README.md');
+    const originalMode = fs.statSync(output).mode;
+    const runBytes = fs.readFileSync(fileName);
+    fs.chmodSync(output, originalMode & 0o111 ? 0o644 : 0o755);
+    assert.throws(() => engine.bindFixtureRun(run.id, op.id), /stale/);
+    assert.deepEqual(fs.readFileSync(fileName), runBytes);
+    fs.chmodSync(output, originalMode);
+  }
   assert.deepEqual(saved.events.map(event => event.sequence), [1, 2]);
   assert.ok(saved.events.every(event => event.runId === run.id && event.cassetteHash === saved.cassetteHash));
   const replacement = fileName + '.' + crypto.randomUUID() + '.tmp';

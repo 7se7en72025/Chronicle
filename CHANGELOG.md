@@ -4,6 +4,8 @@ Record meaningful changes. Implementation, verification, and deployment are sepa
 
 ## Unreleased
 
+- Refuse new evidence attachment when POSIX output executable modes differ from their saved manifest.
+
 - Keep Codex trace coverage unknown when host lifecycle completion is missing, even with consistent fixture-server evidence.
 
 - Reject sparse arrays in simulated replay canonicalization so malformed local requests cannot consume an empty-array fixture response.
