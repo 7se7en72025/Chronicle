@@ -55,4 +55,7 @@ Simulated replay canonicalization now rejects sparse JavaScript arrays, preventi
 The Codex trace inspector keeps coverage unknown when turn.completed is absent, even with matching fixture-server evidence. The regression reproduced the old valid-structure flag; focused tests and syntax pass. The earlier full suite failed with timeouts and missing disposable storage after a reported multi-hour duration; a fresh rerun passed 117 of 120 tests with three platform-specific skips and zero failures in about 247 seconds. No runner or recovery code changes were needed; the earlier cause remains unconfirmed. Documentation and whitespace checks pass. See [REVIEW.md](REVIEW.md) for both results. Host acceptance gates remain open.
 ## Next concrete task
 
+Prioritize the open executable-mode freshness finding in [REVIEW.md](REVIEW.md): completed output reconciliation checks bytes but not saved POSIX executable modes. Reproduce mode-only drift in a disposable Linux fixture, require evidence attachment refusals, then fix against manifest.outputFiles modes with conservative legacy handling. This is source-review evidence; no Linux reproduction or fix is claimed yet.
+
+
 Continue viable CLI work within the accepted scope. When Visual Studio Code is approved and the shipped hook reviewed/trusted, run disposable real-host acceptance procedures and record checkpoints, gaps, privacy, and preservation evidence. Until those prerequisites exist, review concrete defects within the accepted scope. Do not invent roadmap work or repeat unchanged checks to fill a cycle.

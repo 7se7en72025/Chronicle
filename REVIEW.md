@@ -1,5 +1,11 @@
 # Latest development review
 
+## Executable-mode drift is missing from output freshness checks (2026-10-07, open)
+
+**P2 — src/engine.js:reconcileOperations compares completed output hashes and path presence, but not executable modes.** createBranch verifies modes at creation and saves them in manifest.outputFiles, while its older operation.files entries retain only path/hash. Reconciliation constructs its expected map from operation.files and only checks lstat.isFile plus the byte hash. Therefore a later POSIX chmod that preserves bytes is not checked against the saved manifest mode; recordCheck and bindFixtureRun depend on the completed assessment. This is a source-review finding, not a reproduced Linux result; Windows does not expose the same executable-bit semantics.
+
+Next: add a disposable POSIX regression that changes only an output executable bit, requires completed-worktree-modified, and verifies check recording and fixture binding refuse without changing journals. Compare live POSIX mode with pinned manifest output mode, retain Windows handling, and decide conservative legacy-manifest behavior. Run maintained Linux and Windows checks before calling this fixed. No source change or new host validation in this review; documentation links and whitespace checks apply.
+
 ## Missing host turn completion retained a partial coverage label (2026-10-07, fixed)
 
 **P2 — src/codex-trace.js:inspectCodexTrace only checked lifecycle counts when calculating its overall status.** A newline-terminated trace with all fixture calls and a matching server finish receipt, but no `turn.completed`, returned review-required while still labeling coverage partial-observed. The regression reproduced a valid-structure flag for that unfinished trace. End-of-scan validation now requires exactly one thread start, turn start, and turn completion plus an inactive turn before either structure or coverage can be accepted. Consistent fixture evidence remains visible, while host coverage becomes unknown with trace-structure-invalid.
